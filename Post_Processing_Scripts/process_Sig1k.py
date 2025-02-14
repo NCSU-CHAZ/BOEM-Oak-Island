@@ -247,13 +247,36 @@ def process(path, save_dir):
     Data['ErrVel'].to_hdf(
         os.path.join(save_dir, 'ErrVel'), key="df", mode="w"
     )
+    Data['Heading'].to_hdf(
+        os.path.join(save_dir, 'Heading'), key="df", mode="w"
+    )
+    Data['Roll'].to_hdf(
+        os.path.join(save_dir, 'Roll'), key="df", mode="w"
+    )
+    Data['Pitch'].to_hdf(
+        os.path.join(save_dir, 'Pitch'), key="df", mode="w"
+    )
+    Data['Pressure'].to_hdf(
+        os.path.join(save_dir, 'Pressure'), key="df", mode="w"
+    )
     Data['CellDepth'].to_hdf( os.path.join(save_dir, 'CellDepth'), key="df", mode="w")
-    
+
 directory_path = r"Z:\BHBoemData\Raw\S0_103080_hdf\Group2"
 save_dir = r"Z:\BHBoemData\Processed\S0_103080"
 
-process(directory_path, save_dir)
+
+files=os.listdir(directory_path)
+print(files)
+i = 26 # need to change if starting with group 1
+for file_name in files:
+     i+=1
+     path = os.path.join(directory_path, file_name)
+     print(path)
+     save_path_name = os.path.join(save_dir, f"Group{i}")
+     #os.makedirs(os.path.dirname(save_path_name), exist_ok=True) # create a new group folder if not already present
+     process(path, save_path_name)
+
 
 endtime = time.time()
 
-print("Time taken was", endtime-start_time, "seconds")
+print("Time taken was", start_time - endtime, "seconds")
