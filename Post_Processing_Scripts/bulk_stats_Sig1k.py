@@ -72,8 +72,8 @@ for i in range(N):
     #Grab mean depth for the ensemble
     dpthP= np.mean(P)
     dpth = dpthP + .508  #.508m above seafloor due to the lander height
-    
-    dpthU = Celldepth +.508
+
+    dpthU = dpthP - Celldepth 
     print(dpthU)
 
     break
