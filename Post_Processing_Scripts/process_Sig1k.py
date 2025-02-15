@@ -83,8 +83,8 @@ def process(path, save_dir):
    
     Data["CellDepth"] = (
         Data["BlankingDistance"][0].iloc[0]
-        + vector * Data["CellSize"][0].iloc[0]
-    )
+        + vector * Data["CellSize"][0].iloc[0] + .508   
+    )   #.508 is the height of the lander from the seafloor
     
     # QC the data based on correlation values based on the info in Elgar 2001 and
     # remove data thats collected over the surface of the water and remove the influence of the side lobes.
