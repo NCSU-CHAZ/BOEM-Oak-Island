@@ -1,4 +1,4 @@
-#%%
+#%% Cell containing welch method function
 import numpy as np
 import pandas as pd
 import os 
@@ -72,7 +72,7 @@ def welch_method(data, dt, M, lap):
     
     return psd, fr
 
-#%%
+#%% Cell containing data read in
 
 start_time = time.time()
 #This code will produce bulk statistics and frequency-directional spectra based on the multi-dimensional spectral analysis
@@ -120,7 +120,7 @@ Pressure = pd.read_hdf(os.path.join(path,'Pressure.h5'))
 Celldepth = pd.read_hdf(os.path.join(path,'Celldepth.h5'))
 groupnum += 1
     
-# %%
+# %% Cell containing processing stuff
 #Get number of ensembles in group
 dtgroup = pd.Timedelta(Time.iloc[-1].values[0] - Time.iloc[0].values[0]).total_seconds()
 N = math.floor(dtgroup/Nens)
@@ -163,7 +163,14 @@ for i in range(N):
     P_no_nan = np.nan_to_num(P.to_numpy(),nan=0.0)
     Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
 
-    
+    #Get rid of zero frequency and turn back into pandas dataframes
+    fr = pd.DataFrame(fr[1:])
+    Suu = pd.DataFrame(Suu[1:,:])
+    Svv = pd.DataFrame(Svv[1:,:])
+    Spp = pd.DataFrame(Spp[1:])
+
+
+
     
     break
     
