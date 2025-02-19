@@ -104,7 +104,7 @@ Chunks = (Nsamp-Nens*overlap-1)/(Nens*(1-overlap))# Number of averaged groups
 
 # Load in Data
 groupnum = 1
-path = f'Z:\BHBoemData\Processed\S0_103080\Group{groupnum}' #Define each group of data, each group is bout a day
+path = f'Z:\BHBoemData\Processed\S0_103080\Group{groupnum}' #Define each group of data, each group is about a day
 dirpath = r'Z:\BHBoemData\Processed\S0_103080' #Define the directory containing all the data from this deployment
 waves = {}
 waves['Time'] = pd.DataFrame([])
@@ -124,6 +124,24 @@ groupnum += 1
 #Get number of ensembles in group
 dtgroup = pd.Timedelta(Time.iloc[-1].values[0] - Time.iloc[0].values[0]).total_seconds()
 N = math.floor(dtgroup/Nens)
+
+# Wavenumber solver using dispersion relationship
+def waveNumber_dispersion(fr_rad,depth):
+    g=9.81 # (m/s^2) gravitational constant
+    errortol=0.001 # error tolerance
+    err=10 # error check
+    T=(2*np.pi)/fr_rad # wave period
+    L_0=((T**2)*g)/(2*np.pi) # deep water wave length
+    kguess=1/L_0 # initial guess of wave number as deep water wave number
+    ct=0 # initiate counter
+    while err>errortol and ct<1000:
+        ct=ct+1
+        argument = kguess*depth
+        k = (fr_rad**2)/(g*np.tanh(argument)) # calculate k with dispersion relationship
+        err=abs(k-kguess) # check for error
+        kguess=k # update k guess and repeat
+    k=kguess
+    return k
 
 #Loop over ensembles
 for i in range(N):
@@ -164,10 +182,42 @@ for i in range(N):
     Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
 
     #Get rid of zero frequency and turn back into pandas dataframes
-    fr = pd.DataFrame(fr[1:])
-    Suu = pd.DataFrame(Suu[1:,:])
+    fr = pd.DataFrame(fr[1:]) # frequency
+    Suu = pd.DataFrame(Suu[1:,:]) 
     Svv = pd.DataFrame(Svv[1:,:])
     Spp = pd.DataFrame(Spp[1:])
+
+    # Depth Attenuation
+    fr_rad=2*np.pi*fr # frequency in radians
+    length_fr_rad=len(fr_rad)
+    k=waveNumber_dispersion(fr_rad=fr_rad,depth=dpth) # calculate wave number using dispersion relationship
+    Paeta=np.cosh(k*dpth)/np.cosh(k*(dpth-dpthP)) # convert pressure to surface elevation (aeta)
+    Uaeta=(fr_rad/(g*k))*np.cosh(k*dpth)/np.cosh(k*(dpth-dpthU)) # convert velocity to surface elevation (aeta)
+    Usurf=np.cosh(k*dpth)/np.cosh(k*(dpth-dpthU)) # velocity at water surface
+
+    # Surface velocity spectra
+    SUU=Suu*(Usurf**2)
+    SVV=Svv*(Usurf**2)
+    SPP=Spp*(Paeta**2)
+
+    # Bulk Statistics
+    df=fr[1]-fr[0] # wind wave band
+    I = np.where((fr >= 1/20) & (fr <= 1/4))[0]
+    m0 = np.nansum(SPP[I] * df) # zeroth moment (total energy in the spectrum w/in incident wave band)
+    m1=np.nansum(fr[I]*SPP*df) # 1st moment (average frequency in spectrum w/in incident wave band)
+
+    Hs=4*np.sqrt(m0) # significant wave height
+    Tm=m0/m1 # mean wave period
+
+    C=fr_rad/k # wave celerity 
+    Cg=0.5*(g*np.tanh(k*dpth)+(g*k*dpth*(np.sech(k*dpth)**2)))/np.sqrt(g*k*np.tanh(k*dpth)) # group wave speed
+
+  
+    
+
+   
+
+
 
 
 
