@@ -1,4 +1,4 @@
-# %% Cell containing welch method function
+# %% Cell containing welch method function and wave dispersion function
 import numpy as np
 import pandas as pd
 import os
@@ -75,6 +75,25 @@ def welch_method(data, dt, M, lap):
 
     return psd, fr
 
+# Wavenumber solver using dispersion relationship
+def waveNumber_dispersion(fr_rad, depth):
+    g = 9.81  # (m/s^2) gravitational constant
+    errortol = 0.001  # error tolerance
+    err = 10  # error check
+    T = (2 * np.pi) / fr_rad  # wave period
+    L_0 = ((T**2) * g) / (2 * np.pi)  # deep water wave length
+    kguess = 1 / L_0  # initial guess of wave number as deep water wave number
+    ct = 0  # initiate counter
+    while err > errortol and ct < 1000:
+        ct = ct + 1
+        argument = kguess * depth
+        k = (fr_rad**2) / (
+            g * np.tanh(argument)
+        )  # calculate k with dispersion relationship
+        err = abs(k - kguess)  # check for error
+        kguess = k  # update k guess and repeat
+    k = kguess
+    return k
 
 # %% Cell containing data read in
 
@@ -142,26 +161,6 @@ for file in os.scandir(path=dirpath):
     ).total_seconds()
     N = math.floor(dtgroup / Nens)
 
-    # Wavenumber solver using dispersion relationship
-    def waveNumber_dispersion(fr_rad, depth):
-        g = 9.81  # (m/s^2) gravitational constant
-        errortol = 0.001  # error tolerance
-        err = 10  # error check
-        T = (2 * np.pi) / fr_rad  # wave period
-        L_0 = ((T**2) * g) / (2 * np.pi)  # deep water wave length
-        kguess = 1 / L_0  # initial guess of wave number as deep water wave number
-        ct = 0  # initiate counter
-        while err > errortol and ct < 1000:
-            ct = ct + 1
-            argument = kguess * depth
-            k = (fr_rad**2) / (
-                g * np.tanh(argument)
-            )  # calculate k with dispersion relationship
-            err = abs(k - kguess)  # check for error
-            kguess = k  # update k guess and repeat
-        k = kguess
-        return k
-
     # Loop over ensembles
     for i in range(N):
 
@@ -221,7 +220,7 @@ for file in os.scandir(path=dirpath):
         fr_rad = 2 * np.pi * fr  # frequency in radians
         length_fr_rad = len(fr_rad)
         k = waveNumber_dispersion(
-            fr_rad=fr_rad, depth=dpth
+            fr_rad=fr_rad.to_numpy(), depth=dpth
         )  # calculate wave number using dispersion relationship
         Paeta = np.cosh(k * dpth) / np.cosh(
             k * (dpth - dpthP)
@@ -262,13 +261,15 @@ for file in os.scandir(path=dirpath):
         waves["C"] = pd.concat([waves["C"], pd.DataFrame([C])], ignore_index=True)
         waves["Hs"] = pd.concat([waves["Hs"], pd.DataFrame([Hs])], ignore_index=True)
         waves["Tm"] = pd.concat([waves["Tm"], pd.DataFrame([Tm])], ignore_index=True)
-
-        break
-
+  
     groupnum += 1
+    break
 
-waves["Cg"].to_hdf(os.path.join(save_dir, "AbsVel"), key="df", mode="w")
-
+# Saves the bulk stts to the research storage
+waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
+waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
+waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
+waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
 
 endtime = time.time()
 
