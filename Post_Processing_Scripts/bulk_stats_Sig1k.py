@@ -153,12 +153,12 @@ Chunks = (Nsamp - Nens * overlap - 1) / (
 
 # Load in Data
 groupnum = 1
-path=f"/Volumes/kanarde/BOEM/BHBoemData/Processed/S0_103080/Group{groupnum}" #brooke path
-#path = f"Z:\BHBoemData\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
-#dirpath = r"Z:\BHBoemData\Processed\S0_103080"  # Define the directory containing all the data from this deployment
-dirpath=r"/Volumes/kanarde/BOEM/BHBoemData/Processed/S0_103080" #brooke path
-save_dir=r"/Volumes/kanarde/BOEM/BHBoemData/BulkStats/S0_103080" # brooke path
-#save_dir = r"Z:\BHBoemData\BulkStats\S0_103080"
+# path=f"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/Group{groupnum}" #brooke path
+path = f"Z:\deployment_1\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
+dirpath = r"Z:\deployment_1\Processed\S0_103080"  # Define the directory containing all the data from this deployment
+# dirpath=r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080" #brooke path
+# save_dir=r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S0_103080" # brooke path
+save_dir = r"Z:\deployment_1\BulkStats\S0_103080"
 
 # Initilize waves structure that will contain the bulk stats
 waves = {}
@@ -197,6 +197,7 @@ for file in os.scandir(path=dirpath):
         tavg = t.iloc[
             round(Nens / 2)
         ]  # Take the time for this ensemble by grabbing the middle time
+
         waves["Time"] = pd.concat(
             [waves["Time"], pd.DataFrame([tavg])], ignore_index=True
         )  # Record time for this ensemble in waves stats structure

@@ -62,8 +62,8 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     print("Saving Done")
 
 
-directory_path = r"Z:\BHBoemData\Raw\S0_103080_mat"
-save_dir = r"Z:\BHBoemData\Raw\S0_103080_hdf"
+directory_path = r"Z:\deployment_1\Raw\S0_103080_mat"
+save_dir = r"Z:\deployment_1\Raw\S0_103080_hdf"
 files = [
     f
     for f in os.listdir(directory_path)

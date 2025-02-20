@@ -5,7 +5,7 @@ import datetime as dt
 import pandas as pd
 
 Data = process(
-    r"Z:\BHBoemData\Raw\S0_103080\S103080A006_NCSU_35.mat"
+    r"Z:\deployment_1\Raw\S0_103080\S103080A006_NCSU_35.mat"
 )
 
 def RawVel_plotter(Data):
