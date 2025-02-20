@@ -77,22 +77,44 @@ def welch_method(data, dt, M, lap):
 
 # Wavenumber solver using dispersion relationship
 def waveNumber_dispersion(fr_rad, depth):
+    '''
+    Calculates wavenumber iteratively using dispersion relationship and an initial guess of a deep water wave.
+
+    Inputs:
+    fr_rad = wave frequency in radians (scalar or array)
+    depth = mean water depth in m
+
+    Outputs:
+    k = wavenumber in m^-1 (scalar or array)
+
+    '''
     g = 9.81  # (m/s^2) gravitational constant
     errortol = 0.001  # error tolerance
-    err = 10  # error check
-    T = (2 * np.pi) / fr_rad  # wave period
-    L_0 = ((T**2) * g) / (2 * np.pi)  # deep water wave length
-    kguess = 1 / L_0  # initial guess of wave number as deep water wave number
     ct = 0  # initiate counter
-    while err > errortol and ct < 1000:
-        ct = ct + 1
-        argument = kguess * depth
-        k = (fr_rad**2) / (
+
+    # convert scalar to array if needed
+    fr_rad = np.asarray([fr_rad])  #
+
+    k = np.zeros_like(fr_rad)  # Initialize an array for k (same shape as fr_rad)
+    T = np.zeros_like(fr_rad)  # Initialize an array for T (same shape as fr_rad)
+    L_0 = np.zeros_like(fr_rad)  # Initialize an array for L0 (same shape as fr_rad)
+
+    # loop over frequency array
+    for idx, fr in enumerate(fr_rad):
+        err=10
+        ct=0
+        T = (2 * np.pi) / fr  # wave period
+        L_0 = ((T**2) * g) / (2 * np.pi)  # deep water wave length
+        kguess = (2*np.pi) / L_0 # initial guess of wave number as deep water wave number
+        while err > errortol and ct < 1000:
+            ct = ct + 1
+            argument = kguess[idx] * depth
+            k[idx] = (fr**2) / (
             g * np.tanh(argument)
-        )  # calculate k with dispersion relationship
-        err = abs(k - kguess)  # check for error
-        kguess = k  # update k guess and repeat
-    k = kguess
+            )  # calculate k with dispersion relationship
+            err = abs(k[idx] - kguess)  # check for error
+            kguess = k[idx] # update k guess and repeat
+    
     return k
 
 # %% Cell containing data read in
@@ -131,9 +153,12 @@ Chunks = (Nsamp - Nens * overlap - 1) / (
 
 # Load in Data
 groupnum = 1
-path = f"Z:\BHBoemData\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
-dirpath = r"Z:\BHBoemData\Processed\S0_103080"  # Define the directory containing all the data from this deployment
-save_dir = r"Z:\BHBoemData\BulkStats\S0_103080"
+path=f"/Volumes/kanarde/BOEM/BHBoemData/Processed/S0_103080/Group{groupnum}" #brooke path
+#path = f"Z:\BHBoemData\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
+#dirpath = r"Z:\BHBoemData\Processed\S0_103080"  # Define the directory containing all the data from this deployment
+dirpath=r"/Volumes/kanarde/BOEM/BHBoemData/Processed/S0_103080" #brooke path
+save_dir=r"/Volumes/kanarde/BOEM/BHBoemData/BulkStats/S0_103080" # brooke path
+#save_dir = r"Z:\BHBoemData\BulkStats\S0_103080"
 
 # Initilize waves structure that will contain the bulk stats
 waves = {}
@@ -219,9 +244,7 @@ for file in os.scandir(path=dirpath):
         # Depth Attenuation
         fr_rad = 2 * np.pi * fr  # frequency in radians
         length_fr_rad = len(fr_rad)
-        k = waveNumber_dispersion(
-            fr_rad=fr_rad.to_numpy(), depth=dpth
-        )  # calculate wave number using dispersion relationship
+        k=waveNumber_dispersion(fr_rad.to_numpy(),dpth) # calculate wave number using dispersion relationship
         Paeta = np.cosh(k * dpth) / np.cosh(
             k * (dpth - dpthP)
         )  # convert pressure to surface elevation (aeta)
