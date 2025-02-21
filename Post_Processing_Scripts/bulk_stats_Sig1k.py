@@ -92,8 +92,10 @@ def waveNumber_dispersion(fr_rad, depth):
     errortol = 0.001  # error tolerance
     ct = 0  # initiate counter
 
-    # convert scalar to array if needed
-    fr_rad = np.asarray([fr_rad])  #
+    # Ensure fr_rad is an array
+    fr_rad = np.atleast_1d(fr_rad)
+    k = np.zeros_like(fr_rad)  # Initialize k array
+
 
     k = np.zeros_like(fr_rad)  # Initialize an array for k (same shape as fr_rad)
     T = np.zeros_like(fr_rad)  # Initialize an array for T (same shape as fr_rad)
@@ -108,12 +110,12 @@ def waveNumber_dispersion(fr_rad, depth):
         kguess = (2*np.pi) / L_0 # initial guess of wave number as deep water wave number
         while err > errortol and ct < 1000:
             ct = ct + 1
-            argument = kguess[idx] * depth
+            argument = kguess * depth
             k[idx] = (fr**2) / (
             g * np.tanh(argument)
             )  # calculate k with dispersion relationship
             err = abs(k[idx] - kguess)  # check for error
-            kguess = k[idx] # update k guess and repeat
+            k[idx] = kguess # update k guess and repeat
     
     return k
 
@@ -153,12 +155,12 @@ Chunks = (Nsamp - Nens * overlap - 1) / (
 
 # Load in Data
 groupnum = 1
-path=f"/Volumes/kanarde/BOEM/BHBoemData/Processed/S0_103080/Group{groupnum}" #brooke path
-#path = f"Z:\BHBoemData\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
-#dirpath = r"Z:\BHBoemData\Processed\S0_103080"  # Define the directory containing all the data from this deployment
-dirpath=r"/Volumes/kanarde/BOEM/BHBoemData/Processed/S0_103080" #brooke path
-save_dir=r"/Volumes/kanarde/BOEM/BHBoemData/BulkStats/S0_103080" # brooke path
-#save_dir = r"Z:\BHBoemData\BulkStats\S0_103080"
+# path=f"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/Group{groupnum}" #brooke path
+path = f"Z:\deployment_1\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
+dirpath = r"Z:\deployment_1\Processed\S0_103080"  # Define the directory containing all the data from this deployment
+# dirpath=r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080" #brooke path
+# save_dir=r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S0_103080" # brooke path
+save_dir = r"Z:\deployment_1\BulkStats\S0_103080"
 
 # Initilize waves structure that will contain the bulk stats
 waves = {}
@@ -197,6 +199,7 @@ for file in os.scandir(path=dirpath):
         tavg = t.iloc[
             round(Nens / 2)
         ]  # Take the time for this ensemble by grabbing the middle time
+
         waves["Time"] = pd.concat(
             [waves["Time"], pd.DataFrame([tavg])], ignore_index=True
         )  # Record time for this ensemble in waves stats structure
