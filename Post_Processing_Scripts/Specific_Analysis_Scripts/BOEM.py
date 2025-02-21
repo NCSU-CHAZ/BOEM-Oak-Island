@@ -49,6 +49,27 @@ def average_vel_plots(path):
     plt.xlim(left=Time.iloc[1],right=Time.iloc[-1])
     plt.show()
 
+
+# directory_path = r"Z:\BHBoemData\Raw\S0_103080_hdf\Group2"
+# save_dir = r"Z:\BHBoemData\Processed\S0_103080"
+
+
+# files=os.listdir(directory_path)
+# print(files)
+# i = 26 # need to change if starting with group 1
+# for file_name in files:
+#      i+=1
+#      path = os.path.join(directory_path, file_name)
+#      print(path)
+#      save_path_name = os.path.join(save_dir, f"Group{i}")
+#      #os.makedirs(os.path.dirname(save_path_name), exist_ok=True) # create a new group folder if not already present
+#      process(path, save_path_name)
+#
+#
+# endtime = time.time()
+#
+# print("Time taken was", start_time - endtime, "seconds")
+
 #average_vel_plots(path)
 
 EastVel = pd.read_hdf(os.path.join(path,'EastVel.h5'))
