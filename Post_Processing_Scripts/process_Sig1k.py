@@ -3,14 +3,14 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 import os
-import time
 
-start_time = time.time()
 
 def dtnum_dttime_adcp(
     time_array,
 ):  # Create a function to convert from matlabs datenum format to python datetime
-    dates = []  # Initialize dates#Convert the awkward structure intoa matlab array
+    dates = []  # Initialize dates
+
+    # #Convert the awkward structure into a matlab array
     DT = time_array.to_numpy()  # Dataframes behave strangely for some reason
     for ordinal in DT:
         integer = floor(
@@ -36,8 +36,22 @@ def dtnum_dttime_adcp(
                      but this is the best I have figured out at the time of creating this"""
 
 
-def process(path, save_dir):
-    #Initialize the Data dictionary as well as it's keys.
+def read_raw_h5(path):
+    """
+    Read h5 files of raw data from Sig1000. Raw data converted from mat to h5 in 'read_Sig1k'
+
+    :param:
+    path: string
+        path to directory to raw h5 files
+    save_dir: string
+        path to directory where processed, quality controlled data should be saved
+
+    :return:
+    Data: dictionary
+        raw data as a dictionary
+    """
+
+    # initialize the Data dictionary as well as it's keys
     Data = {}
     
     Data['CorBeam'] = pd.read_hdf(os.path.join(path,'Burst_CorBeam.h5'))
@@ -73,10 +87,7 @@ def process(path, save_dir):
     Data["CorBeam3"] = (Data["CorBeam"].iloc[:, 2::4])
     Data['CorBeam3'].reset_index(drop=True, inplace=True) 
     Data["CorBeam4"] = (Data["CorBeam"].iloc[:, 3::4])
-    Data['CorBeam4'].reset_index(drop=True, inplace=True) 
-    
-    # Get the dimensions of the matrices
-    row, col = Data["VelBeam1"].to_numpy().shape
+    Data['CorBeam4'].reset_index(drop=True, inplace=True)
 
     # Create cell depth vector
     vector = np.arange(1, Data["NCells"][0][0] + 1)
@@ -85,16 +96,42 @@ def process(path, save_dir):
         Data["BlankingDistance"][0].iloc[0]
         + vector * Data["CellSize"][0].iloc[0]  
     )   
-    
-    # QC the data based on correlation values based on the info in Elgar 2001 and
-    # remove data thats collected over the surface of the water and remove the influence of the side lobes.
-    # We will do this according to the processes in the ADCP Comprenhensive Manual from Nortek.
+    return Data
+
+
+def remove_low_correlations(Data):
+    """
+    The first step in data quality control is to remove any low-correlation data points across all depths.
+    This is accomplished using the equation Threshold = .3+.4*sqrt(sf/25) from Elga (2001), which incorporates the 
+    instrument sample rate. For s 4 Hz measurements, the threshold is approximately 0.46, so data points with
+    correlation values lower than 0.46 will be flagged and converted to NaNs.
+
+    Next, data collected beyond the water surface is removed. We set a water depth limit based on the highest tide,
+    but at lower tides, data collected above the surface must be discarded. This is done using pressure readings
+    directly from the instrument. Eventually, we will try using the 5th beam for this purpose.
+
+    :param:
+    Data: dictionary
+        raw data as a dictionary
+
+    :return:
+    Data: dictionary
+        raw data as a dictionary
+
+    """
+
+    # Get the dimensions of the matrices
+    row, col = Data["VelBeam1"].to_numpy().shape
+
     Sr = Data["SampleRate"][0].iloc[0]  # Sample rate in Hz
+
     CorrThresh = (
         0.3 + 0.4 * (Sr / 25) ** 0.5
     )  # Threshold for correlation values as found in Elgar
+
     isbad = np.zeros((row, col))  # Initialize mask for above surface measurements
 
+    # Apply mask for surface measurements
     for i in range(len(isbad)):
         Depth_Thresh = (
             Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
@@ -110,8 +147,24 @@ def process(path, save_dir):
         Data[f"VelBeam{jj}"][isbad] = np.nan
         Data[f"VelBeam{jj}"][isbad2] = np.nan
 
-    # Convert the data from beam coords to ENU (This is all done according to the steps found here
-    # https://support.nortekgroup.com/hc/en-us/articles/360029820971-How-is-a-coordinate-transformation-done
+    return Data
+
+def transform_beam_ENUD(Data):
+    """
+    Data is then converted from beam coordinates to ENUD (East, North, Up, Difference) using the transformation
+    matrix provided in the exported .mat file. The matrix incorporates beam angles and directions, and is combined
+    with heading, roll, and pitch data for the transformation.
+
+    https://support.nortekgroup.com/hc/en-us/articles/360029820971-How-is-a-coordinate-transformation-done
+
+    :param:
+    Data: dictionary
+        raw data as a dictionary
+
+    :return:
+    Data: dictionary
+        raw data as a dictionary
+    """
 
     # Load the transformation matrix
     T = pd.DataFrame(Data["Beam2xyz"]).to_numpy()
@@ -122,6 +175,7 @@ def process(path, save_dir):
     rr = np.pi * Data["Roll"].to_numpy() / 180
 
     # Create the tiled transformation matrix, this is for applyinh the transformation later to each data point
+    row, col = Data["VelBeam1"].to_numpy().shape     # Get the dimensions of the matrices
     Tmat = np.tile(T, (row, 1, 1))
 
     # Initialize heading and tilt matrices
@@ -151,9 +205,10 @@ def process(path, save_dir):
             ],
         ]
 
-    # Combine the Hmat and Pmat vectors into one rotation matrix, this conversion matrix is organized with beams in the columns
-    # and the rotation values on the rows (for each data point). The original Hmat and Pmat matrices are only made with the one Z
-    # value in mind so we duplicate the 4 row of the transform matirx to create the fourth, same process for fourth column.
+    # Combine the Hmat and Pmat vectors into one rotation matrix, this conversion matrix is organized with beams in the
+    # columns and the rotation values on the rows (for each data point). The original Hmat and Pmat matrices are only
+    # made with the one Z value in mind so we duplicate the 4 row of the transform matirx to create the fourth, same
+    # process for fourth column.
     #                     Beam1   Beam2   Beam3   Beam4
     #                X   [                               ]
     #                Y   [                               ]             (at nth individual sample)
@@ -167,7 +222,7 @@ def process(path, save_dir):
         R1Mat[3, 0:4, i] = R1Mat[2, 0:4, i]  # Create fourth row
         R1Mat[0:4, 3, i] = R1Mat[0:4, 2, i]  # Create fourth column
 
-    ### We zero out these value since Beams 3 and 4 can't measure both Z's
+    # We zero out these value since Beams 3 and 4 can't measure both Z's
     R1Mat[2, 3, :] = 0
     R1Mat[3, 2, :] = 0
 
@@ -194,7 +249,7 @@ def process(path, save_dir):
     ENU = np.einsum("ijk,jkl->ikl", Rmat, Velocities)
     ENU = np.transpose(ENU, (1, 2, 0))
     Data["ENU"] = ENU
-    del ENU
+    # del ENU
 
     Data["ENU"][:, :, 3] = abs(Data["ENU"][:, :, 2] - Data["ENU"][:, :, 3])
 
@@ -225,10 +280,25 @@ def process(path, save_dir):
 
     # Reapply the mask to set positions with any original NaNs back to NaN
     Data["AbsVel"][~nan_mask] = np.nan
-
     Data['CellDepth'] = pd.DataFrame(Data['CellDepth'])
 
-    #Save the data gields
+
+def save_data(Data, save_dir):
+    """
+    Saves h5 files of quality controlled data from Sig1000.
+
+    :param:
+    Data: dictionary
+        raw data as a dictionary
+    save_dir: string
+        path to directory where processed, quality controlled data should be saved
+
+    :return:
+    none
+
+    """
+
+    # Save the data fields
     Data['AbsVel'].to_hdf(
         os.path.join(save_dir, 'AbsVel'), key="df", mode="w"
     )
@@ -261,22 +331,24 @@ def process(path, save_dir):
     )
     Data['CellDepth'].to_hdf( os.path.join(save_dir, 'CellDepth'), key="df", mode="w")
 
-directory_path = r"Z:\BHBoemData\Raw\S0_103080_hdf\Group2"
-save_dir = r"Z:\BHBoemData\Processed\S0_103080"
+    return
+
+# directory_path = r"Z:\BHBoemData\Raw\S0_103080_hdf\Group2"
+# save_dir = r"Z:\BHBoemData\Processed\S0_103080"
 
 
-files=os.listdir(directory_path)
-print(files)
-i = 26 # need to change if starting with group 1
-for file_name in files:
-     i+=1
-     path = os.path.join(directory_path, file_name)
-     print(path)
-     save_path_name = os.path.join(save_dir, f"Group{i}")
-     #os.makedirs(os.path.dirname(save_path_name), exist_ok=True) # create a new group folder if not already present
-     process(path, save_path_name)
-
-
-endtime = time.time()
-
-print("Time taken was", start_time - endtime, "seconds")
+# files=os.listdir(directory_path)
+# print(files)
+# i = 26 # need to change if starting with group 1
+# for file_name in files:
+#      i+=1
+#      path = os.path.join(directory_path, file_name)
+#      print(path)
+#      save_path_name = os.path.join(save_dir, f"Group{i}")
+#      #os.makedirs(os.path.dirname(save_path_name), exist_ok=True) # create a new group folder if not already present
+#      process(path, save_path_name)
+#
+#
+# endtime = time.time()
+#
+# print("Time taken was", start_time - endtime, "seconds")
