@@ -146,8 +146,9 @@ def remove_low_correlations(Data):
         )  # create mask for bad correlations
         Data[f"VelBeam{jj}"][isbad] = np.nan
         Data[f"VelBeam{jj}"][isbad2] = np.nan
-
+        Data[f"VelBeamCorr{jj}"][isbad2] = 1
     return Data
+
 
 def transform_beam_ENUD(Data):
     """
