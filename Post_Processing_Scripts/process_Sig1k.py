@@ -341,21 +341,4 @@ def save_data(Data, save_dir):
     return
 
 
-directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf"
-save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
-files = [
-    f
-    for f in os.listdir(directory_path)
-    if os.path.isfile(os.path.join(directory_path, f))
-]
-i = 0
 
-for file_name in files:
-    i += 1
-    path = os.path.join(directory_path, f"Group{i}",file_name)
-    save_path = os.path.join(save_dir, f"Group{i}")
-    Data=read_raw_h5(path)
-    Data=remove_low_correlations(Data)
-    Data=transform_beam_ENUD(Data)
-    save_data(Data, save_dir)
-    #dtnum_dttime_adcp("/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf/Group{:1d}/Burst_Time.h5").format(i)
