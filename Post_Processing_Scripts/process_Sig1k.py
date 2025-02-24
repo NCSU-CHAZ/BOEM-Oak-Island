@@ -139,11 +139,13 @@ def remove_low_correlations(Data):
         )
         isbad[i, :] = Data["CellDepth"] >= Depth_Thresh
     isbad = isbad.astype(np.bool_)
+    Data[f"isbad"]=isbad
 
     for jj in range(1, 5):
         isbad2 = (
             Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh
         )  # create mask for bad correlations
+        Data[f"isbad2{jj}"]=isbad2
         Data[f"VelBeam{jj}"][isbad] = np.nan
         Data[f"VelBeam{jj}"][isbad2] = np.nan
         Data[f"VelBeamCorr{jj}"][isbad2] = 1
@@ -330,6 +332,30 @@ def save_data(Data, save_dir):
     Data['Pressure'].to_hdf(
         os.path.join(save_dir, 'Pressure'), key="df", mode="w"
     )
+    Data['isbad'].to_hdf( os.path.join(save_dir, 'isbad'), key="df", mode="w"
+    )
+    Data['isbad2'].to_hdf( os.path.join(save_dir, 'isbad2'), key="df", mode="w"
+    )
     Data['CellDepth'].to_hdf( os.path.join(save_dir, 'CellDepth'), key="df", mode="w")
 
     return
+
+
+directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf"
+save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
+files = [
+    f
+    for f in os.listdir(directory_path)
+    if os.path.isfile(os.path.join(directory_path, f))
+]
+i = 0
+
+for file_name in files:
+    i += 1
+    path = os.path.join(directory_path, f"Group{i}",file_name)
+    save_path = os.path.join(save_dir, f"Group{i}")
+    Data=read_raw_h5(path)
+    Data=remove_low_correlations(Data)
+    Data=transform_beam_ENUD(Data)
+    save_data(Data, save_dir)
+    #dtnum_dttime_adcp("/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf/Group{:1d}/Burst_Time.h5").format(i)
