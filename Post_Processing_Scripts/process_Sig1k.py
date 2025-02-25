@@ -3,38 +3,15 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 import os
+from datetime import datetime, timedelta
 
 
-def dtnum_dttime_adcp(
-    time_array,
-):  # Create a function to convert from matlabs datenum format to python datetime
-    dates = []  # Initialize dates
-
-    # #Convert the awkward structure into a matlab array
-    DT = time_array.to_numpy()  # Dataframes behave strangely for some reason
-    for ordinal in DT:
-        integer = floor(
-            ordinal[0]
-        )  # Round down to the nearest whole number on the datetime
-        frac = ordinal - integer  # Get just the decimal points
-        date = dt.datetime.fromordinal(
-            integer
-        )  # This function only takes integer values so we must add the decimal on after the conversion
-        time = dt.timedelta(
-            days=frac[0]
-        )  # Convert the decimals into hours, min, seconds, microseconds, ect.
-        mat_correction = dt.timedelta(
-            days=366
-        )  # Matlab datenum starts from Jan 1 0000AD, this year is 366 days long,
-        # while ordinal time which is what we are converting from starts Jan 1 0001AD
-        full = (
-            date + time - mat_correction
-        )  # Recombine the fractional precision and correct fro the year difference between ordinal and dateum
-        dates.append(full)  # Append the correct datetime back into the dates array
+def dtnum_dttime_adcp(datenum_array):
+    dates = []
+    for datenum in datenum_array: 
+        python_datetime = datetime.fromordinal(int(datenum)) + timedelta(days=datenum%1) - timedelta(days = 366)
+        dates.append(python_datetime) 
     return dates
-    """This entire loop is very inefficient, will take time for large data sets
-                     but this is the best I have figured out at the time of creating this"""
-
 
 def read_raw_h5(path):
     """
@@ -58,7 +35,7 @@ def read_raw_h5(path):
     Data['Heading'] = pd.read_hdf(os.path.join(path,'Burst_Heading.h5'))
     Data['Pressure'] = pd.read_hdf(os.path.join(path,'Burst_Pressure.h5'))
     Data['Roll'] = pd.read_hdf(os.path.join(path,'Burst_Roll.h5'))
-    Data['Time'] = pd.read_hdf(os.path.join(path,'Burst_Time.h5'))
+    datenum_array = pd.read_hdf(os.path.join(path,'Burst_Time.h5'))
     Data['VelBeam'] = pd.read_hdf(os.path.join(path,'Burst_VelBeam.h5'))
     Data['Pitch'] = pd.read_hdf(os.path.join(path,'Burst_Pitch.h5'))
 
@@ -67,7 +44,7 @@ def read_raw_h5(path):
     Data['CellSize'] = pd.read_hdf(os.path.join(path,'Burst_CellSize.h5'))
     Data['NCells'] = pd.read_hdf(os.path.join(path,'Burst_NCells.h5'))
     Data['SampleRate'] = pd.read_hdf(os.path.join(path,'Burst_SamplingRate.h5'))
-    Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(Data["Time"]))
+    Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array[0].values))
 
     # Get individual beams
     Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0::4])
