@@ -75,9 +75,10 @@ def welch_method(data, dt, M, lap):
 
     return psd, fr
 
+
 # Wavenumber solver using dispersion relationship
 def waveNumber_dispersion(fr_rad, depth):
-    '''
+    """
     Calculates wavenumber iteratively using dispersion relationship and an initial guess of a deep water wave.
 
     Inputs:
@@ -87,7 +88,7 @@ def waveNumber_dispersion(fr_rad, depth):
     Outputs:
     k = wavenumber in m^-1 (scalar or array)
 
-    '''
+    """
     g = 9.81  # (m/s^2) gravitational constant
     errortol = 0.001  # error tolerance
     ct = 0  # initiate counter
@@ -96,28 +97,111 @@ def waveNumber_dispersion(fr_rad, depth):
     fr_rad = np.atleast_1d(fr_rad)
     k = np.zeros_like(fr_rad)  # Initialize k array
 
-
     k = np.zeros_like(fr_rad)  # Initialize an array for k (same shape as fr_rad)
     T = np.zeros_like(fr_rad)  # Initialize an array for T (same shape as fr_rad)
     L_0 = np.zeros_like(fr_rad)  # Initialize an array for L0 (same shape as fr_rad)
 
     # loop over frequency array
     for idx, fr in enumerate(fr_rad):
-        err=10
-        ct=0
+        err = 10
+        ct = 0
         T = (2 * np.pi) / fr  # wave period
         L_0 = ((T**2) * g) / (2 * np.pi)  # deep water wave length
-        kguess = (2*np.pi) / L_0 # initial guess of wave number as deep water wave number
+        kguess = (
+            2 * np.pi
+        ) / L_0  # initial guess of wave number as deep water wave number
         while err > errortol and ct < 1000:
             ct = ct + 1
             argument = kguess * depth
             k[idx] = (fr**2) / (
-            g * np.tanh(argument)
+                g * np.tanh(argument)
             )  # calculate k with dispersion relationship
             err = abs(k[idx] - kguess)  # check for error
-            kguess = k[idx] # update k guess and repeat
-    
+            kguess = k[idx]  # update k guess and repeat
+
     return k
+
+
+def welch_cospec(datax, datay, dt, M, lap):
+    """
+    Estimates power cospectral density of 'data' using Welch's method.
+
+    Parameters:
+    data1 (ndarray): Input time-series data as numpy array (shape: [samples, bins]).
+    data2 (ndarray): Input second time-series data to compute cospectra with as numpy array (shape: [samples,bins])
+    dt (float): Sampling time interval.
+    M (int): Number of subwindows.
+    lap (float): Fractional overlap between windows (0 <= lap < 1).
+
+    Returns:
+    psd (ndarray): Estimated power spectral density.
+    fr (ndarray): Frequency array.
+    """
+
+    # Size of the input data
+    sd = datax.shape
+    Ns = int(np.floor(sd[0] / (M - (M - 1) * lap)))  # Number of samples in each chunk
+    M = int(M)  # Ensure M is an integer
+    ds = int(np.floor(Ns * (1 - lap)))  # Number of indices to shift by in the loop
+    ii = np.arange(Ns)  # Indices for each chunk
+
+    # Hanning window
+    win = np.hanning(Ns)
+    win = np.tile(win, (sd[1], 1)).T  # Apply to all channels
+
+    # Check if Ns is even or odd
+    if Ns % 2 == 0:
+        inyq = 1  # Don't double the Nyquist frequency
+        stop = Ns // 2 + 1
+    else:
+        inyq = 0
+        stop = (Ns + 1) // 2
+
+    # Frequency vector
+    fr = np.arange(0, stop) / (dt * Ns)
+
+    # Initialize spectras
+    Sxx = np.zeros((stop, sd[1]))
+    Syy = np.zeros((stop, sd[1]))
+    Cxy = np.zeros((stop, sd[1]))
+
+    # Loop through chunks
+    for m in range(M):
+        inds = ii + (m - 1) * ds
+        x = datax[inds, :]  # Acquire data in this chunk
+        y = datay[inds, :]
+        sx2i = np.var(x, axis=0)  # Find variance
+        sy2i = np.var(y, axis=0)
+        x = win * (x - np.mean(x, axis=0))  # Detrend and apply window
+        y = win * (y - np.mean(y, axis=0))  # Detrend and apply window
+        sx2f = np.var(x)  # Reduced Variance
+        sy2f = np.var(y)  # Reduced Variance
+        sx2f[sx2f == 0] = 1e-10  # Prevent division by zero just in case
+        sy2f[sy2f == 0] = 1e-10  # Prevent division by zero just in case
+
+        # Apply scaling factor
+        x = np.sqrt(sx2i / sx2f) * x
+        y = np.sqrt(sy2i / sy2f) * y
+        #Take the fft of the data
+        X = np.fft.fft(x, axis=0)[:stop, :]
+        Y = np.fft.fft(y, axis=0)[:stop, :]
+        #Take the magnitude squared
+        Ax = np.abs(X)**2
+        Ay = np.abs(Y)**2
+        # Double the amplitude for positive frequencies (except Nyquist)
+        Ax[
+            1:-inyq, :
+        ] *= 2  
+        Ay[
+            1:-inyq, :
+        ] *= 2
+        
+
+
+
+
+    return Sxy, fr
+
 
 # %% Cell containing data read in
 
@@ -171,6 +255,7 @@ waves["C"] = pd.DataFrame([])
 waves["Cg"] = pd.DataFrame([])
 waves["Uavg"] = pd.DataFrame([])
 waves["Vavg"] = pd.DataFrame([])
+waves["MeanDir"] = pd.DataFrame([])
 
 
 # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
@@ -182,7 +267,7 @@ for file in os.scandir(path=dirpath):
     Time = pd.read_hdf(os.path.join(path, "Time.h5"))
     Pressure = pd.read_hdf(os.path.join(path, "Pressure.h5"))
     Celldepth = pd.read_hdf(os.path.join(path, "Celldepth.h5"))
-    
+
     # %% Cell containing processing stuff
     # Get number of ensembles in group
     dtgroup = pd.Timedelta(
@@ -197,11 +282,11 @@ for file in os.scandir(path=dirpath):
 
         # Grab the time series associated with these ensembles
         t = Time.iloc[i * Nens : Nens * (i + 1)]
-        
+
         tavg = t.iloc[
             round(Nens / 2)
         ]  # Take the time for this ensemble by grabbing the middle time
-        
+
         waves["Time"] = pd.concat(
             [waves["Time"], pd.DataFrame([tavg])], ignore_index=True
         )  # Record time for this ensemble in waves stats structure
@@ -212,12 +297,16 @@ for file in os.scandir(path=dirpath):
         W = VertVel.iloc[i * Nens : Nens * (i + 1), :]
         P = Pressure.iloc[i * Nens : Nens * (i + 1)]
 
-        #Find the depth averaged velocity stat
+        # Find the depth averaged velocity stat
         Uavg = np.nanmean(U)
         Vavg = np.nanmean(V)
-        
-        waves["Uavg"] = pd.concat([waves["Uavg"],pd.DataFrame([Uavg])],axis=0, ignore_index=True)
-        waves["Vavg"] = pd.concat([waves["Vavg"],pd.DataFrame([Vavg])],axis=0, ignore_index=True)
+
+        waves["Uavg"] = pd.concat(
+            [waves["Uavg"], pd.DataFrame([Uavg])], axis=0, ignore_index=True
+        )
+        waves["Vavg"] = pd.concat(
+            [waves["Vavg"], pd.DataFrame([Vavg])], axis=0, ignore_index=True
+        )
 
         # Grab mean depth for the ensemble
         dpthP = np.mean(P)
@@ -249,7 +338,7 @@ for file in os.scandir(path=dirpath):
 
         # Get rid of zero frequency and turn back into pandas dataframes
         fr = pd.DataFrame(fr[1:])  # frequency
-        fr.reset_index 
+        fr.reset_index
         Suu = pd.DataFrame(Suu[1:, :])
         Svv = pd.DataFrame(Svv[1:, :])
         Spp = pd.DataFrame(Spp[1:])
@@ -257,7 +346,9 @@ for file in os.scandir(path=dirpath):
         # Depth Attenuation
         fr_rad = 2 * np.pi * fr  # frequency in radians
         length_fr_rad = len(fr_rad)
-        k=waveNumber_dispersion(fr_rad.to_numpy(),dpth) # calculate wave number using dispersion relationship
+        k = waveNumber_dispersion(
+            fr_rad.to_numpy(), dpth
+        )  # calculate wave number using dispersion relationship
         Paeta = np.cosh(k * dpth) / np.cosh(
             k * (dpth - dpthP)
         )  # convert pressure to surface elevation (aeta)
@@ -273,7 +364,7 @@ for file in os.scandir(path=dirpath):
         SUU = Suu * (Usurf**2)
         SVV = Svv * (Usurf**2)
         SPP = Spp * (Paeta**2)
-        
+
         # Bulk Statistics
         df = fr.iloc[1] - fr.iloc[0]  # wind wave band
         I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
@@ -290,22 +381,28 @@ for file in os.scandir(path=dirpath):
         C = fr_rad / k  # wave celerity
         Cg = (
             0.5
-            * (g * np.tanh(k * dpth) + (g * k * dpth * (1/(np.cosh(k * dpth) ** 2))))
+            * (g * np.tanh(k * dpth) + (g * k * dpth * (1 / (np.cosh(k * dpth) ** 2))))
             / np.sqrt(g * k * np.tanh(k * dpth))
         )  # group wave speed
 
-        waves["Cg"] = pd.concat([waves["Cg"], np.nanmean(Cg)],axis=0, ignore_index=True)
-        waves["C"] = pd.concat([waves["C"],  np.nanmean(C)],axis=0, ignore_index=True)
-        waves["Hs"] = pd.concat([waves["Hs"], pd.DataFrame([Hs])],axis=0, ignore_index=True)
-        waves["Tm"] = pd.concat([waves["Tm"], pd.DataFrame([Tm])],axis=0, ignore_index=True)
-        
+        waves["Cg"] = pd.concat(
+            [waves["Cg"], np.nanmean(Cg)], axis=0, ignore_index=True
+        )
+        waves["C"] = pd.concat([waves["C"], np.nanmean(C)], axis=0, ignore_index=True)
+        waves["Hs"] = pd.concat(
+            [waves["Hs"], pd.DataFrame([Hs])], axis=0, ignore_index=True
+        )
+        waves["Tm"] = pd.concat(
+            [waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
+        )
+
     groupnum += 1
     break
-print(waves["C"]) 
-print(waves["Cg"]) 
-print(waves["Uavg"]) 
-print(waves["Hs"]) 
-print(waves['Tm']) 
+print(waves["C"])
+print(waves["Cg"])
+print(waves["Uavg"])
+print(waves["Hs"])
+print(waves["Tm"])
 
 # Saves the bulk stts to the research storage
 # waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
