@@ -64,9 +64,7 @@ def welch_method(data, dt, M, lap):
         X = np.fft.fft(x, axis=0)
         X = X[:stop, :]  # Keep only positive frequencies
         A2 = np.abs(X) ** 2  # Amplitude squared
-        A2[
-            1:-inyq, :
-        ] *= 2  # Double the amplitude for positive frequencies (except Nyquist)
+        A2[1:-inyq, :] *= 2  # Double the amplitude for positive frequencies (except Nyquist)
 
         SX += A2
 
@@ -182,25 +180,36 @@ def welch_cospec(datax, datay, dt, M, lap):
         # Apply scaling factor
         x = np.sqrt(sx2i / sx2f) * x
         y = np.sqrt(sy2i / sy2f) * y
-        #Take the fft of the data
+        # Take the fft of the data
         X = np.fft.fft(x, axis=0)[:stop, :]
         Y = np.fft.fft(y, axis=0)[:stop, :]
-        #Take the magnitude squared
-        Ax = np.abs(X)**2
-        Ay = np.abs(Y)**2
+        # Take the magnitude squared
+        Axx = np.abs(X) ** 2
+        Ayy = np.abs(Y) ** 2
+        Axy = np.abs(Y) ** 2
         # Double the amplitude for positive frequencies (except Nyquist)
-        Ax[
-            1:-inyq, :
-        ] *= 2  
-        Ay[
-            1:-inyq, :
-        ] *= 2
-        
+        Axx = X * np.conj(X)
+        Axx[1:-inyq, :] *= 2
+        Ayy = Y * np.conj(Y)
+        Ayy[1:-inyq, :] *= 2
+        Axy = X * np.conj(Y)
+        Axy[1:-inyq, :] *= 2
+        #Combine the spectra for each chunk
+        SXX += Axx.real
+        SYY += Ayy.real
+        CXY += Axy
+    
+    SXX *= dt / (M * Ns)
+    SYY *= dt / (M * Ns)
+    CXY *= dt / (M * Ns)
 
+    #Take the cospectra 
+    CoSP= np.real(CXY)
+    QuSP= np.imag(CXY)
+    COH = abs(CXY)/np.sqrt(SXX*SYY )
+    PHI = np.atan2(-QuSP,CoSP)
 
-
-
-    return Sxy, fr
+    return CoSP, fr
 
 
 # %% Cell containing data read in
@@ -274,6 +283,8 @@ for file in os.scandir(path=dirpath):
         Time.iloc[-1].values[0] - Time.iloc[0].values[0]
     ).total_seconds()
     N = math.floor(dtgroup / Nens)
+    #Number of bins
+    Nb = len(Celldepth)
 
     # Loop over ensembles
     for i in range(N):
@@ -395,6 +406,22 @@ for file in os.scandir(path=dirpath):
         waves["Tm"] = pd.concat(
             [waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
         )
+
+        #Now lets calculate the cospectra and mean wave direction
+        Suv,fr = welch_cospec(U.to_numpy(),V.to_numpy(),dt,Chunks,overlap)
+        Spu,fr = welch_cospec(np.repeat(P.to_numpy(),Nb,axis=1),V.to_numpy(),dt,Chunks,overlap)
+        Spv,fr = welch_cospec(np.repeat(P.to_numpy(),Nb,axis=1),V.to_numpy(),dt,Chunks,overlap)
+        
+        #Remove zero frequency
+        Suv = pd.DataFrame(Suv[1:, :])
+        Spu = pd.DataFrame(Spu[1:, :])
+        Spv = pd.DataFrame(Spv[1:, :])
+        #Surface Velocity Spectra
+        SUV = Suv*Usurf**2
+        SPU = np.repeat(Paeta,Nb, axis = 1)*Spu*Usurf
+        SPV = np.repeat(Paeta,Nb, axis = 1)*Spv*Usurf
+
+
 
     groupnum += 1
     break
