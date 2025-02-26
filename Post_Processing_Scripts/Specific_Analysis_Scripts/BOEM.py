@@ -5,6 +5,9 @@ import pandas as pd
 import os 
 import time
 
+from Post_Processing_Scripts.process_Sig1k import dtnum_dttime_adcp, read_raw_h5, remove_low_correlations, \
+    transform_beam_ENUD, save_data
+
 start_time = time.time()
 
 path = r'Z:\BHBoemData\Processed\S0_103080\Group1'
