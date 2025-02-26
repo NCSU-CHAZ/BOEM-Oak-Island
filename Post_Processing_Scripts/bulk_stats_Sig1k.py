@@ -374,16 +374,16 @@ for file in os.scandir(path=dirpath):
         # Surface velocity spectra
         SUU = Suu * (Usurf**2)
         SVV = Svv * (Usurf**2)
-        SPP = Spp * (Paeta**2)
+        SePP = Spp * (Paeta**2)
 
         # Bulk Statistics
         df = fr.iloc[1] - fr.iloc[0]  # wind wave band
         I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
         m0 = np.nansum(
-            SPP.iloc[I] * df
+            SePP.iloc[I] * df
         )  # zeroth moment (total energy in the spectrum w/in incident wave band)
         m1 = np.nansum(
-            fr.iloc[I] * SPP * df
+            fr.iloc[I] * SePP * df
         )  # 1st moment (average frequency in spectrum w/in incident wave band)
 
         Hs = 4 * np.sqrt(m0)  # significant wave height
@@ -420,8 +420,44 @@ for file in os.scandir(path=dirpath):
         SUV = Suv*Usurf**2
         SPU = np.repeat(Paeta,Nb, axis = 1)*Spu*Usurf
         SPV = np.repeat(Paeta,Nb, axis = 1)*Spv*Usurf
+        #Map to Surface Elevation Spectra
+        SeUV = Suv*Usurf**2
+        SePU = np.repeat(Paeta,Nb, axis = 1)*Spu*Usurf
+        SePV = np.repeat(Paeta,Nb, axis = 1)*Spv*Usurf
+
+        # Assuming SPU, SPV, SUV, SePP, SUU, SVV, fq are defined as NumPy arrays
+        coPU = SPU.copy()
+        coPV = SPV.copy()
+        coUV = SUV.copy()
+        r2d = 180 / np.pi
+
+        # Compute a1 and b1
+        a1 = coPU / np.sqrt(SePP * (SUU + SVV))
+        b1 = coPV / np.sqrt(SePP * (SUU + SVV))
+        dir1 = r2d * np.arctan2(b1, a1)
+        spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1**2 + b1**2)))
+
+        #Use
+        ma1 = np.nansum(a1[I, :] * SePP[I][:, None] * df, axis=0) / m0
+        mb1 = np.nansum(b1[I, :] * SePP[I][:, None] * df, axis=0) / m0
+
+        mdir1 = np.remainder(90 + 180 - r2d * np.arctan2(mb1, ma1), 360)
+        mspread1 = r2d * np.sqrt(np.abs(2 * (1 - (ma1 * np.cos(mdir1 / r2d) + mb1 * np.sin(mdir1 / r2d)))))
+
+        # Compute a2 and b2
+        a2 = (SUU - SVV) / (SUU + SVV)
+        b2 = 2 * coUV / (SUU + SVV)
+        spread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (a2 * np.cos(2 * dir1 / r2d) + b2 * np.sin(2 * dir1 / r2d))))
+
+        ma2 = np.nansum(a2[I, :] * SePP[I][:, None] * df, axis=0) / m0
+        mb2 = np.nansum(b2[I, :] * SePP[I][:, None] * df, axis=0) / m0
+        dir2 = (r2d / 2) * np.arctan2(b2, a2)
+        mdir2 = 90 - (r2d / 2) * np.arctan2(mb2, ma2)
+        mspread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir1 / r2d) + mb2 * np.sin(2 * mdir1 / r2d))))
 
 
+
+        import numpy as np
 
     groupnum += 1
     break
