@@ -123,7 +123,7 @@ def remove_low_correlations(Data):
         Data[f"isbad2{jj}"]=isbad2
         Data[f"VelBeam{jj}"][isbad] = np.nan
         Data[f"VelBeam{jj}"][isbad2] = np.nan
-        Data[f"VelBeamCorr{jj}"][isbad2] = 1
+        Data[f"VelBeamCorr{jj}"][isbad2] = 1     #This is katherines sloppy line of code
     return Data
 
 
