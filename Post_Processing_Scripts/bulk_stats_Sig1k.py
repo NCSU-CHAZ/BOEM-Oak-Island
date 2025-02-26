@@ -115,7 +115,7 @@ def waveNumber_dispersion(fr_rad, depth):
             g * np.tanh(argument)
             )  # calculate k with dispersion relationship
             err = abs(k[idx] - kguess)  # check for error
-            k[idx] = kguess # update k guess and repeat
+            kguess = k[idx] # update k guess and repeat
     
     return k
 
@@ -169,6 +169,8 @@ waves["Tm"] = pd.DataFrame([])
 waves["Hs"] = pd.DataFrame([])
 waves["C"] = pd.DataFrame([])
 waves["Cg"] = pd.DataFrame([])
+waves["Uavg"] = pd.DataFrame([])
+waves["Vavg"] = pd.DataFrame([])
 
 
 # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
@@ -180,7 +182,7 @@ for file in os.scandir(path=dirpath):
     Time = pd.read_hdf(os.path.join(path, "Time.h5"))
     Pressure = pd.read_hdf(os.path.join(path, "Pressure.h5"))
     Celldepth = pd.read_hdf(os.path.join(path, "Celldepth.h5"))
-
+    
     # %% Cell containing processing stuff
     # Get number of ensembles in group
     dtgroup = pd.Timedelta(
@@ -190,16 +192,16 @@ for file in os.scandir(path=dirpath):
 
     # Loop over ensembles
     for i in range(N):
-
         """For the first group the adcp was out of the water for a while so
         there aren't any stats until it gets deployed."""
 
         # Grab the time series associated with these ensembles
         t = Time.iloc[i * Nens : Nens * (i + 1)]
+        
         tavg = t.iloc[
             round(Nens / 2)
         ]  # Take the time for this ensemble by grabbing the middle time
-
+        
         waves["Time"] = pd.concat(
             [waves["Time"], pd.DataFrame([tavg])], ignore_index=True
         )  # Record time for this ensemble in waves stats structure
@@ -209,6 +211,13 @@ for file in os.scandir(path=dirpath):
         V = NorthVel.iloc[i * Nens : Nens * (i + 1), :]
         W = VertVel.iloc[i * Nens : Nens * (i + 1), :]
         P = Pressure.iloc[i * Nens : Nens * (i + 1)]
+
+        #Find the depth averaged velocity stat
+        Uavg = np.nanmean(U)
+        Vavg = np.nanmean(V)
+        
+        waves["Uavg"] = pd.concat([waves["Uavg"],pd.DataFrame([Uavg])],axis=0, ignore_index=True)
+        waves["Vavg"] = pd.concat([waves["Vavg"],pd.DataFrame([Vavg])],axis=0, ignore_index=True)
 
         # Grab mean depth for the ensemble
         dpthP = np.mean(P)
@@ -240,6 +249,7 @@ for file in os.scandir(path=dirpath):
 
         # Get rid of zero frequency and turn back into pandas dataframes
         fr = pd.DataFrame(fr[1:])  # frequency
+        fr.reset_index 
         Suu = pd.DataFrame(Suu[1:, :])
         Svv = pd.DataFrame(Svv[1:, :])
         Spp = pd.DataFrame(Spp[1:])
@@ -251,8 +261,9 @@ for file in os.scandir(path=dirpath):
         Paeta = np.cosh(k * dpth) / np.cosh(
             k * (dpth - dpthP)
         )  # convert pressure to surface elevation (aeta)
+        k = pd.DataFrame(k)
         Uaeta = (
-            (fr_rad / (g * k)) * np.cosh(k * dpth) / np.cosh(k * (dpth - dpthU))
+            (fr_rad / (g * k)) * np.cosh(k * dpth) / np.cosh(k * (dpth - dpthU).T)
         )  # convert velocity to surface elevation (aeta)
         Usurf = np.cosh(k * dpth) / np.cosh(
             k * (dpth - dpthU)
@@ -262,15 +273,15 @@ for file in os.scandir(path=dirpath):
         SUU = Suu * (Usurf**2)
         SVV = Svv * (Usurf**2)
         SPP = Spp * (Paeta**2)
-
+        
         # Bulk Statistics
-        df = fr[1] - fr[0]  # wind wave band
+        df = fr.iloc[1] - fr.iloc[0]  # wind wave band
         I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
         m0 = np.nansum(
-            SPP[I] * df
+            SPP.iloc[I] * df
         )  # zeroth moment (total energy in the spectrum w/in incident wave band)
         m1 = np.nansum(
-            fr[I] * SPP * df
+            fr.iloc[I] * SPP * df
         )  # 1st moment (average frequency in spectrum w/in incident wave band)
 
         Hs = 4 * np.sqrt(m0)  # significant wave height
@@ -279,23 +290,30 @@ for file in os.scandir(path=dirpath):
         C = fr_rad / k  # wave celerity
         Cg = (
             0.5
-            * (g * np.tanh(k * dpth) + (g * k * dpth * (np.sech(k * dpth) ** 2)))
+            * (g * np.tanh(k * dpth) + (g * k * dpth * (1/(np.cosh(k * dpth) ** 2))))
             / np.sqrt(g * k * np.tanh(k * dpth))
         )  # group wave speed
 
-        waves["Cg"] = pd.concat([waves["Cg"], pd.DataFrame([Cg])], ignore_index=True)
-        waves["C"] = pd.concat([waves["C"], pd.DataFrame([C])], ignore_index=True)
-        waves["Hs"] = pd.concat([waves["Hs"], pd.DataFrame([Hs])], ignore_index=True)
-        waves["Tm"] = pd.concat([waves["Tm"], pd.DataFrame([Tm])], ignore_index=True)
-  
+        waves["Cg"] = pd.concat([waves["Cg"], np.nanmean(Cg)],axis=0, ignore_index=True)
+        waves["C"] = pd.concat([waves["C"],  np.nanmean(C)],axis=0, ignore_index=True)
+        waves["Hs"] = pd.concat([waves["Hs"], pd.DataFrame([Hs])],axis=0, ignore_index=True)
+        waves["Tm"] = pd.concat([waves["Tm"], pd.DataFrame([Tm])],axis=0, ignore_index=True)
+        
     groupnum += 1
     break
+print(waves["C"]) # wrong to many rows
+print(waves["Cg"]) # Same number of rows as Cg
+print(waves["Uavg"]) # Super duper wrong
+print(waves["Hs"]) #correct
+print(waves['Tm']) #correct
 
 # Saves the bulk stts to the research storage
-waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
-waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
-waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
-waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
+# waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
+# waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
+# waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
+# waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
+# waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVeloctiy"), key="df", mode="w")
+# waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVeloctiy"), key="df", mode="w")
 
 endtime = time.time()
 
