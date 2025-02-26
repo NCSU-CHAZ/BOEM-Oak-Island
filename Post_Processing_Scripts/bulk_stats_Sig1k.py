@@ -301,11 +301,11 @@ for file in os.scandir(path=dirpath):
         
     groupnum += 1
     break
-print(waves["C"]) # wrong to many rows
-print(waves["Cg"]) # Same number of rows as Cg
-print(waves["Uavg"]) # Super duper wrong
-print(waves["Hs"]) #correct
-print(waves['Tm']) #correct
+print(waves["C"]) 
+print(waves["Cg"]) 
+print(waves["Uavg"]) 
+print(waves["Hs"]) 
+print(waves['Tm']) 
 
 # Saves the bulk stts to the research storage
 # waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
