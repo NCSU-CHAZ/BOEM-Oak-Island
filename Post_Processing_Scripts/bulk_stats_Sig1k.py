@@ -161,7 +161,7 @@ def welch_cospec(datax, datay, dt, M, lap):
     # Initialize spectras
     Sxx = np.zeros((stop, sd[1]))
     Syy = np.zeros((stop, sd[1]))
-    Cxy = np.zeros((stop, sd[1]))
+    Cxy = np.zeros((stop, sd[1],), dtype=complex)
 
     # Loop through chunks
     for m in range(M):
@@ -174,8 +174,10 @@ def welch_cospec(datax, datay, dt, M, lap):
         y = win * (y - np.mean(y, axis=0))  # Detrend and apply window
         sx2f = np.var(x)  # Reduced Variance
         sy2f = np.var(y)  # Reduced Variance
-        sx2f[sx2f == 0] = 1e-10  # Prevent division by zero just in case
-        sy2f[sy2f == 0] = 1e-10  # Prevent division by zero just in case
+        if sx2f == 0:
+            sx2f = 1e-10
+        if sy2f == 0:
+            sy2f = 1e-10
 
         # Apply scaling factor
         x = np.sqrt(sx2i / sx2f) * x
@@ -195,19 +197,20 @@ def welch_cospec(datax, datay, dt, M, lap):
         Axy = X * np.conj(Y)
         Axy[1:-inyq, :] *= 2
         #Combine the spectra for each chunk
-        SXX += Axx.real
-        SYY += Ayy.real
-        CXY += Axy
+        Sxx += Axx.real
+        Syy += Ayy.real
+        Cxy += Axy
     
-    SXX *= dt / (M * Ns)
-    SYY *= dt / (M * Ns)
-    CXY *= dt / (M * Ns)
+    Sxx *= dt / (M * Ns)
+    Syy *= dt / (M * Ns)
+    Cxy *= dt / (M * Ns)
 
     #Take the cospectra 
-    CoSP= np.real(CXY)
-    QuSP= np.imag(CXY)
-    COH = abs(CXY)/np.sqrt(SXX*SYY )
-    PHI = np.atan2(-QuSP,CoSP)
+    CoSP= np.real(Cxy)
+    QuSP= np.imag(Cxy)
+    # We dont use these stats
+    # COH = abs(Cxy)/np.sqrt(Sxx*Syy )
+    # PHI = np.atan2(-QuSP,CoSP)
 
     return CoSP, fr
 
@@ -238,7 +241,7 @@ fs = 4  # Sampling Frequency in Hz
 
 # Set up averages for statistics
 dt = 1 / fs  # sample rate in 1/s
-Nsamp = dtburst
+Nsamp = dtburst * fs
 overlap = 2 / 3
 # Number of samples in each ensemble
 Nens = dtens * fs
@@ -264,8 +267,10 @@ waves["C"] = pd.DataFrame([])
 waves["Cg"] = pd.DataFrame([])
 waves["Uavg"] = pd.DataFrame([])
 waves["Vavg"] = pd.DataFrame([])
-waves["MeanDir"] = pd.DataFrame([])
-
+waves["MeanDir1"] = pd.DataFrame([])
+waves["MeanSpread1"] = pd.DataFrame([])
+waves["MeanDir2"] = pd.DataFrame([])
+waves["MeanSpread2"] = pd.DataFrame([])
 
 # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
 for file in os.scandir(path=dirpath):
@@ -276,13 +281,12 @@ for file in os.scandir(path=dirpath):
     Time = pd.read_hdf(os.path.join(path, "Time.h5"))
     Pressure = pd.read_hdf(os.path.join(path, "Pressure.h5"))
     Celldepth = pd.read_hdf(os.path.join(path, "Celldepth.h5"))
-
+    
     # %% Cell containing processing stuff
-    # Get number of ensembles in group
-    dtgroup = pd.Timedelta(
-        Time.iloc[-1].values[0] - Time.iloc[0].values[0]
-    ).total_seconds()
-    N = math.floor(dtgroup / Nens)
+    # Get number of total samples in group
+    nt = len(Time)
+
+    N = math.floor(nt / Nsamp)
     #Number of bins
     Nb = len(Celldepth)
 
@@ -290,12 +294,12 @@ for file in os.scandir(path=dirpath):
     for i in range(N):
         """For the first group the adcp was out of the water for a while so
         there aren't any stats until it gets deployed."""
-
+        
         # Grab the time series associated with these ensembles
-        t = Time.iloc[i * Nens : Nens * (i + 1)]
+        t = Time.iloc[i * Nsamp : Nsamp * (i + 1)]
 
         tavg = t.iloc[
-            round(Nens / 2)
+            round(Nsamp / 2)
         ]  # Take the time for this ensemble by grabbing the middle time
 
         waves["Time"] = pd.concat(
@@ -303,11 +307,11 @@ for file in os.scandir(path=dirpath):
         )  # Record time for this ensemble in waves stats structure
 
         # Grab the slices of data fields for this ensemble, (bad data are represented as nans)
-        U = EastVel.iloc[i * Nens : Nens * (i + 1), :]
-        V = NorthVel.iloc[i * Nens : Nens * (i + 1), :]
-        W = VertVel.iloc[i * Nens : Nens * (i + 1), :]
-        P = Pressure.iloc[i * Nens : Nens * (i + 1)]
-
+        U = EastVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
+        V = NorthVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
+        W = VertVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
+        P = Pressure.iloc[i * Nsamp : Nsamp * (i + 1)]
+        
         # Find the depth averaged velocity stat
         Uavg = np.nanmean(U)
         Vavg = np.nanmean(V)
@@ -348,8 +352,7 @@ for file in os.scandir(path=dirpath):
         Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
 
         # Get rid of zero frequency and turn back into pandas dataframes
-        fr = pd.DataFrame(fr[1:])  # frequency
-        fr.reset_index
+        fr = pd.DataFrame(fr[1:]).reset_index(drop=True) # frequency
         Suu = pd.DataFrame(Suu[1:, :])
         Svv = pd.DataFrame(Svv[1:, :])
         Spp = pd.DataFrame(Spp[1:])
@@ -383,7 +386,7 @@ for file in os.scandir(path=dirpath):
             SePP.iloc[I] * df
         )  # zeroth moment (total energy in the spectrum w/in incident wave band)
         m1 = np.nansum(
-            fr.iloc[I] * SePP * df
+            fr.iloc[I] * SePP.iloc[I] * df
         )  # 1st moment (average frequency in spectrum w/in incident wave band)
 
         Hs = 4 * np.sqrt(m0)  # significant wave height
@@ -396,10 +399,11 @@ for file in os.scandir(path=dirpath):
             / np.sqrt(g * k * np.tanh(k * dpth))
         )  # group wave speed
 
+        #Put the variables into the waves structure
         waves["Cg"] = pd.concat(
-            [waves["Cg"], np.nanmean(Cg)], axis=0, ignore_index=True
+            [waves["Cg"], pd.DataFrame([np.nanmean(Cg)])], axis=0, ignore_index=True
         )
-        waves["C"] = pd.concat([waves["C"], np.nanmean(C)], axis=0, ignore_index=True)
+        waves["C"] = pd.concat([waves["C"],pd.DataFrame([np.nanmean(C)])], axis=0, ignore_index=True)
         waves["Hs"] = pd.concat(
             [waves["Hs"], pd.DataFrame([Hs])], axis=0, ignore_index=True
         )
@@ -408,9 +412,10 @@ for file in os.scandir(path=dirpath):
         )
 
         #Now lets calculate the cospectra and mean wave direction
-        Suv,fr = welch_cospec(U.to_numpy(),V.to_numpy(),dt,Chunks,overlap)
-        Spu,fr = welch_cospec(np.repeat(P.to_numpy(),Nb,axis=1),V.to_numpy(),dt,Chunks,overlap)
-        Spv,fr = welch_cospec(np.repeat(P.to_numpy(),Nb,axis=1),V.to_numpy(),dt,Chunks,overlap)
+        P_expanded = np.tile(P.to_numpy(), (1, Nb))
+        Suv,fr = welch_cospec(U_no_nan,V_no_nan,dt,Chunks,overlap)
+        Spu,fr = welch_cospec(P_expanded,V_no_nan,dt,Chunks,overlap)
+        Spv,fr = welch_cospec(P_expanded,V_no_nan,dt,Chunks,overlap)
         
         #Remove zero frequency
         Suv = pd.DataFrame(Suv[1:, :])
@@ -430,17 +435,18 @@ for file in os.scandir(path=dirpath):
         coPV = SPV.copy()
         coUV = SUV.copy()
         r2d = 180 / np.pi
-
+        
         # Compute a1 and b1
         a1 = coPU / np.sqrt(SePP * (SUU + SVV))
         b1 = coPV / np.sqrt(SePP * (SUU + SVV))
+        #Compute directional spread
         dir1 = r2d * np.arctan2(b1, a1)
         spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1**2 + b1**2)))
-
-        #Use
-        ma1 = np.nansum(a1[I, :] * SePP[I][:, None] * df, axis=0) / m0
-        mb1 = np.nansum(b1[I, :] * SePP[I][:, None] * df, axis=0) / m0
-
+        
+        #Compute weighted average for fourier coefficients
+        ma1 = np.nansum(a1.loc[I] * SePP.loc[I] * df, axis=0) / m0
+        mb1 = np.nansum(b1.loc[I] * SePP.loc[I] * df, axis=0) / m0
+        #Compute average directional spreads
         mdir1 = np.remainder(90 + 180 - r2d * np.arctan2(mb1, ma1), 360)
         mspread1 = r2d * np.sqrt(np.abs(2 * (1 - (ma1 * np.cos(mdir1 / r2d) + mb1 * np.sin(mdir1 / r2d)))))
 
@@ -448,32 +454,46 @@ for file in os.scandir(path=dirpath):
         a2 = (SUU - SVV) / (SUU + SVV)
         b2 = 2 * coUV / (SUU + SVV)
         spread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (a2 * np.cos(2 * dir1 / r2d) + b2 * np.sin(2 * dir1 / r2d))))
-
-        ma2 = np.nansum(a2[I, :] * SePP[I][:, None] * df, axis=0) / m0
-        mb2 = np.nansum(b2[I, :] * SePP[I][:, None] * df, axis=0) / m0
+        #Compute weighted averages for second order coefficients
+        ma2 = np.nansum(a2.loc[I] * SePP.loc[I] * df, axis=0) / m0
+        mb2 = np.nansum(b2.loc[I] * SePP.loc[I] * df, axis=0) / m0
+        #Compute second order directionl spectra
         dir2 = (r2d / 2) * np.arctan2(b2, a2)
         mdir2 = 90 - (r2d / 2) * np.arctan2(mb2, ma2)
         mspread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir1 / r2d) + mb2 * np.sin(2 * mdir1 / r2d))))
 
-
-
-        import numpy as np
-
+        #Put the directions and spreads for the waves into waves structure
+        waves["MeanDir1"] = pd.concat(
+            [waves["MeanDir1"], pd.DataFrame([np.nanmean(mdir1)])], axis=0, ignore_index=True
+        )
+        waves["MeanSpread1"] = pd.concat(
+            [waves["MeanSpread1"], pd.DataFrame([np.nanmean(mspread1)])], axis=0, ignore_index=True
+        )
+        waves["MeanDir2"] = pd.concat(
+            [waves["MeanDir2"], pd.DataFrame([np.nanmean(mdir2)])], axis=0, ignore_index=True
+        )
+        waves["MeanSpread2"] = pd.concat(
+            [waves["MeanSpread2"], pd.DataFrame([np.nanmean(mspread2)])], axis=0, ignore_index=True
+        )
+        
+        if i == 1:
+            waves["fr"] = pd.DataFrame(fr[I])
+            waves["k"] = k.loc[I]
     groupnum += 1
     break
-print(waves["C"])
-print(waves["Cg"])
-print(waves["Uavg"])
-print(waves["Hs"])
-print(waves["Tm"])
+print(waves)
 
 # Saves the bulk stts to the research storage
-# waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
-# waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
-# waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
-# waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
-# waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVeloctiy"), key="df", mode="w")
-# waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVeloctiy"), key="df", mode="w")
+waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
+waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
+waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
+waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
+waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVeloctiy"), key="df", mode="w")
+waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVeloctiy"), key="df", mode="w")
+waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
+waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeaanSpread1"), key="df", mode="w")
+waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
+waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
 
 endtime = time.time()
 
