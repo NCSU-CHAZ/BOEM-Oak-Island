@@ -123,7 +123,12 @@ def remove_low_correlations(Data):
         Data[f"isbad2{jj}"]=isbad2
         Data[f"VelBeam{jj}"][isbad] = np.nan
         Data[f"VelBeam{jj}"][isbad2] = np.nan
+<<<<<<< Updated upstream
         Data[f"VelBeamCorr{jj}"][isbad2] = 1     #This is katherines sloppy line of code
+=======
+        #Data[f"VelBeamCorr{jj}"][isbad2] = 1
+        
+>>>>>>> Stashed changes
     return Data
 
 
@@ -227,7 +232,8 @@ def transform_beam_ENUD(Data):
     ENU = np.einsum("ijk,jkl->ikl", Rmat, Velocities)
     ENU = np.transpose(ENU, (1, 2, 0))
     Data["ENU"] = ENU
-    # del ENU
+    del ENU
+
 
     Data["ENU"][:, :, 3] = abs(Data["ENU"][:, :, 2] - Data["ENU"][:, :, 3])
 
@@ -235,6 +241,7 @@ def transform_beam_ENUD(Data):
     Data['NorthVel'] = pd.DataFrame(Data['ENU'][:, :, 1])
     Data['VertVel'] = pd.DataFrame(Data['ENU'][:, :, 2])
     Data['ErrVel'] = pd.DataFrame(Data['ENU'][:, :, 3])
+    print(f"Sample EastVel values: {Data['EastVel'].head()}")
 
     # Add matrices with NaN values together treating nan values as 0, this for calculating the absolute velocity
     nan_mask = np.full((row, col), False)
@@ -250,7 +257,7 @@ def transform_beam_ENUD(Data):
     NorthVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 0], nan=0.0)
     EastVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 1], nan=0.0)
     VertVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 2], nan=0.0)
-
+    print(NorthVel_no_nan)
     # Sum the squared velocities
     Data["AbsVel"] = pd.DataFrame(
         np.sqrt(NorthVel_no_nan**2 + EastVel_no_nan**2 + VertVel_no_nan**2)
@@ -259,6 +266,9 @@ def transform_beam_ENUD(Data):
     # Reapply the mask to set positions with any original NaNs back to NaN
     Data["AbsVel"][~nan_mask] = np.nan
     Data['CellDepth'] = pd.DataFrame(Data['CellDepth'])
+
+    print(f"AbsVel shape: {Data['AbsVel'].shape}")
+    print(f"Sample AbsVel values: {Data['AbsVel'].head()}")
 
 
 def save_data(Data, save_dir):
