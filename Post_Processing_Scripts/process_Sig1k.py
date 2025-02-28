@@ -114,13 +114,13 @@ def remove_low_correlations(Data):
         )
         isbad[i, :] = Data["CellDepth"] >= Depth_Thresh
     isbad = isbad.astype(bool)
-    print(isbad)
+
+    isbad2=np.zeros((row,col)) # initialize mask
 
     for jj in range(1, 5):
         isbad2 = (
             Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh
         )  # create mask for bad correlations
-        print(isbad2)
         isbad2 = isbad2.astype(bool)
         velbeam_copy = Data[f"VelBeam{jj}"].copy()
         velbeam_copy.loc[isbad] = np.nan
@@ -135,7 +135,7 @@ def remove_low_correlations(Data):
         # Data[f"VelBeamCorr{jj}"][isbad2] = 1     #This is katherines sloppy line of code
 
     Data[f"isbad"]=isbad
-    Data[f"isbad2{jj}"]=isbad2
+    Data[f"isbad2"]=isbad2
     return Data
 
 
