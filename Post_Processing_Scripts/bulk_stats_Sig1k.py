@@ -271,6 +271,7 @@ waves["MeanDir1"] = pd.DataFrame([])
 waves["MeanSpread1"] = pd.DataFrame([])
 waves["MeanDir2"] = pd.DataFrame([])
 waves["MeanSpread2"] = pd.DataFrame([])
+waves["avgFlowDir"] = pd.DataFrame([])
 
 # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
 for file in os.scandir(path=dirpath):
@@ -316,6 +317,16 @@ for file in os.scandir(path=dirpath):
         Uavg = np.nanmean(U)
         Vavg = np.nanmean(V)
 
+        # Compute depth-averaged current direction in degrees
+        avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg)) 
+        
+        # Convert to compass direction (0° = North, 90° = East)
+        avgFlowDir = (avgFlowDir + 360) % 360
+        
+        # Store results in DataFrame
+        waves["avgFlowDir"] = pd.concat(
+            [waves["avgFlowDir"], pd.DataFrame([avgFlowDir])], axis=0, ignore_index=True
+        )
         waves["Uavg"] = pd.concat(
             [waves["Uavg"], pd.DataFrame([Uavg])], axis=0, ignore_index=True
         )
@@ -481,14 +492,17 @@ for file in os.scandir(path=dirpath):
             waves["k"] = k.loc[I]
         
         #Set up depth threshold so if the ADCP is not in much water (when being deployed), data isn't recorded
-        if dpth<3:
-            for keys in waves.keys():
-                waves[keys].loc[i] =  np.nan
+        if dpth < 3:
+            for key in waves.keys():
+                if key != "Time":  # Exclude 'Time' from being set to NaN
+                    waves[key].loc[i] = np.nan
 
     groupnum += 1
+    break
 
 # Saves the bulk stts to the research storage
 waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
+waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
 waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
 waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
 waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
@@ -498,6 +512,7 @@ waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mod
 waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeaanSpread1"), key="df", mode="w")
 waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
 waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
+waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDireciton"), key="df", mode="w")
 
 endtime = time.time()
 
