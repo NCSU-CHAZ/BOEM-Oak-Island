@@ -479,9 +479,13 @@ for file in os.scandir(path=dirpath):
         if i == 1:
             waves["fr"] = pd.DataFrame(fr[I])
             waves["k"] = k.loc[I]
+        
+        #Set up depth threshold so if the ADCP is not in much water (when being deployed), data isn't recorded
+        if dpth<3:
+            for keys in waves.keys():
+                waves[keys].loc[i] =  np.nan
+
     groupnum += 1
-    break
-print(waves)
 
 # Saves the bulk stts to the research storage
 waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
