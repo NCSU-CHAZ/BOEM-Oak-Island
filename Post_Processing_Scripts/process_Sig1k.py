@@ -122,17 +122,11 @@ def remove_low_correlations(Data):
             Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh
         )  # create mask for bad correlations
         isbad2 = isbad2.astype(bool)
-        velbeam_copy = Data[f"VelBeam{jj}"].copy()
-        velbeam_copy.loc[isbad] = np.nan
-        velbeam_copy.loc[isbad2] = np.nan
-        Data[f"VelBeam{jj}"] = velbeam_copy
-        # Data[f"VelBeam{jj}"].loc[isbad] = np.nan
-        # Data[f"VelBeam{jj}"].loc[isbad2] = np.nan
-        Data[f"VelBeamCorr{jj}"].loc[isbad2] = True
-        # Data[f"isbad2{jj}"]=isbad2
-        # Data[f"VelBeam{jj}"][isbad] = np.nan
-        # Data[f"VelBeam{jj}"][isbad2] = np.nan
-        # Data[f"VelBeamCorr{jj}"][isbad2] = 1     #This is katherines sloppy line of code
+        # Initialize the VelBeamCorr{jj} columns with 0
+        Data[f"VelBeamCorr{jj}"] = np.nan
+        Data[f"VelBeam{jj}"].loc[isbad] = np.nan
+        Data[f"VelBeam{jj}"].loc[isbad2] = np.nan
+        Data[f"VelBeamCorr{jj}"][isbad2] = 1     #This is katherines sloppy line of code
 
     Data[f"isbad"]=isbad
     Data[f"isbad2"]=isbad2
