@@ -129,8 +129,8 @@ def remove_low_correlations(Data):
         Data.loc[isbad2, f"VelBeamCorr{jj}"] = 1  # Set to 1 for bad correlations
        # Data[f"VelBeamCorr{jj}"][isbad2] = 1     #This is katherines sloppy line of code
 
-    Data[f"isbad"]=isbad
-    Data[f"isbad2"]=isbad2
+   # Data[f"isbad"]=isbad (Realized we don't need these, since we're saving VelBeamCorr)
+   # Data[f"isbad2"]=isbad2
     return Data
 
 
