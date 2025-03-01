@@ -74,7 +74,7 @@ def average_vel_plots(path):
 #
 # print("Time taken was", start_time - endtime, "seconds")
 
-# This is how I was running the process code before this doc, if this helps
+# This is how I was running the process code before this doc, if this helps (Brooke)
 
 # directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf/"
 # save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
