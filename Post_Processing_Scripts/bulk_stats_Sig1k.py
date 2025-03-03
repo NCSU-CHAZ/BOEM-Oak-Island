@@ -298,7 +298,7 @@ for file in os.scandir(path=dirpath):
 
     # Loop over ensembles
     for i in range(N):
-        i=10
+    
         """For the first group the adcp was out of the water for a while so
         there aren't any stats until it gets deployed."""
         
