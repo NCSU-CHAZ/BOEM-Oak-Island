@@ -251,12 +251,12 @@ Chunks = (Nsamp - Nens * overlap - 1) / (
 
 # Load in Data
 groupnum = 1
-path=f"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/Group{groupnum}" #brooke path
+path=f"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S0_103080/Group{groupnum}" #brooke path
 
 #path = f"Z:\deployment_1\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
 #dirpath = r"Z:\deployment_1\Processed\S0_103080"  # Define the directory containing all the data from this deployment
-dirpath=r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418" #brooke path
-save_dir=r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S1_101418" # brooke path
+dirpath=r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S0_103080" #brooke path
+save_dir=r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S0_103080" # brooke path
 #save_dir = r"Z:\deployment_1\BulkStats\S0_103080"
 
 # Initilize waves structure that will contain the bulk stats
