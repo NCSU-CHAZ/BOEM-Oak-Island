@@ -122,12 +122,12 @@ def remove_low_correlations(Data):
             Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh
         )  # create mask for bad correlations
         isbad2 = isbad2.astype(bool)
-        # Initialize the VelBeamCorr{jj} columns with nans
-        Data[f"VelBeamCorr{jj}"] = np.nan
-        Data[f"VelBeam{jj}"].loc[isbad] = np.nan
-        Data[f"VelBeam{jj}"].loc[isbad2] = np.nan
-        Data.loc[isbad2, f"VelBeamCorr{jj}"] = 1  # Set to 1 for bad correlations
-       # Data[f"VelBeamCorr{jj}"][isbad2] = 1     #This is katherines sloppy line of code
+        # Initialize the VelBeamCorr{jj} columns with zeros
+        Data[f"VelBeamCorr{jj}"] = pd.DataFrame(np.zeros((row, col)), index=Data[f"CorBeam{jj}"].index)
+        Data[f"VelBeam{jj}"]= Data[f"VelBeam{jj}"].mask(isbad, np.nan)
+        Data[f"VelBeam{jj}"]= Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
+        Data[f"VelBeamCorr{jj}"]= Data[f"VelBeamCorr{jj}"].mask(isbad2, 1) # Set to 1 for bad correlations
+        
 
    # Data[f"isbad"]=isbad (Realized we don't need these, since we're saving VelBeamCorr)
    # Data[f"isbad2"]=isbad2
@@ -264,7 +264,7 @@ def transform_beam_ENUD(Data):
     Data["AbsVel"] = pd.DataFrame(
         np.sqrt(NorthVel_no_nan**2 + EastVel_no_nan**2 + VertVel_no_nan**2)
     )
-
+    
     # Reapply the mask to set positions with any original NaNs back to NaN
     Data["AbsVel"][~nan_mask] = np.nan
     Data['CellDepth'] = pd.DataFrame(Data['CellDepth'])
