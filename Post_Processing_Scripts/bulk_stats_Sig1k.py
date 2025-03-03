@@ -272,6 +272,11 @@ waves["MeanSpread1"] = pd.DataFrame([])
 waves["MeanDir2"] = pd.DataFrame([])
 waves["MeanSpread2"] = pd.DataFrame([])
 waves["avgFlowDir"] = pd.DataFrame([])
+waves["Spp"] = pd.DataFrame([])
+waves["Svv"] = pd.DataFrame([])
+waves["Suu"] = pd.DataFrame([])
+waves["Spu"] = pd.DataFrame([])
+waves["Spv"] = pd.DataFrame([])
 
 # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
 for file in os.scandir(path=dirpath):
@@ -293,6 +298,7 @@ for file in os.scandir(path=dirpath):
 
     # Loop over ensembles
     for i in range(N):
+        i=10
         """For the first group the adcp was out of the water for a while so
         there aren't any stats until it gets deployed."""
         
@@ -473,6 +479,7 @@ for file in os.scandir(path=dirpath):
         mdir2 = 90 - (r2d / 2) * np.arctan2(mb2, ma2)
         mspread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir1 / r2d) + mb2 * np.sin(2 * mdir1 / r2d))))
 
+
         #Put the directions and spreads for the waves into waves structure
         waves["MeanDir1"] = pd.concat(
             [waves["MeanDir1"], pd.DataFrame([np.nanmean(mdir1)])], axis=0, ignore_index=True
@@ -486,6 +493,22 @@ for file in os.scandir(path=dirpath):
         waves["MeanSpread2"] = pd.concat(
             [waves["MeanSpread2"], pd.DataFrame([np.nanmean(mspread2)])], axis=0, ignore_index=True
         )
+        waves["Spp"] = pd.concat(
+            [waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+        )
+        waves["Svv"] = pd.concat(
+            [waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+        )
+        waves["Suu"] = pd.concat(
+            [waves["Suu"], pd.DataFrame([np.nanmean(Suu.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+        )
+        waves["Spu"] = pd.concat(
+            [waves["Spu"], pd.DataFrame([np.nanmean(Spu.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+        )
+        waves["Spv"] = pd.concat(
+            [waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+        )
+        
         
         if i == 1:
             waves["fr"] = pd.DataFrame(fr[I])
@@ -496,11 +519,10 @@ for file in os.scandir(path=dirpath):
             for key in waves.keys():
                 if key != "Time":  # Exclude 'Time' from being set to NaN
                     waves[key].loc[i] = np.nan
-
     groupnum += 1
-    break
+    
 
-# Saves the bulk stts to the research storage
+# Saves the bulk stats to the research storage
 waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
 waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
 waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
@@ -513,6 +535,11 @@ waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeaanSpread1"), key="df", mo
 waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
 waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
 waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDireciton"), key="df", mode="w")
+waves["Spp"].to_hdf(os.path.join(save_dir, "PressureSpectra"), key="df", mode="w")
+waves["Spu"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
+waves["Spv"].to_hdf(os.path.join(save_dir, "PressureEastVelCospectra"), key="df", mode="w")
+waves["Suu"].to_hdf(os.path.join(save_dir, "NorthVelSpectra"), key="df", mode="w")
+waves["Svv"].to_hdf(os.path.join(save_dir, "EastVelSpectra"), key="df", mode="w")
 
 endtime = time.time()
 
