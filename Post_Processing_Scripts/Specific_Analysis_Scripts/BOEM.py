@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 from Post_Processing_Scripts.process_Sig1k import read_raw_h5, remove_low_correlations, transform_beam_ENUD, save_data
+from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
 
 
 def average_vel_plots(path):
@@ -82,7 +83,7 @@ for file_name in files:
 
 
 # --------- BULK STATISTICS ---------
-
+waves = bulk_stats_analysis(directory_path,save_dir)
 
 # --------- PLOTTING ---------
 average_vel_plots(path)

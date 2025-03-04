@@ -216,335 +216,353 @@ def welch_cospec(datax, datay, dt, M, lap):
 
 
 # %% Cell containing data read in
+def bulk_stats_analysis(dirpath,save_dir):
 
-start_time = time.time()
-# This code will produce bulk statistics and frequency-directional spectra based on the multi-dimensional spectral analysis
-# performed in this file.
+    """
+    This code will produce bulk statistics and frequency-directional spectra based on multi-dimensional spectral analysis using pressure and current velocities.
+    This code will automatically loop through the groups in the directory and output the hourly statistics for each data field.
 
-# Define variables used in calcultions
-dtburst = 3600  # sec, length of desired average to take statistics of, for example we want wave statistics for every hour
-dtens = (
-    512  # sec, the length of this will depend on wht kind of waves you want to study
-)
-rho = 1027.5  # kg/m^3
-g = 9.81  # m/s^2
 
-### HARD CODE IN VARIABLES
-### BE SURE TO CHECK THESE ARE IN LINE WITH DEPLOYMENT SETTINGS
-### MAY CHANGE DEPENDING ON SETTINGS
+    :param:
+    dirpath: string
+        path to directory to processed data files
+    save_dir: string
+        path to directory where the bulk stats data should be saved
 
-fs = 4  # Sampling Frequency in Hz
-
-###
-###
-###
-
-# Set up averages for statistics
-dt = 1 / fs  # sample rate in 1/s
-Nsamp = dtburst * fs
-overlap = 2 / 3
-# Number of samples in each ensemble
-Nens = dtens * fs
-Chunks = (Nsamp - Nens * overlap - 1) / (
-    Nens * (1 - overlap)
-)  # Number of averaged groups
-
-# Load in Data
-groupnum = 1
-path=f"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/Group{groupnum}" #brooke path
-
-#path = f"Z:\deployment_1\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
-#dirpath = r"Z:\deployment_1\Processed\S0_103080"  # Define the directory containing all the data from this deployment
-dirpath=r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418" #brooke path
-save_dir=r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S1_101418" # brooke path
-#save_dir = r"Z:\deployment_1\BulkStats\S0_103080"
-
-# Initilize waves structure that will contain the bulk stats
-waves = {}
-waves["Time"] = pd.DataFrame([])
-waves["Tm"] = pd.DataFrame([])
-waves["Hs"] = pd.DataFrame([])
-waves["C"] = pd.DataFrame([])
-waves["Cg"] = pd.DataFrame([])
-waves["Uavg"] = pd.DataFrame([])
-waves["Vavg"] = pd.DataFrame([])
-waves["MeanDir1"] = pd.DataFrame([])
-waves["MeanSpread1"] = pd.DataFrame([])
-waves["MeanDir2"] = pd.DataFrame([])
-waves["MeanSpread2"] = pd.DataFrame([])
-waves["avgFlowDir"] = pd.DataFrame([])
-waves["Spp"] = pd.DataFrame([])
-waves["Svv"] = pd.DataFrame([])
-waves["Suu"] = pd.DataFrame([])
-waves["Spu"] = pd.DataFrame([])
-waves["Spv"] = pd.DataFrame([])
-
-# Start loop that will load in data for each variable from each day and then analyze the waves info for this day
-for file in os.scandir(path=dirpath):
-    VertVel = pd.read_hdf(os.path.join(path, "VertVel.h5"))
-    EastVel = pd.read_hdf(os.path.join(path, "EastVel.h5"))
-    NorthVel = pd.read_hdf(os.path.join(path, "NorthVel.h5"))
-    ErrVel = pd.read_hdf(os.path.join(path, "ErrVel.h5"))
-    Time = pd.read_hdf(os.path.join(path, "Time.h5"))
-    Pressure = pd.read_hdf(os.path.join(path, "Pressure.h5"))
-    Celldepth = pd.read_hdf(os.path.join(path, "Celldepth.h5"))
+    :return:
+    waves: dictionary
+        bulk stats as a dictionary
     
-    # %% Cell containing processing stuff
-    # Get number of total samples in group
-    nt = len(Time)
+    """
 
-    N = math.floor(nt / Nsamp)
-    #Number of bins
-    Nb = len(Celldepth)
+    start_time = time.time()
+    # 
 
-    # Loop over ensembles
-    for i in range(N):
-    
-        """For the first group the adcp was out of the water for a while so
-        there aren't any stats until it gets deployed."""
+    # Define variables used in calcultions
+    dtburst = 3600  # sec, length of desired average to take statistics of, for example we want wave statistics for every hour
+    dtens = (
+        512  # sec, the length of this will depend on wht kind of waves you want to study
+    )
+    rho = 1027.5  # kg/m^3
+    g = 9.81  # m/s^2
+
+    ### HARD CODE IN VARIABLES
+    ### BE SURE TO CHECK THESE ARE IN LINE WITH DEPLOYMENT SETTINGS
+    ### MAY CHANGE DEPENDING ON SETTINGS
+
+    fs = 4  # Sampling Frequency in Hz
+
+    ###
+    ###
+    ###
+
+    # Set up averages for statistics
+    dt = 1 / fs  # sample rate in 1/s
+    Nsamp = dtburst * fs
+    overlap = 2 / 3
+    # Number of samples in each ensemble
+    Nens = dtens * fs
+    Chunks = (Nsamp - Nens * overlap - 1) / (
+        Nens * (1 - overlap)
+    )  # Number of averaged groups
+
+    # Load in Data
+    groupnum = 1
+    path=f"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/Group{groupnum}" #brooke path
+
+    #path = f"Z:\deployment_1\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
+    #dirpath = r"Z:\deployment_1\Processed\S0_103080"  # Define the directory containing all the data from this deployment
+    dirpath=r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418" #brooke path
+    save_dir=r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S1_101418" # brooke path
+    #save_dir = r"Z:\deployment_1\BulkStats\S0_103080"
+
+    # Initilize waves structure that will contain the bulk stats
+    waves = {}
+    waves["Time"] = pd.DataFrame([])
+    waves["Tm"] = pd.DataFrame([])
+    waves["Hs"] = pd.DataFrame([])
+    waves["C"] = pd.DataFrame([])
+    waves["Cg"] = pd.DataFrame([])
+    waves["Uavg"] = pd.DataFrame([])
+    waves["Vavg"] = pd.DataFrame([])
+    waves["MeanDir1"] = pd.DataFrame([])
+    waves["MeanSpread1"] = pd.DataFrame([])
+    waves["MeanDir2"] = pd.DataFrame([])
+    waves["MeanSpread2"] = pd.DataFrame([])
+    waves["avgFlowDir"] = pd.DataFrame([])
+    waves["Spp"] = pd.DataFrame([])
+    waves["Svv"] = pd.DataFrame([])
+    waves["Suu"] = pd.DataFrame([])
+    waves["Spu"] = pd.DataFrame([])
+    waves["Spv"] = pd.DataFrame([])
+
+    # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
+    for file in os.scandir(path=dirpath):
+        VertVel = pd.read_hdf(os.path.join(path, "VertVel.h5"))
+        EastVel = pd.read_hdf(os.path.join(path, "EastVel.h5"))
+        NorthVel = pd.read_hdf(os.path.join(path, "NorthVel.h5"))
+        ErrVel = pd.read_hdf(os.path.join(path, "ErrVel.h5"))
+        Time = pd.read_hdf(os.path.join(path, "Time.h5"))
+        Pressure = pd.read_hdf(os.path.join(path, "Pressure.h5"))
+        Celldepth = pd.read_hdf(os.path.join(path, "Celldepth.h5"))
         
-        # Grab the time series associated with these ensembles
-        t = Time.iloc[i * Nsamp : Nsamp * (i + 1)]
+        # %% Cell containing processing stuff
+        # Get number of total samples in group
+        nt = len(Time)
 
-        tavg = t.iloc[
-            round(Nsamp / 2)
-        ]  # Take the time for this ensemble by grabbing the middle time
+        N = math.floor(nt / Nsamp)
+        #Number of bins
+        Nb = len(Celldepth)
 
-        waves["Time"] = pd.concat(
-            [waves["Time"], pd.DataFrame([tavg])], ignore_index=True
-        )  # Record time for this ensemble in waves stats structure
-
-        # Grab the slices of data fields for this ensemble, (bad data are represented as nans)
-        U = EastVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
-        V = NorthVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
-        W = VertVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
-        P = Pressure.iloc[i * Nsamp : Nsamp * (i + 1)]
+        # Loop over ensembles
+        for i in range(N):
         
-        # Find the depth averaged velocity stat
-        Uavg = np.nanmean(U)
-        Vavg = np.nanmean(V)
+            """For the first group the adcp was out of the water for a while so
+            there aren't any stats until it gets deployed."""
+            
+            # Grab the time series associated with these ensembles
+            t = Time.iloc[i * Nsamp : Nsamp * (i + 1)]
 
-        # Compute depth-averaged current direction in degrees
-        avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg)) 
+            tavg = t.iloc[
+                round(Nsamp / 2)
+            ]  # Take the time for this ensemble by grabbing the middle time
+
+            waves["Time"] = pd.concat(
+                [waves["Time"], pd.DataFrame([tavg])], ignore_index=True
+            )  # Record time for this ensemble in waves stats structure
+
+            # Grab the slices of data fields for this ensemble, (bad data are represented as nans)
+            U = EastVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
+            V = NorthVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
+            W = VertVel.iloc[i * Nsamp : Nsamp * (i + 1), :]
+            P = Pressure.iloc[i * Nsamp : Nsamp * (i + 1)]
+            
+            # Find the depth averaged velocity stat
+            Uavg = np.nanmean(U)
+            Vavg = np.nanmean(V)
+
+            # Compute depth-averaged current direction in degrees
+            avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg)) 
+            
+            # Convert to compass direction (0° = North, 90° = East)
+            avgFlowDir = (avgFlowDir + 360) % 360
+            
+            # Store results in DataFrame
+            waves["avgFlowDir"] = pd.concat(
+                [waves["avgFlowDir"], pd.DataFrame([avgFlowDir])], axis=0, ignore_index=True
+            )
+            waves["Uavg"] = pd.concat(
+                [waves["Uavg"], pd.DataFrame([Uavg])], axis=0, ignore_index=True
+            )
+            waves["Vavg"] = pd.concat(
+                [waves["Vavg"], pd.DataFrame([Vavg])], axis=0, ignore_index=True
+            )
+
+            # Grab mean depth for the ensemble
+            dpthP = np.mean(P)
+            dpth = dpthP + 0.508  # .508m above seafloor due to the lander height
+            # Create a map for the bins that are in the water
+            dpthU = dpthP - Celldepth
+            dpthU = abs(
+                dpthU.iloc[::-1].reset_index(drop=True)
+            )  # Now dpthU is measured from the surface water level
+            # instead of distance from ADCP
+
+            # Now calculate the specral energy densities for each variable, first replacing nans with zeroes
+            U_no_nan = np.nan_to_num(U.to_numpy(), nan=0.0)
+            Suu, fr = welch_method(
+                U_no_nan, dt, Chunks, overlap
+            )  # note that at the time of coding this, the psd is returned over the surface
+            # of the water but is all zero. For example the surfcae of the water is around the 14th bin so all bins beyond the 14th are zero.
+
+            ### Sample code below to look at the psd plot near the surface.
+            # plt.figure()
+            # plt.loglog(fr,Spp[:,15])
+            # plt.show()
+
+            # Take other PSD's
+            V_no_nan = np.nan_to_num(V.to_numpy(), nan=0.0)
+            Svv, fr = welch_method(V_no_nan, dt, Chunks, overlap)
+            P_no_nan = np.nan_to_num(P.to_numpy(), nan=0.0)
+            Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
+
+            # Get rid of zero frequency and turn back into pandas dataframes
+            fr = pd.DataFrame(fr[1:]).reset_index(drop=True) # frequency
+            Suu = pd.DataFrame(Suu[1:, :])
+            Svv = pd.DataFrame(Svv[1:, :])
+            Spp = pd.DataFrame(Spp[1:])
+
+            # Depth Attenuation
+            fr_rad = 2 * np.pi * fr  # frequency in radians
+            length_fr_rad = len(fr_rad)
+            k = waveNumber_dispersion(
+                fr_rad.to_numpy(), dpth
+            )  # calculate wave number using dispersion relationship
+            Paeta = np.cosh(k * dpth) / np.cosh(
+                k * (dpth - dpthP)
+            )  # convert pressure to surface elevation (aeta)
+            k = pd.DataFrame(k)
+            Uaeta = (
+                (fr_rad / (g * k)) * np.cosh(k * dpth) / np.cosh(k * (dpth - dpthU).T)
+            )  # convert velocity to surface elevation (aeta)
+            Usurf = np.cosh(k * dpth) / np.cosh(
+                k * (dpth - dpthU)
+            )  # velocity at water surface
+
+            # Surface velocity spectra
+            SUU = Suu * (Usurf**2)
+            SVV = Svv * (Usurf**2)
+            SePP = Spp * (Paeta**2)
+
+            # Bulk Statistics
+            df = fr.iloc[1] - fr.iloc[0]  # wind wave band
+            I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
+            m0 = np.nansum(
+                SePP.iloc[I] * df
+            )  # zeroth moment (total energy in the spectrum w/in incident wave band)
+            m1 = np.nansum(
+                fr.iloc[I] * SePP.iloc[I] * df
+            )  # 1st moment (average frequency in spectrum w/in incident wave band)
+
+            Hs = 4 * np.sqrt(m0)  # significant wave height
+            Tm = m0 / m1  # mean wave period
+
+            C = fr_rad / k  # wave celerity
+            Cg = (
+                0.5
+                * (g * np.tanh(k * dpth) + (g * k * dpth * (1 / (np.cosh(k * dpth) ** 2))))
+                / np.sqrt(g * k * np.tanh(k * dpth))
+            )  # group wave speed
+
+            #Put the variables into the waves structure
+            waves["Cg"] = pd.concat(
+                [waves["Cg"], pd.DataFrame([np.nanmean(Cg)])], axis=0, ignore_index=True
+            )
+            waves["C"] = pd.concat([waves["C"],pd.DataFrame([np.nanmean(C)])], axis=0, ignore_index=True)
+            waves["Hs"] = pd.concat(
+                [waves["Hs"], pd.DataFrame([Hs])], axis=0, ignore_index=True
+            )
+            waves["Tm"] = pd.concat(
+                [waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
+            )
+
+            #Now lets calculate the cospectra and mean wave direction
+            P_expanded = np.tile(P.to_numpy(), (1, Nb))
+            Suv,fr = welch_cospec(U_no_nan,V_no_nan,dt,Chunks,overlap)
+            Spu,fr = welch_cospec(P_expanded,V_no_nan,dt,Chunks,overlap)
+            Spv,fr = welch_cospec(P_expanded,V_no_nan,dt,Chunks,overlap)
+            
+            #Remove zero frequency
+            Suv = pd.DataFrame(Suv[1:, :])
+            Spu = pd.DataFrame(Spu[1:, :])
+            Spv = pd.DataFrame(Spv[1:, :])
+            #Surface Velocity Spectra
+            SUV = Suv*Usurf**2
+            SPU = np.repeat(Paeta,Nb, axis = 1)*Spu*Usurf
+            SPV = np.repeat(Paeta,Nb, axis = 1)*Spv*Usurf
+            #Map to Surface Elevation Spectra
+            SeUV = Suv*Usurf**2
+            SePU = np.repeat(Paeta,Nb, axis = 1)*Spu*Usurf
+            SePV = np.repeat(Paeta,Nb, axis = 1)*Spv*Usurf
+
+            # Assuming SPU, SPV, SUV, SePP, SUU, SVV, fq are defined as NumPy arrays
+            coPU = SPU.copy()
+            coPV = SPV.copy()
+            coUV = SUV.copy()
+            r2d = 180 / np.pi
+            
+            # Compute a1 and b1
+            a1 = coPU / np.sqrt(SePP * (SUU + SVV))
+            b1 = coPV / np.sqrt(SePP * (SUU + SVV))
+            #Compute directional spread
+            dir1 = r2d * np.arctan2(b1, a1)
+            spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1**2 + b1**2)))
+            
+            #Compute weighted average for fourier coefficients
+            ma1 = np.nansum(a1.loc[I] * SePP.loc[I] * df, axis=0) / m0
+            mb1 = np.nansum(b1.loc[I] * SePP.loc[I] * df, axis=0) / m0
+            #Compute average directional spreads
+            mdir1 = np.remainder(90 + 180 - r2d * np.arctan2(mb1, ma1), 360)
+            mspread1 = r2d * np.sqrt(np.abs(2 * (1 - (ma1 * np.cos(mdir1 / r2d) + mb1 * np.sin(mdir1 / r2d)))))
+
+            # Compute a2 and b2
+            a2 = (SUU - SVV) / (SUU + SVV)
+            b2 = 2 * coUV / (SUU + SVV)
+            spread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (a2 * np.cos(2 * dir1 / r2d) + b2 * np.sin(2 * dir1 / r2d))))
+            #Compute weighted averages for second order coefficients
+            ma2 = np.nansum(a2.loc[I] * SePP.loc[I] * df, axis=0) / m0
+            mb2 = np.nansum(b2.loc[I] * SePP.loc[I] * df, axis=0) / m0
+            #Compute second order directionl spectra
+            dir2 = (r2d / 2) * np.arctan2(b2, a2)
+            mdir2 = 90 - (r2d / 2) * np.arctan2(mb2, ma2)
+            mspread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir1 / r2d) + mb2 * np.sin(2 * mdir1 / r2d))))
+
+
+            #Put the directions and spreads for the waves into waves structure
+            waves["MeanDir1"] = pd.concat(
+                [waves["MeanDir1"], pd.DataFrame([np.nanmean(mdir1)])], axis=0, ignore_index=True
+            )
+            waves["MeanSpread1"] = pd.concat(
+                [waves["MeanSpread1"], pd.DataFrame([np.nanmean(mspread1)])], axis=0, ignore_index=True
+            )
+            waves["MeanDir2"] = pd.concat(
+                [waves["MeanDir2"], pd.DataFrame([np.nanmean(mdir2)])], axis=0, ignore_index=True
+            )
+            waves["MeanSpread2"] = pd.concat(
+                [waves["MeanSpread2"], pd.DataFrame([np.nanmean(mspread2)])], axis=0, ignore_index=True
+            )
+            waves["Spp"] = pd.concat(
+                [waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+            )
+            waves["Svv"] = pd.concat(
+                [waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+            )
+            waves["Suu"] = pd.concat(
+                [waves["Suu"], pd.DataFrame([np.nanmean(Suu.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+            )
+            waves["Spu"] = pd.concat(
+                [waves["Spu"], pd.DataFrame([np.nanmean(Spu.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+            )
+            waves["Spv"] = pd.concat(
+                [waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
+            )
+            
+            
+            if i == 1:
+                waves["fr"] = pd.DataFrame(fr[I])
+                waves["k"] = k.loc[I]
+            
+            #Set up depth threshold so if the ADCP is not in much water (when being deployed), data isn't recorded
+            if dpth < 3:
+                for key in waves.keys():
+                    if key != "Time":  # Exclude 'Time' from being set to NaN
+                        waves[key].loc[i] = np.nan
+        groupnum += 1
         
-        # Convert to compass direction (0° = North, 90° = East)
-        avgFlowDir = (avgFlowDir + 360) % 360
-        
-        # Store results in DataFrame
-        waves["avgFlowDir"] = pd.concat(
-            [waves["avgFlowDir"], pd.DataFrame([avgFlowDir])], axis=0, ignore_index=True
-        )
-        waves["Uavg"] = pd.concat(
-            [waves["Uavg"], pd.DataFrame([Uavg])], axis=0, ignore_index=True
-        )
-        waves["Vavg"] = pd.concat(
-            [waves["Vavg"], pd.DataFrame([Vavg])], axis=0, ignore_index=True
-        )
 
-        # Grab mean depth for the ensemble
-        dpthP = np.mean(P)
-        dpth = dpthP + 0.508  # .508m above seafloor due to the lander height
-        # Create a map for the bins that are in the water
-        dpthU = dpthP - Celldepth
-        dpthU = abs(
-            dpthU.iloc[::-1].reset_index(drop=True)
-        )  # Now dpthU is measured from the surface water level
-        # instead of distance from ADCP
+    # Saves the bulk stats to the research storage
+    waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
+    waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
+    waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
+    waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
+    waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
+    waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVeloctiy"), key="df", mode="w")
+    waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVeloctiy"), key="df", mode="w")
+    waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
+    waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeaanSpread1"), key="df", mode="w")
+    waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
+    waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
+    waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDireciton"), key="df", mode="w")
+    waves["Spp"].to_hdf(os.path.join(save_dir, "PressureSpectra"), key="df", mode="w")
+    waves["Spu"].to_hdf(os.path.join(save_dir, "PressureEastVelCospectra"), key="df", mode="w")
+    waves["Spv"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
+    waves["Suu"].to_hdf(os.path.join(save_dir, "EastVelSpectra"), key="df", mode="w")
+    waves["Svv"].to_hdf(os.path.join(save_dir, "NorthVelSpectra"), key="df", mode="w")
 
-        # Now calculate the specral energy densities for each variable, first replacing nans with zeroes
-        U_no_nan = np.nan_to_num(U.to_numpy(), nan=0.0)
-        Suu, fr = welch_method(
-            U_no_nan, dt, Chunks, overlap
-        )  # note that at the time of coding this, the psd is returned over the surface
-        # of the water but is all zero. For example the surfcae of the water is around the 14th bin so all bins beyond the 14th are zero.
+    endtime = time.time()
 
-        ### Sample code below to look at the psd plot near the surface.
-        # plt.figure()
-        # plt.loglog(fr,Spp[:,15])
-        # plt.show()
-
-        # Take other PSD's
-        V_no_nan = np.nan_to_num(V.to_numpy(), nan=0.0)
-        Svv, fr = welch_method(V_no_nan, dt, Chunks, overlap)
-        P_no_nan = np.nan_to_num(P.to_numpy(), nan=0.0)
-        Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
-
-        # Get rid of zero frequency and turn back into pandas dataframes
-        fr = pd.DataFrame(fr[1:]).reset_index(drop=True) # frequency
-        Suu = pd.DataFrame(Suu[1:, :])
-        Svv = pd.DataFrame(Svv[1:, :])
-        Spp = pd.DataFrame(Spp[1:])
-
-        # Depth Attenuation
-        fr_rad = 2 * np.pi * fr  # frequency in radians
-        length_fr_rad = len(fr_rad)
-        k = waveNumber_dispersion(
-            fr_rad.to_numpy(), dpth
-        )  # calculate wave number using dispersion relationship
-        Paeta = np.cosh(k * dpth) / np.cosh(
-            k * (dpth - dpthP)
-        )  # convert pressure to surface elevation (aeta)
-        k = pd.DataFrame(k)
-        Uaeta = (
-            (fr_rad / (g * k)) * np.cosh(k * dpth) / np.cosh(k * (dpth - dpthU).T)
-        )  # convert velocity to surface elevation (aeta)
-        Usurf = np.cosh(k * dpth) / np.cosh(
-            k * (dpth - dpthU)
-        )  # velocity at water surface
-
-        # Surface velocity spectra
-        SUU = Suu * (Usurf**2)
-        SVV = Svv * (Usurf**2)
-        SePP = Spp * (Paeta**2)
-
-        # Bulk Statistics
-        df = fr.iloc[1] - fr.iloc[0]  # wind wave band
-        I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
-        m0 = np.nansum(
-            SePP.iloc[I] * df
-        )  # zeroth moment (total energy in the spectrum w/in incident wave band)
-        m1 = np.nansum(
-            fr.iloc[I] * SePP.iloc[I] * df
-        )  # 1st moment (average frequency in spectrum w/in incident wave band)
-
-        Hs = 4 * np.sqrt(m0)  # significant wave height
-        Tm = m0 / m1  # mean wave period
-
-        C = fr_rad / k  # wave celerity
-        Cg = (
-            0.5
-            * (g * np.tanh(k * dpth) + (g * k * dpth * (1 / (np.cosh(k * dpth) ** 2))))
-            / np.sqrt(g * k * np.tanh(k * dpth))
-        )  # group wave speed
-
-        #Put the variables into the waves structure
-        waves["Cg"] = pd.concat(
-            [waves["Cg"], pd.DataFrame([np.nanmean(Cg)])], axis=0, ignore_index=True
-        )
-        waves["C"] = pd.concat([waves["C"],pd.DataFrame([np.nanmean(C)])], axis=0, ignore_index=True)
-        waves["Hs"] = pd.concat(
-            [waves["Hs"], pd.DataFrame([Hs])], axis=0, ignore_index=True
-        )
-        waves["Tm"] = pd.concat(
-            [waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
-        )
-
-        #Now lets calculate the cospectra and mean wave direction
-        P_expanded = np.tile(P.to_numpy(), (1, Nb))
-        Suv,fr = welch_cospec(U_no_nan,V_no_nan,dt,Chunks,overlap)
-        Spu,fr = welch_cospec(P_expanded,V_no_nan,dt,Chunks,overlap)
-        Spv,fr = welch_cospec(P_expanded,V_no_nan,dt,Chunks,overlap)
-        
-        #Remove zero frequency
-        Suv = pd.DataFrame(Suv[1:, :])
-        Spu = pd.DataFrame(Spu[1:, :])
-        Spv = pd.DataFrame(Spv[1:, :])
-        #Surface Velocity Spectra
-        SUV = Suv*Usurf**2
-        SPU = np.repeat(Paeta,Nb, axis = 1)*Spu*Usurf
-        SPV = np.repeat(Paeta,Nb, axis = 1)*Spv*Usurf
-        #Map to Surface Elevation Spectra
-        SeUV = Suv*Usurf**2
-        SePU = np.repeat(Paeta,Nb, axis = 1)*Spu*Usurf
-        SePV = np.repeat(Paeta,Nb, axis = 1)*Spv*Usurf
-
-        # Assuming SPU, SPV, SUV, SePP, SUU, SVV, fq are defined as NumPy arrays
-        coPU = SPU.copy()
-        coPV = SPV.copy()
-        coUV = SUV.copy()
-        r2d = 180 / np.pi
-        
-        # Compute a1 and b1
-        a1 = coPU / np.sqrt(SePP * (SUU + SVV))
-        b1 = coPV / np.sqrt(SePP * (SUU + SVV))
-        #Compute directional spread
-        dir1 = r2d * np.arctan2(b1, a1)
-        spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1**2 + b1**2)))
-        
-        #Compute weighted average for fourier coefficients
-        ma1 = np.nansum(a1.loc[I] * SePP.loc[I] * df, axis=0) / m0
-        mb1 = np.nansum(b1.loc[I] * SePP.loc[I] * df, axis=0) / m0
-        #Compute average directional spreads
-        mdir1 = np.remainder(90 + 180 - r2d * np.arctan2(mb1, ma1), 360)
-        mspread1 = r2d * np.sqrt(np.abs(2 * (1 - (ma1 * np.cos(mdir1 / r2d) + mb1 * np.sin(mdir1 / r2d)))))
-
-        # Compute a2 and b2
-        a2 = (SUU - SVV) / (SUU + SVV)
-        b2 = 2 * coUV / (SUU + SVV)
-        spread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (a2 * np.cos(2 * dir1 / r2d) + b2 * np.sin(2 * dir1 / r2d))))
-        #Compute weighted averages for second order coefficients
-        ma2 = np.nansum(a2.loc[I] * SePP.loc[I] * df, axis=0) / m0
-        mb2 = np.nansum(b2.loc[I] * SePP.loc[I] * df, axis=0) / m0
-        #Compute second order directionl spectra
-        dir2 = (r2d / 2) * np.arctan2(b2, a2)
-        mdir2 = 90 - (r2d / 2) * np.arctan2(mb2, ma2)
-        mspread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir1 / r2d) + mb2 * np.sin(2 * mdir1 / r2d))))
-
-
-        #Put the directions and spreads for the waves into waves structure
-        waves["MeanDir1"] = pd.concat(
-            [waves["MeanDir1"], pd.DataFrame([np.nanmean(mdir1)])], axis=0, ignore_index=True
-        )
-        waves["MeanSpread1"] = pd.concat(
-            [waves["MeanSpread1"], pd.DataFrame([np.nanmean(mspread1)])], axis=0, ignore_index=True
-        )
-        waves["MeanDir2"] = pd.concat(
-            [waves["MeanDir2"], pd.DataFrame([np.nanmean(mdir2)])], axis=0, ignore_index=True
-        )
-        waves["MeanSpread2"] = pd.concat(
-            [waves["MeanSpread2"], pd.DataFrame([np.nanmean(mspread2)])], axis=0, ignore_index=True
-        )
-        waves["Spp"] = pd.concat(
-            [waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
-        )
-        waves["Svv"] = pd.concat(
-            [waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
-        )
-        waves["Suu"] = pd.concat(
-            [waves["Suu"], pd.DataFrame([np.nanmean(Suu.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
-        )
-        waves["Spu"] = pd.concat(
-            [waves["Spu"], pd.DataFrame([np.nanmean(Spu.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
-        )
-        waves["Spv"] = pd.concat(
-            [waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[1:I[-1],:], axis = 1)])], axis=0, ignore_index=True
-        )
-        
-        
-        if i == 1:
-            waves["fr"] = pd.DataFrame(fr[I])
-            waves["k"] = k.loc[I]
-        
-        #Set up depth threshold so if the ADCP is not in much water (when being deployed), data isn't recorded
-        if dpth < 3:
-            for key in waves.keys():
-                if key != "Time":  # Exclude 'Time' from being set to NaN
-                    waves[key].loc[i] = np.nan
-    groupnum += 1
-    
-
-# Saves the bulk stats to the research storage
-waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
-waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
-waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
-waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
-waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
-waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVeloctiy"), key="df", mode="w")
-waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVeloctiy"), key="df", mode="w")
-waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
-waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeaanSpread1"), key="df", mode="w")
-waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
-waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
-waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDireciton"), key="df", mode="w")
-waves["Spp"].to_hdf(os.path.join(save_dir, "PressureSpectra"), key="df", mode="w")
-waves["Spu"].to_hdf(os.path.join(save_dir, "PressureEastVelCospectra"), key="df", mode="w")
-waves["Spv"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
-waves["Suu"].to_hdf(os.path.join(save_dir, "EastVelSpectra"), key="df", mode="w")
-waves["Svv"].to_hdf(os.path.join(save_dir, "NorthVelSpectra"), key="df", mode="w")
-
-endtime = time.time()
-
-print("Time taken was", endtime - start_time, "seconds")
+    print("Time taken to process bulk stats was", endtime - start_time, "seconds")
+    return waves
 
 
 # %%
