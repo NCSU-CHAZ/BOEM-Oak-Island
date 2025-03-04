@@ -2,9 +2,9 @@ import process_Sig1k as ps
 import os
 
 print("hi")
-# directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf/"
-# save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
-directory_path = r'Z:/deployment_1/Raw/S0_103080_hdf/'#Levis path
+directory_path = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S0_103080_hdf/"
+save_dir = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S0_103080/"
+##directory_path = r'Z:/deployment_1/Raw/S0_103080_hdf/'#Levis path
 save_dir = r'Z:/deployment_1/Processed/'#Levis path
 
 files=os.listdir(directory_path)
