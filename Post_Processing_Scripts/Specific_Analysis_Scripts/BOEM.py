@@ -52,10 +52,10 @@ def average_vel_plots(path):
 # --------- USER INPUT ---------
 # directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf/"
 # save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
-# directory_path = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's Macbook
-# save_dir = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
-directory_path = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S0_103080_hdf/" # Brooke path
-save_dir = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S0_103080/" # Brooke path
+directory_path = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's Macbook
+save_dir = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
+# directory_path = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S0_103080_hdf/" # Brooke path
+# save_dir = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S0_103080/" # Brooke path
 
 #directory_path = r'Z:/deployment_1/Raw/S0_103080_hdf/'#Levis path
 #save_dir = r'Z:/deployment_1/Processed/'#Levis path
@@ -77,10 +77,10 @@ for file_name in files:
     # call post-processing functions
     Data = read_raw_h5(path)  # KA: needed to install pytables
     print(f"read in data")
-    print(Data["CellDepth"])
+    # print(Data["CellDepth"])
 
     Data = remove_low_correlations(Data)
-    print(f"removed low corr")
+    print(f"removed low correlations")
 
     Data = transform_beam_ENUD(Data)
     print("transformed to ENUD")
@@ -90,7 +90,7 @@ for file_name in files:
 
 
 # --------- BULK STATISTICS ---------
-waves = bulk_stats_analysis(directory_path,save_dir)
+waves = bulk_stats_analysis(directory_path, save_dir)
 
 # --------- PLOTTING ---------
 average_vel_plots(path)

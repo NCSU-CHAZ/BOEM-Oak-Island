@@ -6,10 +6,11 @@ from datetime import datetime, timedelta
 
 def dtnum_dttime_adcp(datenum_array):
     dates = []
-    for datenum in datenum_array: 
-        python_datetime = datetime.fromordinal(int(datenum)) + timedelta(days=datenum%1) - timedelta(days = 366)
-        dates.append(python_datetime) 
+    for datenum in datenum_array:
+        python_datetime = datetime.fromordinal(int(datenum)) + timedelta(days=datenum % 1) - timedelta(days=366)
+        dates.append(python_datetime)
     return dates
+
 
 def read_raw_h5(path):
     """
@@ -28,49 +29,49 @@ def read_raw_h5(path):
 
     # initialize the Data dictionary as well as it's keys
     Data = {}
-    
-    Data['CorBeam'] = pd.read_hdf(os.path.join(path,'Burst_CorBeam.h5'))
-    Data['Heading'] = pd.read_hdf(os.path.join(path,'Burst_Heading.h5'))
-    Data['Pressure'] = pd.read_hdf(os.path.join(path,'Burst_Pressure.h5'))
-    Data['Roll'] = pd.read_hdf(os.path.join(path,'Burst_Roll.h5'))
-    datenum_array = pd.read_hdf(os.path.join(path,'Burst_Time.h5'))
-    Data['VelBeam'] = pd.read_hdf(os.path.join(path,'Burst_VelBeam.h5'))
-    Data['Pitch'] = pd.read_hdf(os.path.join(path,'Burst_Pitch.h5'))
 
-    Data['Beam2xyz'] = pd.read_hdf(os.path.join(path,'Burst_Beam2xyz.h5'))
-    Data['BlankingDistance'] = pd.read_hdf(os.path.join(path,'Burst_BlankingDistance.h5'))
-    Data['CellSize'] = pd.read_hdf(os.path.join(path,'Burst_CellSize.h5'))
-    Data['NCells'] = pd.read_hdf(os.path.join(path,'Burst_NCells.h5'))
-    Data['SampleRate'] = pd.read_hdf(os.path.join(path,'Burst_SamplingRate.h5'))
+    Data['CorBeam'] = pd.read_hdf(os.path.join(path, 'Burst_CorBeam.h5'))
+    Data['Heading'] = pd.read_hdf(os.path.join(path, 'Burst_Heading.h5'))
+    Data['Pressure'] = pd.read_hdf(os.path.join(path, 'Burst_Pressure.h5'))
+    Data['Roll'] = pd.read_hdf(os.path.join(path, 'Burst_Roll.h5'))
+    datenum_array = pd.read_hdf(os.path.join(path, 'Burst_Time.h5'))
+    Data['VelBeam'] = pd.read_hdf(os.path.join(path, 'Burst_VelBeam.h5'))
+    Data['Pitch'] = pd.read_hdf(os.path.join(path, 'Burst_Pitch.h5'))
+
+    Data['Beam2xyz'] = pd.read_hdf(os.path.join(path, 'Burst_Beam2xyz.h5'))
+    Data['BlankingDistance'] = pd.read_hdf(os.path.join(path, 'Burst_BlankingDistance.h5'))
+    Data['CellSize'] = pd.read_hdf(os.path.join(path, 'Burst_CellSize.h5'))
+    Data['NCells'] = pd.read_hdf(os.path.join(path, 'Burst_NCells.h5'))
+    Data['SampleRate'] = pd.read_hdf(os.path.join(path, 'Burst_SamplingRate.h5'))
     Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array[0].values))
 
     # Get individual beams
     Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0::4])
-    Data['VelBeam1'].reset_index(drop=True, inplace=True) 
+    Data['VelBeam1'].reset_index(drop=True, inplace=True)
     Data["VelBeam2"] = (Data["VelBeam"].iloc[:, 1::4])
-    Data['VelBeam2'].reset_index(drop=True, inplace=True) 
+    Data['VelBeam2'].reset_index(drop=True, inplace=True)
     Data["VelBeam3"] = (Data["VelBeam"].iloc[:, 2::4])
-    Data['VelBeam3'].reset_index(drop=True, inplace=True) 
+    Data['VelBeam3'].reset_index(drop=True, inplace=True)
     Data["VelBeam4"] = (Data["VelBeam"].iloc[:, 3::4])
-    Data['VelBeam4'].reset_index(drop=True, inplace=True) 
-    
+    Data['VelBeam4'].reset_index(drop=True, inplace=True)
+
     # Get individual beams
     Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0::4])
-    Data['CorBeam1'].reset_index(drop=True, inplace=True) 
+    Data['CorBeam1'].reset_index(drop=True, inplace=True)
     Data["CorBeam2"] = (Data["CorBeam"].iloc[:, 1::4])
-    Data['CorBeam2'].reset_index(drop=True, inplace=True) 
+    Data['CorBeam2'].reset_index(drop=True, inplace=True)
     Data["CorBeam3"] = (Data["CorBeam"].iloc[:, 2::4])
-    Data['CorBeam3'].reset_index(drop=True, inplace=True) 
+    Data['CorBeam3'].reset_index(drop=True, inplace=True)
     Data["CorBeam4"] = (Data["CorBeam"].iloc[:, 3::4])
     Data['CorBeam4'].reset_index(drop=True, inplace=True)
 
     # Create cell depth vector
     vector = np.arange(1, Data["NCells"][0][0] + 1)
-   
+
     Data["CellDepth"] = (
-        Data["BlankingDistance"][0].iloc[0]
-        + vector * Data["CellSize"][0].iloc[0]  
-    )   
+            Data["BlankingDistance"][0].iloc[0]
+            + vector * Data["CellSize"][0].iloc[0]
+    )
     return Data
 
 
@@ -101,7 +102,7 @@ def remove_low_correlations(Data):
     Sr = Data["SampleRate"][0].iloc[0]  # Sample rate in Hz
 
     CorrThresh = (
-        0.3 + 0.4 * (Sr / 25) ** 0.5
+            0.3 + 0.4 * (Sr / 25) ** 0.5
     )  # Threshold for correlation values as found in Elgar
 
     isbad = np.zeros((row, col))  # Initialize mask for above surface measurements
@@ -109,28 +110,27 @@ def remove_low_correlations(Data):
     # Apply mask for surface measurements
     for i in range(len(isbad)):
         Depth_Thresh = (
-            Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
-            - Data["CellSize"][0].iloc[0]
+                Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
+                - Data["CellSize"][0].iloc[0]
         )
         isbad[i, :] = Data["CellDepth"] >= Depth_Thresh
     isbad = isbad.astype(bool)
 
-    isbad2=np.zeros((row,col)) # initialize mask
+    # isbad2 = np.zeros((row, col))  # initialize mask
 
     for jj in range(1, 5):
         isbad2 = (
-            Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh
+                Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh
         )  # create mask for bad correlations
         isbad2 = isbad2.astype(bool)
         # Initialize the VelBeamCorr{jj} columns with zeros
         Data[f"VelBeamCorr{jj}"] = pd.DataFrame(np.zeros((row, col)), index=Data[f"CorBeam{jj}"].index)
-        Data[f"VelBeam{jj}"]= Data[f"VelBeam{jj}"].mask(isbad, np.nan)
-        Data[f"VelBeam{jj}"]= Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
-        Data[f"VelBeamCorr{jj}"]= Data[f"VelBeamCorr{jj}"].mask(isbad2, 1) # Set to 1 for bad correlations
-        
+        Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad, np.nan)
+        Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
+        Data[f"VelBeamCorr{jj}"] = Data[f"VelBeamCorr{jj}"].mask(isbad2, 1)  # Set to 1 for bad correlations
 
-   # Data[f"isbad"]=isbad (Realized we don't need these, since we're saving VelBeamCorr)
-   # Data[f"isbad2"]=isbad2
+    # Data[f"isbad"]=isbad (Realized we don't need these, since we're saving VelBeamCorr)
+    # Data[f"isbad2"]=isbad2
     return Data
 
 
@@ -160,7 +160,7 @@ def transform_beam_ENUD(Data):
     rr = np.pi * Data["Roll"].to_numpy() / 180
 
     # Create the tiled transformation matrix, this is for applyinh the transformation later to each data point
-    row, col = Data["VelBeam1"].to_numpy().shape     # Get the dimensions of the matrices
+    row, col = Data["VelBeam1"].to_numpy().shape  # Get the dimensions of the matrices
     Tmat = np.tile(T, (row, 1, 1))
 
     # Initialize heading and tilt matrices
@@ -236,7 +236,6 @@ def transform_beam_ENUD(Data):
     Data["ENU"] = ENU
     del ENU
 
-
     Data["ENU"][:, :, 3] = abs(Data["ENU"][:, :, 2] - Data["ENU"][:, :, 3])
 
     Data['EastVel'] = pd.DataFrame(Data['ENU'][:, :, 0])
@@ -245,32 +244,34 @@ def transform_beam_ENUD(Data):
     Data['ErrVel'] = pd.DataFrame(Data['ENU'][:, :, 3])
     print(f"Sample EastVel values: {Data['EastVel'].head()}")
 
-    # Add matrices with NaN values together treating nan values as 0, this for calculating the absolute velocity
+    # Add matrices with NaN values together treating nan values as 0, this is for calculating the absolute velocity
     nan_mask = np.full((row, col), False)
 
     for i in range(col):
         nan_mask[:, i] = (
-            np.isfinite(Data["ENU"][:, i, 0])
-            & np.isfinite(Data["ENU"][:, i, 1])
-            & np.isfinite(Data["ENU"][:, i, 2])
+                np.isfinite(Data["ENU"][:, i, 0])
+                & np.isfinite(Data["ENU"][:, i, 1])
+                & np.isfinite(Data["ENU"][:, i, 2])
         )
 
     # Replace NaNs with zeroes for the calculation
     NorthVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 0], nan=0.0)
     EastVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 1], nan=0.0)
     VertVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 2], nan=0.0)
-    print(NorthVel_no_nan)
+    print(EastVel_no_nan)
+
     # Sum the squared velocities
     Data["AbsVel"] = pd.DataFrame(
-        np.sqrt(NorthVel_no_nan**2 + EastVel_no_nan**2 + VertVel_no_nan**2)
+        np.sqrt(NorthVel_no_nan ** 2 + EastVel_no_nan ** 2 + VertVel_no_nan ** 2)
     )
-    
+
     # Reapply the mask to set positions with any original NaNs back to NaN
     Data["AbsVel"][~nan_mask] = np.nan
     Data['CellDepth'] = pd.DataFrame(Data['CellDepth'])
 
-    print(f"AbsVel shape: {Data['AbsVel'].shape}")
-    print(f"Sample AbsVel values: {Data['AbsVel'].head()}")
+    # print(f"AbsVel shape: {Data['AbsVel'].shape}")
+    # print(f"Sample AbsVel values: {Data['AbsVel'].head()}")
+    return Data
 
 
 def save_data(Data, save_dir):
@@ -319,13 +320,10 @@ def save_data(Data, save_dir):
     Data['Pressure'].to_hdf(
         os.path.join(save_dir, 'Pressure'), key="df", mode="w"
     )
-    Data['isbad'].to_hdf( os.path.join(save_dir, 'isbad'), key="df", mode="w"
-    )
-    Data['isbad2'].to_hdf( os.path.join(save_dir, 'isbad2'), key="df", mode="w"
-    )
-    Data['CellDepth'].to_hdf( os.path.join(save_dir, 'CellDepth'), key="df", mode="w")
+    Data['isbad'].to_hdf(os.path.join(save_dir, 'isbad'), key="df", mode="w"
+                         )
+    Data['isbad2'].to_hdf(os.path.join(save_dir, 'isbad2'), key="df", mode="w"
+                          )
+    Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth'), key="df", mode="w")
 
     return
-
-
-
