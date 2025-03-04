@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
+#import sys
+#sys.path.append('/Users/bagaenzl/BOEM-Oak-Island/Post_Processing_Scripts')
 from Post_Processing_Scripts.process_Sig1k import read_raw_h5, remove_low_correlations, transform_beam_ENUD, save_data
 from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
 
