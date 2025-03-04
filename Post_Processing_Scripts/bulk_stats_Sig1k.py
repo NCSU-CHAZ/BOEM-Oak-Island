@@ -268,13 +268,11 @@ def bulk_stats_analysis(dirpath,save_dir):
 
     # Load in Data
     groupnum = 1
-    path=f"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/Group{groupnum}" #brooke path
 
-    #path = f"Z:\deployment_1\Processed\S0_103080\Group{groupnum}"  # Define each group of data, each group is about a day
     #dirpath = r"Z:\deployment_1\Processed\S0_103080"  # Define the directory containing all the data from this deployment
+    #save_dir = r"Z:\deployment_1\BulkStats\S0_103080"
     dirpath=r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418" #brooke path
     save_dir=r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S1_101418" # brooke path
-    #save_dir = r"Z:\deployment_1\BulkStats\S0_103080"
 
     # Initilize waves structure that will contain the bulk stats
     waves = {}
@@ -298,6 +296,7 @@ def bulk_stats_analysis(dirpath,save_dir):
 
     # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
     for file in os.scandir(path=dirpath):
+        path = os.path.join(dirpath,f"Group{groupnum}")
         VertVel = pd.read_hdf(os.path.join(path, "VertVel.h5"))
         EastVel = pd.read_hdf(os.path.join(path, "EastVel.h5"))
         NorthVel = pd.read_hdf(os.path.join(path, "NorthVel.h5"))
