@@ -320,10 +320,9 @@ def save_data(Data, save_dir):
     Data['Pressure'].to_hdf(
         os.path.join(save_dir, 'Pressure'), key="df", mode="w"
     )
-    Data['isbad'].to_hdf(os.path.join(save_dir, 'isbad'), key="df", mode="w"
-                         )
-    Data['isbad2'].to_hdf(os.path.join(save_dir, 'isbad2'), key="df", mode="w"
-                          )
+    Data['VelBeamCorr'].to_hdf(
+        os.path.join(save_dir, 'VelBeamCorr'), key="df", mode="w"
+    )
     Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth'), key="df", mode="w")
 
     return
