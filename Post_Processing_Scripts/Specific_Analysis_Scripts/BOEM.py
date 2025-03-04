@@ -50,8 +50,10 @@ def average_vel_plots(path):
 # --------- USER INPUT ---------
 # directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf/"
 # save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
-directory_path = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's Macbook
-save_dir = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
+# directory_path = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's Macbook
+# save_dir = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
+directory_path = r'Z:/deployment_1/Raw/S0_103080_hdf/'#Levis path
+save_dir = r'Z:/deployment_1/Processed/'#Levis path
 
 # --------- QUALITY CONTROL ---------
 files = os.listdir(directory_path)  # lists in arbitrary order because there is not a zero in front of folder numbers
