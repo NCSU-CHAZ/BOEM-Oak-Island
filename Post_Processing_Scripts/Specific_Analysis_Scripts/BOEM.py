@@ -63,38 +63,39 @@ save_dir = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/" # Brooke
 #save_dir = r'Z:/deployment_1/Processed/'#Levis path
 
 # --------- QUALITY CONTROL ---------
-files = os.listdir(directory_path)  # lists in arbitrary order because there is not a zero in front of folder numbers
-if '.DS_Store' in files:  # remove hidden files on macs
-    files.remove('.DS_Store')
-folder_id = 0  # need to change if starting with group 1
+# files = os.listdir(directory_path)  # lists in arbitrary order because there is not a zero in front of folder numbers
+# if '.DS_Store' in files:  # remove hidden files on macs
+#     files.remove('.DS_Store')
+# folder_id = 0  # need to change if starting with group 1
 
-for file_name in files:
-    # import folder names
-    folder_id += 1
-    print(f"Processing Group {folder_id}")
-    path = os.path.join(directory_path, file_name)
-    print(path)
-    save_path_name = os.path.join(save_dir, f"Group{folder_id}")
-    # Ensure save directory exists
-    #os.makedirs(save_path_name, exist_ok=True)
+# for file_name in files:
+#     # import folder names
+#     folder_id += 1
+#     print(f"Processing Group {folder_id}")
+#     path = os.path.join(directory_path, file_name)
+#     print(path)
+#     save_path_name = os.path.join(save_dir, f"Group{folder_id}")
+#     # Ensure save directory exists
+#     #os.makedirs(save_path_name, exist_ok=True)
 
-    # call post-processing functions
-    Data = read_raw_h5(path)  # KA: needed to install pytables
-    print(f"read in data")
-    # print(Data["CellDepth"])
+#     # call post-processing functions
+#     Data = read_raw_h5(path)  # KA: needed to install pytables
+#     print(f"read in data")
+#     # print(Data["CellDepth"])
 
-    Data = remove_low_correlations(Data)
-    print(f"removed low correlations")
+#     Data = remove_low_correlations(Data)
+#     print(f"removed low correlations")
 
-    Data = transform_beam_ENUD(Data)
-    print("transformed to ENUD")
+#     Data = transform_beam_ENUD(Data)
+#     print("transformed to ENUD")
 
-    save_data(Data, save_path_name)
-    print(f"Processed {file_name} and saved to {save_dir}")
+#     save_data(Data, save_path_name)
+#     print(f"Processed {file_name} and saved to {save_dir}")
 
-
+directory_path=r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
+savedir=r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S1_101418" # brooke path
 # --------- BULK STATISTICS ---------
 waves = bulk_stats_analysis(directory_path, save_dir)
 
 # --------- PLOTTING ---------
-average_vel_plots(path)
+#average_vel_plots(path)
