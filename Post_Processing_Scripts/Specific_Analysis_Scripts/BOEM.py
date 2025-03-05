@@ -2,10 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
-#import sys
-#sys.path.append('/Users/bagaenzl/BOEM-Oak-Island/Post_Processing_Scripts')
-from Post_Processing_Scripts.process_Sig1k import read_raw_h5, remove_low_correlations, transform_beam_ENUD, save_data
-from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
+import sys
+sys.path.append('/Users/bagaenzl/BOEM-Oak-Island/Post_Processing_Scripts')
+from process_Sig1k import read_raw_h5, remove_low_correlations, transform_beam_ENUD, save_data
+#from Post_Processing_Scripts.process_Sig1k import read_raw_h5, remove_low_correlations, transform_beam_ENUD, save_data
+#from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
+from bulk_stats_Sig1k import bulk_stats_analysis
 
 
 def average_vel_plots(path):
@@ -52,10 +54,10 @@ def average_vel_plots(path):
 # --------- USER INPUT ---------
 # directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf/"
 # save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
-directory_path = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's Macbook
-save_dir = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
-# directory_path = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S0_103080_hdf/" # Brooke path
-# save_dir = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S0_103080/" # Brooke path
+#directory_path = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's Macbook
+#save_dir = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
+directory_path = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke path
+save_dir = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
 
 #directory_path = r'Z:/deployment_1/Raw/S0_103080_hdf/'#Levis path
 #save_dir = r'Z:/deployment_1/Processed/'#Levis path
@@ -73,6 +75,8 @@ for file_name in files:
     path = os.path.join(directory_path, file_name)
     print(path)
     save_path_name = os.path.join(save_dir, f"Group{folder_id}")
+    # Ensure save directory exists
+    #os.makedirs(save_path_name, exist_ok=True)
 
     # call post-processing functions
     Data = read_raw_h5(path)  # KA: needed to install pytables
@@ -85,7 +89,7 @@ for file_name in files:
     Data = transform_beam_ENUD(Data)
     print("transformed to ENUD")
 
-    save_data(Data, save_dir)
+    save_data(Data, save_path_name)
     print(f"Processed {file_name} and saved to {save_dir}")
 
 

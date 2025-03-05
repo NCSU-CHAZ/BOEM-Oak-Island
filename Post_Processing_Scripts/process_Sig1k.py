@@ -291,38 +291,47 @@ def save_data(Data, save_dir):
 
     # Save the data fields
     Data['AbsVel'].to_hdf(
-        os.path.join(save_dir, 'AbsVel'), key="df", mode="w"
+        os.path.join(save_dir, 'AbsVel.h5'), key="df", mode="w"
     )
     Data['Time'].to_hdf(
-        os.path.join(save_dir, 'Time'), key="df", mode="w"
+        os.path.join(save_dir, 'Time.h5'), key="df", mode="w"
     )
     Data['EastVel'].to_hdf(
-        os.path.join(save_dir, 'EastVel'), key="df", mode="w"
+        os.path.join(save_dir, 'EastVel.h5'), key="df", mode="w"
     )
     Data['NorthVel'].to_hdf(
-        os.path.join(save_dir, 'NorthVel'), key="df", mode="w"
+        os.path.join(save_dir, 'NorthVel.h5'), key="df", mode="w"
     )
     Data['VertVel'].to_hdf(
-        os.path.join(save_dir, 'VertVel'), key="df", mode="w"
+        os.path.join(save_dir, 'VertVel.h5'), key="df", mode="w"
     )
     Data['ErrVel'].to_hdf(
-        os.path.join(save_dir, 'ErrVel'), key="df", mode="w"
+        os.path.join(save_dir, 'ErrVel.h5'), key="df", mode="w"
     )
     Data['Heading'].to_hdf(
-        os.path.join(save_dir, 'Heading'), key="df", mode="w"
+        os.path.join(save_dir, 'Heading.h5'), key="df", mode="w"
     )
     Data['Roll'].to_hdf(
-        os.path.join(save_dir, 'Roll'), key="df", mode="w"
+        os.path.join(save_dir, 'Roll.h5'), key="df", mode="w"
     )
     Data['Pitch'].to_hdf(
-        os.path.join(save_dir, 'Pitch'), key="df", mode="w"
+        os.path.join(save_dir, 'Pitch.h5'), key="df", mode="w"
     )
     Data['Pressure'].to_hdf(
-        os.path.join(save_dir, 'Pressure'), key="df", mode="w"
+        os.path.join(save_dir, 'Pressure.h5'), key="df", mode="w"
     )
-    Data['VelBeamCorr'].to_hdf(
-        os.path.join(save_dir, 'VelBeamCorr'), key="df", mode="w"
+    Data['VelBeamCorr1'].to_hdf(
+        os.path.join(save_dir, 'VelBeamCorr1.h5'), key="df", mode="w"
     )
-    Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth'), key="df", mode="w")
+    Data['VelBeamCorr2'].to_hdf(
+        os.path.join(save_dir, 'VelBeamCorr2.h5'), key="df", mode="w"
+    )
+    Data['VelBeamCorr3'].to_hdf(
+        os.path.join(save_dir, 'VelBeamCorr3.h5'), key="df", mode="w"
+    )
+    Data['VelBeamCorr4'].to_hdf(
+        os.path.join(save_dir, 'VelBeamCorr4.h5'), key="df", mode="w"
+    )
+    Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth.h5'), key="df", mode="w")
 
     return
