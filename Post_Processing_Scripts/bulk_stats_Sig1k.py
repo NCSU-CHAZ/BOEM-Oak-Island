@@ -291,6 +291,8 @@ def bulk_stats_analysis(dirpath,save_dir):
 
     # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
     for file in os.scandir(path=dirpath):
+        if file.name.startswith('.'):
+            continue
         path = os.path.join(dirpath,f"Group{groupnum}")
         VertVel = pd.read_hdf(os.path.join(path, "VertVel.h5"))
         EastVel = pd.read_hdf(os.path.join(path, "EastVel.h5"))
@@ -532,8 +534,6 @@ def bulk_stats_analysis(dirpath,save_dir):
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         waves[key].loc[i] = np.nan
             #This line makes it so mac users don't break the code with their hidden files            
-            if file.name == '.DS_Store':
-                break
         groupnum += 1
         
 
