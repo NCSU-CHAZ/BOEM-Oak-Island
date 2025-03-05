@@ -531,6 +531,9 @@ def bulk_stats_analysis(dirpath,save_dir):
                 for key in waves.keys():
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         waves[key].loc[i] = np.nan
+            #This line makes it so mac users don't break the code with their hidden files            
+            if file.name == '.DS_Store':
+                break
         groupnum += 1
         
 
