@@ -539,6 +539,8 @@ def bulk_stats_analysis(dirpath,save_dir):
 
     # Saves the bulk stats to the research storage
     waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
+    waves["fr"].to_hdf(os.path.join(save_dir, "Frequencies"), key="df", mode="w")
+    waves["k"].to_hdf(os.path.join(save_dir, "WaveNumbers"), key="df", mode="w")
     waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
     waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
     waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
