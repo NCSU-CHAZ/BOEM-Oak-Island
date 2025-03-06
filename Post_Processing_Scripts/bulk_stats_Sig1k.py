@@ -268,6 +268,10 @@ def bulk_stats_analysis(dirpath,save_dir):
 
 # Load in Data
     groupnum = 1
+    group_dirs = [entry for entry in os.scandir(dirpath) if entry.is_dir() and entry.name.startswith('Group')]
+
+    # Sort the directories to ensure you process them in order
+    group_dirs.sort(key=lambda x: int(x.name.replace('Group', '')))
 
     # Initilize waves structure that will contain the bulk stats
     waves = {}
@@ -290,9 +294,12 @@ def bulk_stats_analysis(dirpath,save_dir):
     waves["Spv"] = pd.DataFrame([])
 
     # Start loop that will load in data for each variable from each day and then analyze the waves info for this day
-    for file in os.scandir(path=dirpath):
-        if file.name.startswith('.'):
-            continue
+    # Loop over each group directory and process it
+    for group_dir in group_dirs:
+        group_path = group_dir.path  # Get the full path of the current group
+    # for file in os.scandir(path=dirpath):
+    #     if file.name.startswith('.'):
+    #         continue
         path = os.path.join(dirpath,f"Group{groupnum}")
         VertVel = pd.read_hdf(os.path.join(path, "VertVel.h5"))
         EastVel = pd.read_hdf(os.path.join(path, "EastVel.h5"))
