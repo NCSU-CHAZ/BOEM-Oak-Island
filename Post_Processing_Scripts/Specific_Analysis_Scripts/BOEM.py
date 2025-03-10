@@ -56,46 +56,46 @@ def average_vel_plots(path):
 # save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
 #directory_path = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's Macbook
 #save_dir = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
-###directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke path
-#save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
+directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S0_103080_hdf/" # Brooke path
+save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/" # Brooke path
 
 #directory_path = r'Z:/deployment_1/Raw/S0_103080_hdf/'#Levis path
 #save_dir = r'Z:/deployment_1/Processed/'#Levis path
 
 # --------- QUALITY CONTROL ---------
-# files = os.listdir(directory_path)  # lists in arbitrary order because there is not a zero in front of folder numbers
-# if '.DS_Store' in files:  # remove hidden files on macs
-#     files.remove('.DS_Store')
-# folder_id = 0  # need to change if starting with group 1
+files = os.listdir(directory_path)  # lists in arbitrary order because there is not a zero in front of folder numbers
+if '.DS_Store' in files:  # remove hidden files on macs
+     files.remove('.DS_Store')
+folder_id = 0  # need to change if starting with group 1
 
-# for file_name in files:
+for file_name in files:
 #     # import folder names
-#     folder_id += 1
-#     print(f"Processing Group {folder_id}")
-#     path = os.path.join(directory_path, file_name)
-#     print(path)
-#     save_path_name = os.path.join(save_dir, f"Group{folder_id}")
+     folder_id += 1
+     print(f"Processing Group {folder_id}")
+     path = os.path.join(directory_path, file_name)
+     print(path)
+     save_path_name = os.path.join(save_dir, f"Group{folder_id}")
 #     # Ensure save directory exists
 #     #os.makedirs(save_path_name, exist_ok=True)
 
 #     # call post-processing functions
-#     Data = read_raw_h5(path)  # KA: needed to install pytables
-#     print(f"read in data")
+     Data = read_raw_h5(path)  # KA: needed to install pytables
+     print(f"read in data")
 #     # print(Data["CellDepth"])
 
-#     Data = remove_low_correlations(Data)
-#     print(f"removed low correlations")
+     Data = remove_low_correlations(Data)
+     print(f"removed low correlations")
 
-#     Data = transform_beam_ENUD(Data)
-#     print("transformed to ENUD")
+     Data = transform_beam_ENUD(Data)
+     print("transformed to ENUD")
 
-#     save_data(Data, save_path_name)
-#     print(f"Processed {file_name} and saved to {save_dir}")
+     save_data(Data, save_path_name)
+     print(f"Processed {file_name} and saved to {save_dir}")
 
-directory_path2=r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
-savedir2=r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418" # brooke pathgit 
+#directory_path2=r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
+#savedir2=r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418" # brooke pathgit 
 # --------- BULK STATISTICS ---------
-waves = bulk_stats_analysis(directory_path2, savedir2)
+#waves = bulk_stats_analysis(directory_path2, savedir2)
 
 # --------- PLOTTING ---------
 #average_vel_plots(path)
