@@ -1,3 +1,20 @@
+"""Perform quality control on raw data from the Nortek Signature 1000 (upward-looking ADCP)
+
+The following functions post-process raw data from a Nortek ADCP for easy processing in python and conduct basic
+data quality control.
+
+References
+----------
+
+.. [1]
+.. [2]
+
+
+Notes
+---------
+
+"""
+
 import numpy as np
 import pandas as pd
 import os
