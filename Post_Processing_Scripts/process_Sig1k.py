@@ -129,8 +129,6 @@ def remove_low_correlations(Data):
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
         Data[f"VelBeamCorr{jj}"] = Data[f"VelBeamCorr{jj}"].mask(isbad2, 1)  # Set to 1 for bad correlations
 
-    # Data[f"isbad"]=isbad (Realized we don't need these, since we're saving VelBeamCorr)
-    # Data[f"isbad2"]=isbad2
     return Data
 
 
@@ -258,7 +256,7 @@ def transform_beam_ENUD(Data):
     NorthVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 0], nan=0.0)
     EastVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 1], nan=0.0)
     VertVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 2], nan=0.0)
-    print(EastVel_no_nan)
+    
 
     # Sum the squared velocities
     Data["AbsVel"] = pd.DataFrame(
