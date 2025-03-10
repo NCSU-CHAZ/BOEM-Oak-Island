@@ -555,7 +555,7 @@ def bulk_stats_analysis(dirpath,save_dir):
     waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVeloctiy"), key="df", mode="w")
     waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVeloctiy"), key="df", mode="w")
     waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
-    waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeaanSpread1"), key="df", mode="w")
+    waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeanSpread1"), key="df", mode="w")
     waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
     waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
     waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDireciton"), key="df", mode="w")
