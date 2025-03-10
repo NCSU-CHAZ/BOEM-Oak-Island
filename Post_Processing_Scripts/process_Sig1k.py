@@ -128,6 +128,8 @@ def remove_low_correlations(Data):
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad, np.nan)
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
         Data[f"VelBeamCorr{jj}"] = Data[f"VelBeamCorr{jj}"].mask(isbad2, 1)  # Set to 1 for bad correlations
+        Data[f"VelBeamCorr{jj}"] = Data[f"VelBeamCorr{jj}"].mask(isbad, 1)  # Set to 1 for bad correlations
+
 
     return Data
 
