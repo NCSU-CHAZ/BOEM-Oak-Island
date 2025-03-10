@@ -56,8 +56,8 @@ def average_vel_plots(path):
 # save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S0_103080/"
 #directory_path = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's Macbook
 #save_dir = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
-directory_path = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke path
-save_dir = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
+###directory_path = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke path
+#save_dir = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
 
 #directory_path = r'Z:/deployment_1/Raw/S0_103080_hdf/'#Levis path
 #save_dir = r'Z:/deployment_1/Processed/'#Levis path
@@ -92,10 +92,10 @@ save_dir = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/" # Brooke
 #     save_data(Data, save_path_name)
 #     print(f"Processed {file_name} and saved to {save_dir}")
 
-directory_path=r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
-savedir=r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S1_101418" # brooke path
+directory_path2=r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/" # Brooke path
+savedir2=r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418" # brooke pathgit 
 # --------- BULK STATISTICS ---------
-waves = bulk_stats_analysis(directory_path, save_dir)
+waves = bulk_stats_analysis(directory_path2, savedir2)
 
 # --------- PLOTTING ---------
 #average_vel_plots(path)
