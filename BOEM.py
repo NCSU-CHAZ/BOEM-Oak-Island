@@ -1,4 +1,4 @@
-"""Template script for BOEM deployments: process and analyze data from Nortek Signature 1000s
+"""Run script for BOEM deployments: process and analyze data from Nortek Signature 1000s
 
 Here we provide a template for the workflow used in quality control and statistical analysis of bottom mounted ADCP data
 as part of the lander deployments at Frying Pan Shoals (on behalf of BOEM and Oak Island).
