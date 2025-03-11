@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import os
 from datetime import datetime, timedelta
-
+from scipy.io import loadmat
 
 def dtnum_dttime_adcp(datenum_array):
     dates = []
@@ -27,6 +27,61 @@ def dtnum_dttime_adcp(datenum_array):
         python_datetime = datetime.fromordinal(int(datenum)) + timedelta(days=datenum % 1) - timedelta(days=366)
         dates.append(python_datetime)
     return dates
+
+
+def read_Sig1k(filepath, save_dir):  # Create read function
+    Data = loadmat(
+        filepath
+    )  # Load mat oragnizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
+    # dictionary with four nested numpy arrays with dtypes as data field titles
+    ADCPData = {}  # Initialize the dictionary we'll use
+    Config = Data["Config"][0, 0]
+    # Save BEAM coordinate velocity matrix
+    VelArray = Data["Data"][0, 0]["Burst_Velocity_Beam"]
+    reshaped = VelArray.reshape(VelArray.shape[0], -1)
+    del VelArray
+    ADCPData["Burst_VelBeam"] = pd.DataFrame(reshaped)
+
+    # Save the correlation data matrix
+    CorArray = Data["Data"][0, 0]["Burst_Correlation_Beam"]
+    reshaped = CorArray.reshape(CorArray.shape[0], -1)
+    ADCPData["Burst_CorBeam"] = pd.DataFrame(reshaped)
+    del CorArray, reshaped
+
+    # Save other fields
+
+    ADCPData["Burst_Time"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Time"])
+    ADCPData["Burst_NCells"] = pd.DataFrame(Data["Data"][0, 0]["Burst_NCells"])
+    ADCPData["Burst_Pressure"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pressure"])
+    ADCPData["Burst_Heading"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Heading"])
+    ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
+    ADCPData["Burst_Roll"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Roll"])
+    ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
+
+    BlankDist = pd.DataFrame(Config["Burst_BlankingDistance"])
+    CellSize = pd.DataFrame(Config["Burst_CellSize"])
+    SampleRate = pd.DataFrame(Config["Burst_SamplingRate"])
+    Beam2xyz = pd.DataFrame(Config["Burst_Beam2xyz"])
+
+    # Make directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Save files there
+    BlankDist.to_hdf(
+        os.path.join(save_dir, "Burst_BlankingDistance.h5"), key="df", mode="w"
+    )
+    CellSize.to_hdf(os.path.join(save_dir, "Burst_CellSize.h5"), key="df", mode="w")
+    SampleRate.to_hdf(
+        os.path.join(save_dir, "Burst_SamplingRate.h5"), key="df", mode="w"
+    )
+    Beam2xyz.to_hdf(os.path.join(save_dir, "Burst_Beam2xyz.h5"), key="df", mode="w")
+
+    for field_name, df in ADCPData.items():
+        save_path = os.path.join(save_dir, f"{field_name}.h5")
+        df.to_hdf(save_path, key="df", mode="w")
+        print(f"Saved {field_name} to {save_path}")
+
+    print("Saving Done")
 
 
 def read_raw_h5(path):
@@ -132,22 +187,16 @@ def remove_low_correlations(Data):
         )
         isbad[i, :] = Data["CellDepth"] >= Depth_Thresh
     isbad = isbad.astype(bool)
-
-    # isbad2 = np.zeros((row, col))  # initialize mask
+    Data["DepthThresh"] = isbad
 
     for jj in range(1, 5):
         isbad2 = (
                 Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh
         )  # create mask for bad correlations
         isbad2 = isbad2.astype(bool)
-        # Initialize the VelBeamCorr{jj} columns with zeros
-        Data[f"VelBeamCorr{jj}"] = pd.DataFrame(np.zeros((row, col)), index=Data[f"CorBeam{jj}"].index)
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad, np.nan)
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
-        Data[f"VelBeamCorr{jj}"] = Data[f"VelBeamCorr{jj}"].mask(isbad, 1)  # Set to 1 for bad correlations
-        Data[f"VelBeamCorr{jj}"] = Data[f"VelBeamCorr{jj}"].mask(isbad2, 1)  # Set to 1 for bad correlations
-        
-
+        Data[f"VelBeamCorr{jj}"] = isbad2
 
     return Data
 
