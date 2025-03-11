@@ -399,6 +399,9 @@ def save_data(Data, save_dir):
     Data['VelBeamCorr4'].to_hdf(
         os.path.join(save_dir, 'VelBeamCorr4.h5'), key="df", mode="w"
     )
+    Data['DepthThresh'].to_hdf(
+        os.path.join(save_dir, 'DepthThresh.h5'), key="df", mode="w"
+    )
     Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth.h5'), key="df", mode="w")
 
     return
