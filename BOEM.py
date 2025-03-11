@@ -5,18 +5,17 @@ as part of the lander deployments at Frying Pan Shoals (on behalf of BOEM and Oa
 
 References
 ----------
-
 None
 
 Notes
 ---------
-
 None
 
 """
 
 import os
-from Post_Processing_Scripts.process_Sig1k import read_raw_h5, remove_low_correlations, transform_beam_ENUD, save_data
+from Post_Processing_Scripts.process_Sig1k import read_Sig1k, read_raw_h5, remove_low_correlations, \
+    transform_beam_ENUD, save_data
 from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
 
 ###############################################################################
@@ -24,24 +23,47 @@ from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
 ###############################################################################
 
 # define paths to raw data and save directories
-directory_path_raw = r"/Volumes/BOEM/deployment_1//Raw/S0_103080_hdf/"  # Katherine's paths
+directory_path_mat = r"/Volumes/BOEM/deployment_1/Raw/S0_103080_mat/"  # Katherine's paths
+save_dir_raw = r"/Volumes/BOEM/deployment_1/Raw/S0_103080_hdf/" 
 save_dir_qc = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
 save_dir_bulk_stats = r"/Volumes/BOEM/deployment_1/BulkStats/S0_103080"
-# directory_path_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke's paths
+# save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke's paths
 # save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
 # save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
-# directory_path_raw = r'Z:/deployment_1/Raw/S0_103080_hdf/'  # Levi's paths
+# save_dir_raw = r'Z:/deployment_1/Raw/S0_103080_hdf/'  # Levi's paths
 # save_dir_qc = r'Z:/deployment_1/Processed/'
+# directory_path_mat = r"Z:\deployment_1\Raw\S0_103080_mat"
 
 # define which processing steps you would like to perform
-run_quality_control = False
-run_bulk_statistics = True
+run_convert_mat_h5 = False
+run_quality_control = True
+run_bulk_statistics = False
+
+###############################################################################
+# convert mat files to h5 files
+###############################################################################
+if run_convert_mat_h5:
+    
+    files = [
+        f
+        for f in os.listdir(directory_path_mat)
+        if os.path.isfile(os.path.join(directory_path_mat, f))
+    ]
+    i = 0
+    
+    for file_name in files:
+        i += 1
+        path = os.path.join(directory_path_mat, file_name)
+        save_path = os.path.join(save_dir_raw, f"Group{i}")
+        read_Sig1k(path, save_path)
 
 ###############################################################################
 # quality control
 ###############################################################################
 if run_quality_control:
-    files = os.listdir(directory_path_raw)  # lists in arbitrary order because there is not a zero in front of folder #s
+
+    files = os.listdir(save_dir_raw)  # lists in arbitrary order because there is not a zero in front of folder #s
+
     if '.DS_Store' in files:  # remove hidden files on macs
         files.remove('.DS_Store')
     folder_id = 0  # need to change if starting with group 1
@@ -50,7 +72,7 @@ if run_quality_control:
         # import folder names
         folder_id += 1
         print(f"Processing Group {folder_id}")
-        path = os.path.join(directory_path_raw, file_name)
+        path = os.path.join(save_dir_raw, file_name)
         print(path)
         save_path_name = os.path.join(save_dir_qc, f"Group{folder_id}")
 
@@ -71,4 +93,5 @@ if run_quality_control:
 # bulk statistics
 ###############################################################################
 if run_bulk_statistics:
+
     waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats)

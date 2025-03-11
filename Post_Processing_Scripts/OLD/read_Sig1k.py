@@ -6,7 +6,6 @@ import time
 start_time = time.time()
 
 
-# This code generates a dicionary containing all of the quantitative data exported by the Nortek Signature Deployment,
 def read_Sig1k(filepath, save_dir):  # Create read function
     Data = loadmat(
         filepath
