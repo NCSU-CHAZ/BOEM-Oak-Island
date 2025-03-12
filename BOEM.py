@@ -23,10 +23,10 @@ from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
 ###############################################################################
 
 # define paths to raw data and save directories
-directory_path_mat = r"/Volumes/BOEM/deployment_1/Raw/S0_103080_mat/"  # Katherine's paths
-save_dir_raw = r"/Volumes/BOEM/deployment_1/Raw/S0_103080_hdf/" 
-save_dir_qc = r"/Volumes/BOEM/deployment_1/Processed/S0_103080/"
-save_dir_bulk_stats = r"/Volumes/BOEM/deployment_1/BulkStats/S0_103080"
+directory_path_mat = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_mat/"  # Katherine's paths
+save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" 
+save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
+save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
 # save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke's paths
 # save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
 # save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
