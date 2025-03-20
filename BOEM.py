@@ -25,27 +25,21 @@ import tables
 ###############################################################################
 
 # define paths to raw data and save directories
-<<<<<<< HEAD
-directory_path_mat = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_mat/"  # Katherine's paths
-save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" 
-save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
-save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
-=======
-directory_path_mat = r"Z:\deployment_2\Raw\S#_101418_mat"  # Liz's paths
-save_dir_raw = r"Z:\deployment_2\Raw\S#_101418_hdf" 
-save_dir_qc = r"Z:\deployment_2\Processed\S#_101418"
-save_dir_bulk_stats = r"Z:\deployment_2\BulkStats\S#_101418_mat"
->>>>>>> refs/remotes/origin/main
+# directory_path_mat = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_mat/"  # Katherine's paths
+# save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" 
+# save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
+# save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
 # save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke's paths
 # save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
 # save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
-# save_dir_raw = r'Z:/deployment_1/Raw/S0_103080_hdf/'  # Levi's paths
-# save_dir_qc = r'Z:/deployment_1/Processed/'
+save_dir_raw = r'Z:/deployment_1/Raw/S0_103080_hdf/'  # Levi's paths
+save_dir_qc = r'Z:/deployment_1/Processed/S1_101418/'
+save_dir_bulk_stats = r"Z:/deployment_1/BulkStats/S0_103080"
 # directory_path_mat = r"Z:\deployment_1\Raw\S0_103080_mat"
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
-run_quality_control = True
+run_quality_control = False
 run_bulk_statistics = True
 
 ###############################################################################
