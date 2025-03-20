@@ -323,7 +323,6 @@ def bulk_stats_analysis(
         VertVel = pd.read_hdf(os.path.join(group_path, "VertVel.h5"))
         EastVel = pd.read_hdf(os.path.join(group_path, "EastVel.h5"))
         NorthVel = pd.read_hdf(os.path.join(group_path, "NorthVel.h5"))
-        ErrVel = pd.read_hdf(os.path.join(group_path, "ErrVel.h5"))
         Time = pd.read_hdf(os.path.join(group_path, "Time.h5"))
         Pressure = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
         Celldepth = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
