@@ -304,7 +304,6 @@ def bulk_stats_analysis(
     ###############################################################################
     # load data
     ###############################################################################
-    groupnum = 1
     group_dirs = [entry for entry in os.scandir(dirpath) if entry.is_dir() and entry.name.startswith('Group')]
 
     # Sort the directories to ensure you process them in order
