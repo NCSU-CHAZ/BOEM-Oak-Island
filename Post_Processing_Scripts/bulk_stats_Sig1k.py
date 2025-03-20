@@ -568,7 +568,8 @@ def bulk_stats_analysis(
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         Waves[key].loc[i] = np.nan
             # This line makes it so mac users don't break the code with their hidden files
-        print(group_path)
+        
+
 
     ###############################################################################
     # save bulk statistics to directory
