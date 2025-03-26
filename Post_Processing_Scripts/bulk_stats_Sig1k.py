@@ -304,7 +304,6 @@ def bulk_stats_analysis(
     ###############################################################################
     # load data
     ###############################################################################
-    groupnum = 1
     group_dirs = [entry for entry in os.scandir(dirpath) if entry.is_dir() and entry.name.startswith('Group')]
 
     # Sort the directories to ensure you process them in order
@@ -315,22 +314,17 @@ def bulk_stats_analysis(
              "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "MeanDir1": pd.DataFrame([]),
              "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]), "MeanSpread2": pd.DataFrame([]),
              "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]), "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]),
-             "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([])}
+             "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]), "fr":pd.DataFrame([]),"k":pd.DataFrame([])}
 
     # Start loop that will load in data for each variable from each day ("group")
     for group_dir in group_dirs:
         group_path = group_dir.path  # Get the full path of the current group
-        # for file in os.scandir(path=dirpath):
-        #     if file.name.startswith('.'):
-        #         continue
-        path = os.path.join(dirpath, f"Group{groupnum}")
-        VertVel = pd.read_hdf(os.path.join(path, "VertVel.h5"))
-        EastVel = pd.read_hdf(os.path.join(path, "EastVel.h5"))
-        NorthVel = pd.read_hdf(os.path.join(path, "NorthVel.h5"))
-        ErrVel = pd.read_hdf(os.path.join(path, "ErrVel.h5"))
-        Time = pd.read_hdf(os.path.join(path, "Time.h5"))
-        Pressure = pd.read_hdf(os.path.join(path, "Pressure.h5"))
-        Celldepth = pd.read_hdf(os.path.join(path, "Celldepth.h5"))
+        VertVel = pd.read_hdf(os.path.join(group_path, "VertVel.h5"))
+        EastVel = pd.read_hdf(os.path.join(group_path, "EastVel.h5"))
+        NorthVel = pd.read_hdf(os.path.join(group_path, "NorthVel.h5"))
+        Time = pd.read_hdf(os.path.join(group_path, "Time.h5"))
+        Pressure = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
+        Celldepth = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
 
         # Get number of total samples in group
         nt = len(Time)
@@ -573,7 +567,8 @@ def bulk_stats_analysis(
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         Waves[key].loc[i] = np.nan
             # This line makes it so mac users don't break the code with their hidden files
-        groupnum += 1
+        
+
 
     ###############################################################################
     # save bulk statistics to directory
