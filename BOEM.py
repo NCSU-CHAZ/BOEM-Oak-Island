@@ -32,9 +32,9 @@ import tables
 # save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke's paths
 # save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
 # save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
-save_dir_raw = r'Z:/deployment_1/Raw/S0_103080_hdf/'  # Levi's paths
-save_dir_qc = r'Z:/deployment_1/Processed/S1_101418/'
-save_dir_bulk_stats = r"Z:/deployment_1/BulkStats/S0_103080"
+# save_dir_raw = r'Z:/deployment_1/Raw/S0_103080_hdf/'  # Levi's paths
+# save_dir_qc = r'Z:/deployment_1/Processed/S1_101418/'
+# save_dir_bulk_stats = r"Z:/deployment_1/BulkStats/S1_101418"
 # directory_path_mat = r"Z:\deployment_1\Raw\S0_103080_mat"
 
 # define which processing steps you would like to perform
@@ -52,6 +52,8 @@ if run_convert_mat_h5:
         for f in os.listdir(directory_path_mat)
         if os.path.isfile(os.path.join(directory_path_mat, f))
     ]
+    files.sort(key=lambda x: int(re.search(r"NCSU_(\d+)", x).group(1)) if re.search(r"NCSU_(\d+)", x) else float('inf'))
+
     i = 0
     
     for file_name in files:
