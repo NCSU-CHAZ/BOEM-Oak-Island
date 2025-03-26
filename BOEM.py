@@ -19,6 +19,7 @@ from Post_Processing_Scripts.process_Sig1k import read_Sig1k, read_raw_h5, remov
 from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
 import h5py
 import tables
+import re
 
 ###############################################################################
 # user input
