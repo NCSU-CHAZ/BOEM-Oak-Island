@@ -26,13 +26,13 @@ import re
 ###############################################################################
 
 # define paths to raw data and save directories
-# directory_path_mat = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_mat/"  # Katherine's paths
+directory_path_mat = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S0_103080_mat/"  # Katherine's paths
 # save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" 
 # save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
 # save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
-# save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" # Brooke's paths
-# save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
-# save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
+save_dir_raw = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S0_103080_hdf/" # Brooke's paths
+save_dir_qc = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S0_103080/"
+save_dir_bulk_stats = r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S0_103080"
 # save_dir_raw = r'Z:/deployment_1/Raw/S0_103080_hdf/'  # Levi's paths
 # save_dir_qc = r'Z:/deployment_1/Processed/S1_101418/'
 # save_dir_bulk_stats = r"Z:/deployment_1/BulkStats/S1_101418"
@@ -40,7 +40,7 @@ import re
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
-run_quality_control = False
+run_quality_control = True
 run_bulk_statistics = True
 
 ###############################################################################
@@ -99,5 +99,4 @@ if run_quality_control:
 # bulk statistics
 ###############################################################################
 if run_bulk_statistics:
-
     waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats)
