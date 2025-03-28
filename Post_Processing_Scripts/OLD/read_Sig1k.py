@@ -61,23 +61,5 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     print("Saving Done")
 
 
-directory_path = r"Z:\deployment_1\Raw\S0_103080_mat"
-save_dir = r"Z:\deployment_1\Raw\S0_103080_hdf"
-files = [
-    f
-    for f in os.listdir(directory_path)
-    if os.path.isfile(os.path.join(directory_path, f))
-]
-i = 0
-
-for file_name in files:
-    i += 1
-    path = os.path.join(directory_path, file_name)
-    save_path = os.path.join(save_dir, f"Group{i}")
-    read_Sig1k(path, save_path)
-
-endtime = time.time()
-
-print("Time taken was", start_time - endtime, "seconds")
 
 
