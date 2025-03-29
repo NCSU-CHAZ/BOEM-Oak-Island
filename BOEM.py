@@ -17,31 +17,30 @@ import os
 from Post_Processing_Scripts.process_Sig1k import read_Sig1k, read_raw_h5, remove_low_correlations, \
     transform_beam_ENUD, save_data
 from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
-import h5py
-import tables
 import re
 
 ###############################################################################
 # user input
 ###############################################################################
 
-# define paths to raw data and save directories
-directory_path_mat = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S0_103080_mat/"  # Katherine's paths
-# save_dir_raw = r"/Volumes/kanarde/BOEM/deployment_1/Raw/S1_101418_hdf/" 
-# save_dir_qc = r"/Volumes/kanarde/BOEM/deployment_1/Processed/S1_101418/"
-# save_dir_bulk_stats = r"/Volumes/kanarde/BOEM/deployment_1/BulkStats/S1_101418"
-save_dir_raw = r"/Volumes/kanarde-1/BOEM/deployment_1/Raw/S0_103080_hdf/" # Brooke's paths
-save_dir_qc = r"/Volumes/kanarde-1/BOEM/deployment_1/Processed/S0_103080/"
-save_dir_bulk_stats = r"/Volumes/kanarde-1/BOEM/deployment_1/BulkStats/S0_103080"
-# save_dir_raw = r'Z:/deployment_1/Raw/S0_103080_hdf/'  # Levi's paths
-# save_dir_qc = r'Z:/deployment_1/Processed/S1_101418/'
-# save_dir_bulk_stats = r"Z:/deployment_1/BulkStats/S1_101418"
-# directory_path_mat = r"Z:\deployment_1\Raw\S0_103080_mat"
+deployment_num = 1
+sensor_id = "S0_103080"  # S1_101418
+directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
+# directory_initial_user_path = r"/Volumes/kanarde-1/BOEM/"  # Brooke
+# directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
 run_quality_control = True
-run_bulk_statistics = True
+run_bulk_statistics = False
+
+###############################################################################
+# create paths to save directories
+###############################################################################
+directory_path_mat = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id+"_mat/")
+save_dir_raw = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id+"_hdf/")
+save_dir_qc = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Processed/", sensor_id+"/")
+save_dir_bulk_stats = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/BulkStats/", sensor_id+"/")
 
 ###############################################################################
 # convert mat files to h5 files
@@ -55,12 +54,15 @@ if run_convert_mat_h5:
     ]
     files.sort(key=lambda x: int(re.search(r"NCSU_(\d+)", x).group(1)) if re.search(r"NCSU_(\d+)", x) else float('inf'))
 
-    i = 0
+    file_id = 0
     
-    for file_name in files:
-        i += 1
+    for file_name in files[file_id:]:
+        file_id += 1
         path = os.path.join(directory_path_mat, file_name)
-        save_path = os.path.join(save_dir_raw, f"Group{i}")
+        if file_id < 10:
+            save_path = os.path.join(save_dir_raw, f"Group0{file_id}")
+        else:
+            save_path = os.path.join(save_dir_raw, f"Group{file_id}")
         read_Sig1k(path, save_path)
 
 ###############################################################################
@@ -68,19 +70,22 @@ if run_convert_mat_h5:
 ###############################################################################
 if run_quality_control:
 
-    files = os.listdir(save_dir_raw)  # lists in arbitrary order because there is not a zero in front of folder #s
+    files = sorted(os.listdir(save_dir_raw))
 
     if '.DS_Store' in files:  # remove hidden files on macs
         files.remove('.DS_Store')
-    folder_id = 0  # need to change if starting with group 1
+    folder_id = 0
 
-    for file_name in files:
+    for file_name in files[folder_id:]:
         # import folder names
         folder_id += 1
-        print(f"Processing Group {folder_id}")
         path = os.path.join(save_dir_raw, file_name)
         print(path)
-        save_path_name = os.path.join(save_dir_qc, f"Group{folder_id}")
+        if folder_id < 10:
+            save_path_name = os.path.join(save_dir_qc, f"Group0{folder_id}")
+        else:
+            save_path_name = os.path.join(save_dir_qc, f"Group{folder_id}")
+        print(f"Processing {file_name}")  # for debugging
 
         # call post-processing functions
         Data = read_raw_h5(path)  # KA: needed to install pytables
