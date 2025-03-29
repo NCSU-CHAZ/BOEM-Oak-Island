@@ -58,7 +58,7 @@ def read_Sig1k(filepath, save_dir):  # Create read function
         df.to_hdf(save_path, key="df", mode="w")
         print(f"Saved {field_name} to {save_path}")
 
-    print("Saving Done")
+    print(f"Converted mat to hdr for {save_path}")
 
 
 
