@@ -25,13 +25,13 @@ import re
 
 deployment_num = 1
 sensor_id = "S0_103080"  # S1_101418
-# directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-directory_initial_user_path = r"/Volumes/kanarde-1/BOEM/"  # Brooke
+directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
+# directory_initial_user_path = r"/Volumes/kanarde-1/BOEM/"  # Brooke
 # directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = True
-run_quality_control = False
+run_convert_mat_h5 = False
+run_quality_control = True
 run_bulk_statistics = False
 
 group_id = 1  # specify if you want to process starting at a specific group_id; must be 1 or greater
