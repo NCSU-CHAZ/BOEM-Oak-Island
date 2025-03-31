@@ -247,7 +247,7 @@ def welch_cospec(datax, datay, dt, M, overlap):
     CoSP = np.real(Cxy)
     QuSP = np.imag(Cxy)
     COH = abs(Cxy) / np.sqrt(Sxx * Syy)
-    PHI = np.atan2(-QuSP, CoSP)
+    PHI = np.arctan2(-QuSP, CoSP)
 
     return CoSP, frequency, QuSP, COH, PHI
 
