@@ -556,14 +556,17 @@ def bulk_stats_analysis(
             Waves["Spv"] = pd.concat(
                 [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
+            
 
             if i == 1:
                 Waves["fr"] = pd.DataFrame(fr[I])
                 Waves["k"] = k.loc[I]
+               
 
             # remove stats for when ADCP is in air or very shallow water
             if dpth < depth_threshold:
                 for key in Waves.keys():
+                    print(key) # debugging
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         Waves[key].loc[i] = np.nan
             # This line makes it so mac users don't break the code with their hidden files
