@@ -30,9 +30,11 @@ directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = False
-run_quality_control = True
+run_convert_mat_h5 = True
+run_quality_control = False
 run_bulk_statistics = False
+
+group_id = 1  # specify if you want to process starting at a specific group_id; must be 1 or greater
 
 ###############################################################################
 # create paths to save directories
@@ -54,7 +56,7 @@ if run_convert_mat_h5:
     ]
     files.sort(key=lambda x: int(re.search(r"NCSU_(\d+)", x).group(1)) if re.search(r"NCSU_(\d+)", x) else float('inf'))
 
-    file_id = 0
+    file_id = group_id - 1
     
     for file_name in files[file_id:]:
         file_id += 1
@@ -74,7 +76,7 @@ if run_quality_control:
 
     if '.DS_Store' in files:  # remove hidden files on macs
         files.remove('.DS_Store')
-    folder_id = 0
+    folder_id = group_id - 1
 
     for file_name in files[folder_id:]:
         # import folder names
