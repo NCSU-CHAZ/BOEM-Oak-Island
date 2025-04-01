@@ -18,6 +18,7 @@ from Post_Processing_Scripts.process_Sig1k import read_Sig1k, read_raw_h5, remov
     transform_beam_ENUD, save_data
 from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
 import re
+import itertools
 
 ###############################################################################
 # user input
@@ -31,10 +32,11 @@ directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
-run_quality_control = True
-run_bulk_statistics = False
+run_quality_control = False
+run_bulk_statistics = True
 
 group_id = 1  # specify if you want to process starting at a specific group_id; must be 1 or greater
+group_ids_exclude = [0, 23]  # for processing bulk statistics; skip group 1 and 24 (need to add a line of code in bulk stats to remove 1 so I can make [1,24] here
 
 ###############################################################################
 # create paths to save directories
@@ -106,4 +108,4 @@ if run_quality_control:
 # bulk statistics
 ###############################################################################
 if run_bulk_statistics:
-    waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats)
+    waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude)

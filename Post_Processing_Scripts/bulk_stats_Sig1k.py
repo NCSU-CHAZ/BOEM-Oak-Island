@@ -246,15 +246,16 @@ def welch_cospec(datax, datay, dt, M, overlap):
     # and phase
     CoSP = np.real(Cxy)
     QuSP = np.imag(Cxy)
-    COH = abs(Cxy) / np.sqrt(Sxx * Syy)
+    # COH = abs(Cxy) / np.sqrt(Sxx * Syy)  # KA: giving invalid numbers in divide
     PHI = np.arctan2(-QuSP, CoSP)
 
-    return CoSP, frequency, QuSP, COH, PHI
+    return CoSP, frequency, QuSP, PHI
 
 
 def bulk_stats_analysis(
         dirpath,
         save_dir,
+        group_ids_exclude,
         dtburst=3600,
         dtens=512,
         fs=4,
@@ -309,6 +310,10 @@ def bulk_stats_analysis(
     # Sort the directories to ensure you process them in order
     group_dirs.sort(key=lambda x: int(x.name.replace('Group', '')))
 
+    # only loop through directories specified by the user
+    for index in sorted(group_ids_exclude, reverse=True):
+        del group_dirs[index]
+
     # Initialize Waves structure that will contain the bulk stats
     Waves = {"Time": pd.DataFrame([]), "Tm": pd.DataFrame([]), "Hs": pd.DataFrame([]), "C": pd.DataFrame([]),
              "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "MeanDir1": pd.DataFrame([]),
@@ -334,7 +339,7 @@ def bulk_stats_analysis(
         # Loop over ensembles ("bursts")
         for i in range(N):
 
-            # for the first group the ADCP is out of the water prior to depoyment so statistics are not
+            # for the first group the ADCP is out of the water prior to deployment so statistics are not
             # calculated during this time
 
             # Grab the time series associated with these ensembles
@@ -473,9 +478,9 @@ def bulk_stats_analysis(
 
             # Now let's calculate the cospectra and mean wave direction
             P_expanded = np.tile(P.to_numpy(), (1, Nb))
-            [Suv, _, _, _, _] = welch_cospec(U_no_nan, V_no_nan, dt, Chunks, overlap)
-            [Spu, _, _, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
-            [Spv, fr, _, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
+            [Suv, _, _, _] = welch_cospec(U_no_nan, V_no_nan, dt, Chunks, overlap)
+            [Spu, _, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
+            [Spv, fr, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
 
             # Remove zero frequency
             Suv = pd.DataFrame(Suv[1:, :])
@@ -590,7 +595,7 @@ def bulk_stats_analysis(
     Waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeanSpread1"), key="df", mode="w")
     Waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
     Waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
-    Waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDireciton"), key="df", mode="w")
+    Waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDirection"), key="df", mode="w")
     Waves["Spp"].to_hdf(os.path.join(save_dir, "PressureSpectra"), key="df", mode="w")
     Waves["Spu"].to_hdf(os.path.join(save_dir, "PressureEastVelCospectra"), key="df", mode="w")
     Waves["Spv"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
