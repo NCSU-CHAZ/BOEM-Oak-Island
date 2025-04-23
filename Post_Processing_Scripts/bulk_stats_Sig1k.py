@@ -15,7 +15,6 @@ Notes
 
 """
 
-
 import numpy as np
 import pandas as pd
 import os
@@ -319,7 +318,7 @@ def bulk_stats_analysis(
              "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "MeanDir1": pd.DataFrame([]),
              "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]), "MeanSpread2": pd.DataFrame([]),
              "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]), "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]),
-             "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]), "fr":pd.DataFrame([]),"k":pd.DataFrame([])}
+             "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]), "fr": pd.DataFrame([]), "k": pd.DataFrame([])}
 
     # Start loop that will load in data for each variable from each day ("group")
     for group_dir in group_dirs:
@@ -364,8 +363,10 @@ def bulk_stats_analysis(
             P = Pressure.iloc[i * Nsamp: Nsamp * (i + 1)]
 
             # Find the depth averaged velocity stat
-            Uavg = np.nanmean(U)
-            Vavg = np.nanmean(V)
+            Uavg = np.nanmean(np.nanmean(U, axis=1))  # there are slight differences if you first do axis = 1
+            Vavg = np.nanmean(np.nanmean(V, axis=1))
+            Wavg = np.nanmean(np.nanmean(W, axis=1))  # not sure if this is wanted, but why not
+            current_velocity = np.sqrt(Uavg ** 2 + Vavg ** 2)
 
             # Compute depth-averaged current direction in degrees
             avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg))
@@ -382,6 +383,12 @@ def bulk_stats_analysis(
             )
             Waves["Vavg"] = pd.concat(
                 [Waves["Vavg"], pd.DataFrame([Vavg])], axis=0, ignore_index=True
+            )
+            Waves["Wavg"] = pd.concat(
+                [Waves["Wavg"], pd.DataFrame([Wavg])], axis=0, ignore_index=True
+            )
+            Waves["Current"] = pd.concat(
+                [Waves["Current"], pd.DataFrame([current_velocity])], axis=0, ignore_index=True
             )
 
             # Grab mean depth for the ensemble
@@ -561,23 +568,19 @@ def bulk_stats_analysis(
             Waves["Spv"] = pd.concat(
                 [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
-            
 
             if i == 1:
                 Waves["fr"] = pd.DataFrame(fr[I])
                 Waves["k"] = k.loc[I]
-               
 
             # remove stats for when ADCP is in air or very shallow water
             if dpth < depth_threshold:
                 for key in Waves.keys():
-                    print(key) # debugging
+                    print(key)  # debugging
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         Waves[key].loc[i] = np.nan
-            # This line makes it so mac users don't break the code with their hidden files
 
         print(f"Processed {group_path} for bulk_statistics")  # for debugging
-
 
     ###############################################################################
     # save bulk statistics to directory
@@ -589,8 +592,10 @@ def bulk_stats_analysis(
     Waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
     Waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
     Waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
-    Waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVeloctiy"), key="df", mode="w")
-    Waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVeloctiy"), key="df", mode="w")
+    Waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVelocity"), key="df", mode="w")
+    Waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVelocity"), key="df", mode="w")
+    Waves["Wavg"].to_hdf(os.path.join(save_dir, "DepthAveragedUpVelocity"), key="df", mode="w")
+    Waves["Current"].to_hdf(os.path.join(save_dir, "DepthAveragedCurrentVelocity"), key="df", mode="w")
     Waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
     Waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeanSpread1"), key="df", mode="w")
     Waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
@@ -607,5 +612,3 @@ def bulk_stats_analysis(
     print("Time taken to process bulk stats was", endtime - start_time, "seconds")
 
     return Waves
-
-
