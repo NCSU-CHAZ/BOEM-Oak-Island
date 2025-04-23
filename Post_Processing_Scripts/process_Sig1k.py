@@ -18,9 +18,10 @@ Notes
 import numpy as np
 import pandas as pd
 import os
-import h5py 
+import h5py
 from datetime import datetime, timedelta
 from scipy.io import loadmat
+
 
 def dtnum_dttime_adcp(datenum_array):
     dates = []
@@ -31,12 +32,14 @@ def dtnum_dttime_adcp(datenum_array):
 
 
 def read_Sig1k(filepath, save_dir):  # Create read function
+    # loadmat organizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
+    # dictionary with four nested numpy arrays with dtypes as data field titles
     Data = loadmat(
         filepath
-    )  # Load mat oragnizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
-    # dictionary with four nested numpy arrays with dtypes as data field titles
+    )
     ADCPData = {}  # Initialize the dictionary we'll use
     Config = Data["Config"][0, 0]
+
     # Save BEAM coordinate velocity matrix
     VelArray = Data["Data"][0, 0]["Burst_Velocity_Beam"]
     reshaped = VelArray.reshape(VelArray.shape[0], -1)
@@ -49,8 +52,13 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     ADCPData["Burst_CorBeam"] = pd.DataFrame(reshaped)
     del CorArray, reshaped
 
-    # Save other fields
+    # Save transformed velocity matrix (used for testing)
+    VelArray = Data["Data"][0, 0]["Burst_Velocity_ENU"]
+    reshaped = VelArray.reshape(VelArray.shape[0], -1)
+    del VelArray
+    ADCPData["Burst_ENU"] = pd.DataFrame(reshaped)
 
+    # Save other fields
     ADCPData["Burst_Time"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Time"])
     ADCPData["Burst_NCells"] = pd.DataFrame(Data["Data"][0, 0]["Burst_NCells"])
     ADCPData["Burst_Pressure"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pressure"])
@@ -109,6 +117,7 @@ def read_raw_h5(path):
     Data['Roll'] = pd.read_hdf(os.path.join(path, 'Burst_Roll.h5'))
     datenum_array = pd.read_hdf(os.path.join(path, 'Burst_Time.h5'))
     Data['VelBeam'] = pd.read_hdf(os.path.join(path, 'Burst_VelBeam.h5'))
+    Data['Vel_ENU_mat'] = pd.read_hdf(os.path.join(path, 'Burst_ENU.h5'))
     Data['Pitch'] = pd.read_hdf(os.path.join(path, 'Burst_Pitch.h5'))
 
     Data['Beam2xyz'] = pd.read_hdf(os.path.join(path, 'Burst_Beam2xyz.h5'))
@@ -119,24 +128,61 @@ def read_raw_h5(path):
     Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array[0].values))
 
     # Get individual beams
-    Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0::4])
-    Data['VelBeam1'].reset_index(drop=True, inplace=True)
-    Data["VelBeam2"] = (Data["VelBeam"].iloc[:, 1::4])
-    Data['VelBeam2'].reset_index(drop=True, inplace=True)
-    Data["VelBeam3"] = (Data["VelBeam"].iloc[:, 2::4])
+    number_vertical_cells = Data['NCells'][0][0]
+    Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0:number_vertical_cells])
+    Data["VelBeam2"] = (Data["VelBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
+    Data['VelBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
+    Data['VelBeam2'].columns = range(Data['VelBeam2'].columns.size)  # resets the column number
+    Data["VelBeam3"] = (Data["VelBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
     Data['VelBeam3'].reset_index(drop=True, inplace=True)
-    Data["VelBeam4"] = (Data["VelBeam"].iloc[:, 3::4])
+    Data['VelBeam3'].columns = range(Data['VelBeam3'].columns.size)
+    Data["VelBeam4"] = (Data["VelBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
     Data['VelBeam4'].reset_index(drop=True, inplace=True)
+    Data['VelBeam4'].columns = range(Data['VelBeam4'].columns.size)
+    # Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0::4])
+    # Data['VelBeam1'].reset_index(drop=True, inplace=True)
+    # Data["VelBeam2"] = (Data["VelBeam"].iloc[:, 1::4])
+    # Data['VelBeam2'].reset_index(drop=True, inplace=True)
+    # Data["VelBeam3"] = (Data["VelBeam"].iloc[:, 2::4])
+    # Data['VelBeam3'].reset_index(drop=True, inplace=True)
+    # Data["VelBeam4"] = (Data["VelBeam"].iloc[:, 3::4])
+    # Data['VelBeam4'].reset_index(drop=True, inplace=True)
 
     # Get individual beams
-    Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0::4])
-    Data['CorBeam1'].reset_index(drop=True, inplace=True)
-    Data["CorBeam2"] = (Data["CorBeam"].iloc[:, 1::4])
-    Data['CorBeam2'].reset_index(drop=True, inplace=True)
-    Data["CorBeam3"] = (Data["CorBeam"].iloc[:, 2::4])
+    Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0:number_vertical_cells])
+    Data["CorBeam2"] = (Data["CorBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
+    Data['CorBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
+    Data['CorBeam2'].columns = range(Data['CorBeam2'].columns.size)  # resets the column number
+    Data["CorBeam3"] = (Data["CorBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
     Data['CorBeam3'].reset_index(drop=True, inplace=True)
-    Data["CorBeam4"] = (Data["CorBeam"].iloc[:, 3::4])
+    Data['CorBeam3'].columns = range(Data['CorBeam3'].columns.size)
+    Data["CorBeam4"] = (Data["CorBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
     Data['CorBeam4'].reset_index(drop=True, inplace=True)
+    Data['CorBeam4'].columns = range(Data['CorBeam4'].columns.size)
+    # Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0::4])
+    # Data['CorBeam1'].reset_index(drop=True, inplace=True)
+    # Data["CorBeam2"] = (Data["CorBeam"].iloc[:, 1::4])
+    # Data['CorBeam2'].reset_index(drop=True, inplace=True)
+    # Data["CorBeam3"] = (Data["CorBeam"].iloc[:, 2::4])
+    # Data['CorBeam3'].reset_index(drop=True, inplace=True)
+    # Data["CorBeam4"] = (Data["CorBeam"].iloc[:, 3::4])
+    # Data['CorBeam4'].reset_index(drop=True, inplace=True)
+
+    # Get individual beams ENU for testing
+    Data["VelE_mat"] = (Data["Vel_ENU_mat"].iloc[:, 0:number_vertical_cells])
+    Data["VelN_mat"] = (Data["Vel_ENU_mat"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
+    Data['VelN_mat'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
+    Data['VelN_mat'].columns = range(Data['VelN_mat'].columns.size)  # resets the column number
+    Data["VelU_mat"] = (Data["Vel_ENU_mat"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
+    Data['VelU_mat'].reset_index(drop=True, inplace=True)
+    Data['VelU_mat'].columns = range(Data['VelU_mat'].columns.size)
+    Data["VelDiff_mat"] = (Data["Vel_ENU_mat"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
+    Data['VelDiff_mat'].reset_index(drop=True, inplace=True)
+    Data['VelDiff_mat'].columns = range(Data['VelDiff_mat'].columns.size)
+    # Data["VelE_mat"] = (Data["Vel_ENU_mat"].iloc[:, 0::4])  # this is wrong, they should be sequential [0-29], [30-59], [60-etc]..
+    # Data["VelN_mat"] = (Data["Vel_ENU_mat"].iloc[:, 1::4])
+    # Data["VelU_mat"] = (Data["Vel_ENU_mat"].iloc[:, 2::4])
+    # Data["VelDiff_mat"] = (Data["Vel_ENU_mat"].iloc[:, 3::4])
 
     # Create cell depth vector
     vector = np.arange(1, Data["NCells"][0][0] + 1)
@@ -227,7 +273,7 @@ def transform_beam_ENUD(Data):
     pp = np.pi * Data["Pitch"].to_numpy() / 180
     rr = np.pi * Data["Roll"].to_numpy() / 180
 
-    # Create the tiled transformation matrix, this is for applyinh the transformation later to each data point
+    # Create the tiled transformation matrix, this is for applying the transformation later to each data point
     row, col = Data["VelBeam1"].to_numpy().shape  # Get the dimensions of the matrices
     Tmat = np.tile(T, (row, 1, 1))
 
@@ -310,7 +356,7 @@ def transform_beam_ENUD(Data):
     Data['NorthVel'] = pd.DataFrame(Data['ENU'][:, :, 1])
     Data['VertVel'] = pd.DataFrame(Data['ENU'][:, :, 2])
     Data['ErrVel'] = pd.DataFrame(Data['ENU'][:, :, 3])
-    #print(f"Sample EastVel values: {Data['EastVel'].head()}") debugging line
+    # print(f"Sample EastVel values: {Data['EastVel'].head()}") debugging line
 
     # Add matrices with NaN values together treating nan values as 0, this is for calculating the absolute velocity
     nan_mask = np.full((row, col), False)
@@ -326,7 +372,6 @@ def transform_beam_ENUD(Data):
     NorthVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 0], nan=0.0)
     EastVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 1], nan=0.0)
     VertVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 2], nan=0.0)
-    
 
     # Sum the squared velocities
     Data["AbsVel"] = pd.DataFrame(
@@ -359,7 +404,7 @@ def save_data(Data, save_dir):
     # Open the HDF5 file in write mode
     file_path = os.path.join(save_dir, 'DepthThresh.h5')
     with h5py.File(file_path, 'w') as f:
-    # Save the NumPy array under the key 'df'
+        # Save the NumPy array under the key 'df'
         f.create_dataset('df', data=Data['DepthThresh'])
 
     # Save the data fields
