@@ -25,9 +25,9 @@ import itertools
 ###############################################################################
 
 deployment_num = 1
-sensor_id = "S0_103080"  # S1_101418
-directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-# directory_initial_user_path = r"/Volumes/kanarde-1/BOEM/"  # Brooke
+sensor_id = "S1_101418"  # S1_101418 #S0_103080
+#directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
+directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke
 # directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
@@ -36,7 +36,7 @@ run_quality_control = False
 run_bulk_statistics = True
 
 group_id = 1  # specify if you want to process starting at a specific group_id; must be 1 or greater
-group_ids_exclude = [0, 23]  # for processing bulk statistics; skip group 1 and 24 (need to add a line of code in bulk stats to remove 1 so I can make [1,24] here
+group_ids_exclude = [0,1]  # for processing bulk statistics; skip group 1 and 24 (need to add a line of code in bulk stats to remove 1 so I can make [1,24] here / for S0 [0, 23]
 
 ###############################################################################
 # create paths to save directories
@@ -63,11 +63,16 @@ if run_convert_mat_h5:
     for file_name in files[file_id:]:
         file_id += 1
         path = os.path.join(directory_path_mat, file_name)
+        print(path)
         if file_id < 10:
             save_path = os.path.join(save_dir_raw, f"Group0{file_id}")
         else:
             save_path = os.path.join(save_dir_raw, f"Group{file_id}")
-        read_Sig1k(path, save_path)
+        #read_Sig1k(path, save_path)
+        try:
+            read_Sig1k(path, save_path)
+        except Exception as e:
+            print(f"Error processing {file_name}: {e}")
 
 ###############################################################################
 # quality control
@@ -90,19 +95,21 @@ if run_quality_control:
         else:
             save_path_name = os.path.join(save_dir_qc, f"Group{folder_id}")
         print(f"Processing {file_name}")  # for debugging
-
+        try:
         # call post-processing functions
-        Data = read_raw_h5(path)  # KA: needed to install pytables
-        print(f"read in data")
+            Data = read_raw_h5(path)  # KA: needed to install pytables
+            print(f"read in data")
 
-        Data = remove_low_correlations(Data)
-        print(f"removed low correlations")
+            Data = remove_low_correlations(Data)
+            print(f"removed low correlations")
 
-        Data = transform_beam_ENUD(Data)
-        print("transformed to ENUD")
+            Data = transform_beam_ENUD(Data)
+            print("transformed to ENUD")
 
-        save_data(Data, save_path_name)
-        print(f"Processed {file_name} and saved to {save_dir_qc}")
+            save_data(Data, save_path_name)
+            print(f"Processed {file_name} and saved to {save_dir_qc}")
+        except Exception as e:
+            print(f"Error processing {file_name}: {e}")
 
 ###############################################################################
 # bulk statistics
