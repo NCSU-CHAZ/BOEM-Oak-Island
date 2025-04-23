@@ -40,3 +40,5 @@ unicodedata2~=15.1.0
 cycler~=0.11.0
 pyparsing~=3.0.9
 kiwisolver~=1.4.8
+scipy~=1.12.0
+h5py~=3.12.1
