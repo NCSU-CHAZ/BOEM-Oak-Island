@@ -315,10 +315,11 @@ def bulk_stats_analysis(
 
     # Initialize Waves structure that will contain the bulk stats
     Waves = {"Time": pd.DataFrame([]), "Tm": pd.DataFrame([]), "Hs": pd.DataFrame([]), "C": pd.DataFrame([]),
-             "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "MeanDir1": pd.DataFrame([]),
-             "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]), "MeanSpread2": pd.DataFrame([]),
-             "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]), "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]),
-             "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]), "fr": pd.DataFrame([]), "k": pd.DataFrame([])}
+             "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "Wavg": pd.DataFrame([]),
+             "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
+             "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
+             "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
+             "fr": pd.DataFrame([]), "k": pd.DataFrame([])}  # "Current": pd.DataFrame([])}
 
     # Start loop that will load in data for each variable from each day ("group")
     for group_dir in group_dirs:
@@ -363,10 +364,13 @@ def bulk_stats_analysis(
             P = Pressure.iloc[i * Nsamp: Nsamp * (i + 1)]
 
             # Find the depth averaged velocity stat
-            Uavg = np.nanmean(np.nanmean(U, axis=1))  # there are slight differences if you first do axis = 1
-            Vavg = np.nanmean(np.nanmean(V, axis=1))
-            Wavg = np.nanmean(np.nanmean(W, axis=1))  # not sure if this is wanted, but why not
-            current_velocity = np.sqrt(Uavg ** 2 + Vavg ** 2)
+            # Uavg = np.nanmean(np.nanmean(U, axis=1))  # there are slight differences if you first do axis = 1
+            # Vavg = np.nanmean(np.nanmean(V, axis=1))
+            # Wavg = np.nanmean(np.nanmean(W, axis=1))  # not sure if this is wanted, but why not
+            Uavg = np.nanmean(U)  # there are slight differences if you first do axis = 1
+            Vavg = np.nanmean(V)
+            Wavg = np.nanmean(W)  # not sure if this is wanted, but why not
+            # current_velocity = np.sqrt(Uavg ** 2 + Vavg ** 2)
 
             # Compute depth-averaged current direction in degrees
             avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg))
@@ -387,9 +391,9 @@ def bulk_stats_analysis(
             Waves["Wavg"] = pd.concat(
                 [Waves["Wavg"], pd.DataFrame([Wavg])], axis=0, ignore_index=True
             )
-            Waves["Current"] = pd.concat(
-                [Waves["Current"], pd.DataFrame([current_velocity])], axis=0, ignore_index=True
-            )
+            # Waves["Current"] = pd.concat(
+            #     [Waves["Current"], pd.DataFrame([current_velocity])], axis=0, ignore_index=True
+            # )
 
             # Grab mean depth for the ensemble
             dpthP = np.mean(P)
@@ -595,7 +599,7 @@ def bulk_stats_analysis(
     Waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVelocity"), key="df", mode="w")
     Waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVelocity"), key="df", mode="w")
     Waves["Wavg"].to_hdf(os.path.join(save_dir, "DepthAveragedUpVelocity"), key="df", mode="w")
-    Waves["Current"].to_hdf(os.path.join(save_dir, "DepthAveragedCurrentVelocity"), key="df", mode="w")
+    # Waves["Current"].to_hdf(os.path.join(save_dir, "DepthAveragedCurrentVelocity"), key="df", mode="w")
     Waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
     Waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeanSpread1"), key="df", mode="w")
     Waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
