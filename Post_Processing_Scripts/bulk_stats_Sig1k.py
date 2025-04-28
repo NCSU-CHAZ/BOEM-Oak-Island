@@ -21,6 +21,7 @@ import os
 import math
 import time
 
+np.seterr(all='raise')  # for debugging in Pycharm: raise exceptions for RuntimeWarning
 
 def welch_method(data, dt, M, overlap):
     """
@@ -319,7 +320,7 @@ def bulk_stats_analysis(
              "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
              "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
-             "fr": pd.DataFrame([]), "k": pd.DataFrame([])}  # "Current": pd.DataFrame([])}
+             "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([])}
 
     # Start loop that will load in data for each variable from each day ("group")
     for group_dir in group_dirs:
@@ -367,10 +368,10 @@ def bulk_stats_analysis(
             # Uavg = np.nanmean(np.nanmean(U, axis=1))  # there are slight differences if you first do axis = 1
             # Vavg = np.nanmean(np.nanmean(V, axis=1))
             # Wavg = np.nanmean(np.nanmean(W, axis=1))  # not sure if this is wanted, but why not
-            Uavg = np.nanmean(U)  # there are slight differences if you first do axis = 1
+            Uavg = np.nanmean(U)
             Vavg = np.nanmean(V)
-            Wavg = np.nanmean(W)  # not sure if this is wanted, but why not
-            # current_velocity = np.sqrt(Uavg ** 2 + Vavg ** 2)
+            Wavg = np.nanmean(W)
+            current_velocity = np.sqrt(Uavg ** 2 + Vavg ** 2)
 
             # Compute depth-averaged current direction in degrees
             avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg))
@@ -391,9 +392,9 @@ def bulk_stats_analysis(
             Waves["Wavg"] = pd.concat(
                 [Waves["Wavg"], pd.DataFrame([Wavg])], axis=0, ignore_index=True
             )
-            # Waves["Current"] = pd.concat(
-            #     [Waves["Current"], pd.DataFrame([current_velocity])], axis=0, ignore_index=True
-            # )
+            Waves["Current"] = pd.concat(
+                [Waves["Current"], pd.DataFrame([current_velocity])], axis=0, ignore_index=True
+            )
 
             # Grab mean depth for the ensemble
             dpthP = np.mean(P)
@@ -519,7 +520,7 @@ def bulk_stats_analysis(
             b1 = coPV / np.sqrt(SePP * (SUU + SVV))
             # Compute directional spread
             dir1 = r2d * np.arctan2(b1, a1)
-            spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1 ** 2 + b1 ** 2)))
+            # spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1 ** 2 + b1 ** 2)))
 
             # Compute weighted average for fourier coefficients
             ma1 = np.nansum(a1.loc[I] * SePP.loc[I] * df, axis=0) / m0
@@ -532,7 +533,7 @@ def bulk_stats_analysis(
             # Compute a2 and b2
             a2 = (SUU - SVV) / (SUU + SVV)
             b2 = 2 * coUV / (SUU + SVV)
-            spread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (a2 * np.cos(2 * dir1 / r2d) + b2 * np.sin(2 * dir1 / r2d))))
+            # spread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (a2 * np.cos(2 * dir1 / r2d) + b2 * np.sin(2 * dir1 / r2d))))
 
             # Compute weighted averages for second order coefficients
             ma2 = np.nansum(a2.loc[I] * SePP.loc[I] * df, axis=0) / m0
@@ -599,7 +600,7 @@ def bulk_stats_analysis(
     Waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVelocity"), key="df", mode="w")
     Waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVelocity"), key="df", mode="w")
     Waves["Wavg"].to_hdf(os.path.join(save_dir, "DepthAveragedUpVelocity"), key="df", mode="w")
-    # Waves["Current"].to_hdf(os.path.join(save_dir, "DepthAveragedCurrentVelocity"), key="df", mode="w")
+    Waves["Current"].to_hdf(os.path.join(save_dir, "DepthAveragedCurrentVelocity"), key="df", mode="w")
     Waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
     Waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeanSpread1"), key="df", mode="w")
     Waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")

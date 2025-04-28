@@ -25,7 +25,7 @@ import itertools
 ###############################################################################
 
 deployment_num = 1
-sensor_id = "S1_101418"  # S1_101418 #S0_103080
+sensor_id = "S0_103080"  # S1_101418 or S0_103080
 directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke
 # directory_initial_user_path = r"Z:/"  # Levi
