@@ -323,7 +323,7 @@ def transform_beam_ENUD(Data):
     Data['NorthVel'] = pd.DataFrame(Data['ENU'][:, :, 1])
     Data['VertVel'] = pd.DataFrame(Data['ENU'][:, :, 2])
     Data['ErrVel'] = pd.DataFrame(Data['ENU'][:, :, 3])
-    print(f"Sample EastVel values: {Data['EastVel'].head()}") # debugging line
+    #print(f"Sample EastVel values: {Data['EastVel'].head()}") debugging line
 
     # Add matrices with NaN values together treating nan values as 0, this is for calculating the absolute velocity
     nan_mask = np.full((row, col), False)
