@@ -46,6 +46,14 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     del VelArray
     ADCPData["Burst_VelBeam"] = pd.DataFrame(reshaped)
 
+    # Save Vertical Amplitude coordinate velocity matrix
+    VelArray = Data["Data"][0, 0]["IBurst_Amplitude_Beam"]
+    reshaped = VelArray.reshape(VelArray.shape[0],-1)
+    print(reshaped.shape)
+    del VelArray
+    ADCPData['Burst_VertAmplitude'] = pd.DataFrame(reshaped)
+    print('saved VertAmp')
+
     # Save the correlation data matrix
     CorArray = Data["Data"][0, 0]["Burst_Correlation_Beam"]
     reshaped = CorArray.reshape(CorArray.shape[0], -1)
@@ -68,10 +76,13 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
     # Fifth Beam
     ADCPData['Burst_AltimeterDistanceLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceLE"])
+    print('saved LE dist')
     ADCPData['Burst_AltimeterDistanceAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceAST"])
+    print('saved AST dist')
     ADCPData['Burst_AltimeterQualityLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityLE"])
+    print('saved LE qual')
     ADCPData['Burst_AltimeterQualityAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityAST"])
-    ADCPData['Burst_VertAmplitude']=pd.DataFrame(Data["Data"][0,0]["IBurst_Amplitude_Beam"])
+    print('saved AST qual')
 
     BlankDist = pd.DataFrame(Config["Burst_BlankingDistance"])
     CellSize = pd.DataFrame(Config["Burst_CellSize"])
