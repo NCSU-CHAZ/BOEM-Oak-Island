@@ -5,6 +5,7 @@ import h5py
 import numpy as np
 import re
 from datetime import datetime, timedelta
+from analysis_bulkstats import bulk_stats_analysis
 
 ###############################################################################
 # user input
@@ -17,9 +18,10 @@ sensor_id = "E1_103071"  # S1_101418 or S0_103080
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = True
-run_quality_control = True
-run_bulk_statistics = True
+run_convert_mat_h5 = False
+run_quality_control = False
+run_bulk_statistics = False
+
 
 group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [0]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
@@ -231,28 +233,38 @@ def remove_low_correlations(Data):
     CorrThresh = (
             0.3 + 0.4 * (Sr / 25) ** 0.5
     )  # Threshold for correlation values as found in Elgar
-
+    
     isbad = np.zeros((row, col))  # Initialize mask for above surface measurements
-
+    
+    Data['CellDepth'] = np.ravel(Data['CellDepth'])
+    
     # Apply mask for surface measurements
     for i in range(len(isbad)):
         Depth_Thresh = (
-                Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
-                - Data["CellSize"][0].iloc[0]
+                Data["Pressure"].iloc[0][i] * np.cos(25 * np.pi / 180)
+                - Data["CellDepth"][0]
         )
         isbad[i, :] = Data["CellDepth"] >= Depth_Thresh
+    
     isbad = isbad.astype(bool)
     Data["DepthThresh"] = isbad
-
+    
+    CorrThresh = np.ravel(CorrThresh)
+   
     for jj in range(1, 5):
         isbad2 = (
-                Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh
+                Data[f"CorBeam{jj}"] * 0.01 <= CorrThresh[0]
         )  # create mask for bad correlations
+       
         isbad2 = isbad2.astype(bool)
+       
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad, np.nan)
+        
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
+        
         Data[f"VelBeamCorr{jj}"] = isbad2
-
+       
+    
     return Data
 
 
@@ -273,10 +285,10 @@ def transform_beam_ENUD(Data):
     Data: dictionary
         raw data as a dictionary
     """
-
+    
     # Load the transformation matrix
-    T = pd.DataFrame(Data["Beam2xyz"]).to_numpy()
-
+    T = pd.DataFrame(Data["Beam2xyz"]).to_numpy()[0][0]
+    print(T)
     # Transform attitude data to radians
     hh = np.pi * (Data["Heading"].to_numpy() - 90) / 180
     pp = np.pi * Data["Pitch"].to_numpy() / 180
@@ -284,32 +296,34 @@ def transform_beam_ENUD(Data):
 
     # Create the tiled transformation matrix, this is for applying the transformation later to each data point
     row, col = Data["VelBeam1"].to_numpy().shape  # Get the dimensions of the matrices
+    print('test8')
     Tmat = np.tile(T, (row, 1, 1))
-
+    print('test9')
     # Initialize heading and tilt matrices
     Hmat = np.zeros((3, 3, row))
     Pmat = np.zeros((3, 3, row))
-
+    
+    print('test10')
     # Using vector mat populate the heading matrix and pitch/roll matrix with the appropriate values
     # The 3x3xrow matrix is the spatial dimensios at each measurement
     for i in range(row):
         Hmat[:, :, i] = [
-            [np.cos(hh[i][0]), np.sin(hh[i][0]), 0],
-            [-np.sin(hh[i][0]), np.cos(hh[i][0]), 0],
+            [np.cos(hh[0][i]), np.sin(hh[0][i]), 0],
+            [-np.sin(hh[0][i]), np.cos(hh[0][i]), 0],
             [0, 0, 1],
         ]
 
         Pmat[:, :, i] = [
             [
-                np.cos(pp[i][0]),
-                -np.sin(pp[i][0]) * np.sin(rr[i][0]),
-                -np.cos(rr[i][0]) * np.sin(pp[i][0]),
+                np.cos(pp[0][i]),
+                -np.sin(pp[0][i]) * np.sin(rr[0][i]),
+                -np.cos(rr[0][i]) * np.sin(pp[0][i]),
             ],
-            [0, np.cos(rr[i][0]), -np.sin(rr[i][0])],
+            [0, np.cos(rr[0][i]), -np.sin(rr[0][i])],
             [
-                np.sin(pp[i][0]),
-                np.sin(rr[i][0]) * np.cos(pp[i][0]),
-                np.cos(pp[i][0]) * np.cos(rr[i][0]),
+                np.sin(pp[0][i]),
+                np.sin(rr[0][i]) * np.cos(pp[0][i]),
+                np.cos(pp[0][i]) * np.cos(rr[0][i]),
             ],
         ]
 
@@ -322,7 +336,7 @@ def transform_beam_ENUD(Data):
     #                Y   [                               ]             (at nth individual sample)
     #               Z1   [                          0    ]
     #               Z2   [                  0            ]
-
+    print('test14')
     R1Mat = np.zeros((4, 4, row))  # initialize rotation matrix
 
     for i in range(row):
@@ -333,12 +347,13 @@ def transform_beam_ENUD(Data):
     # We zero out these value since Beams 3 and 4 can't measure both Z's
     R1Mat[2, 3, :] = 0
     R1Mat[3, 2, :] = 0
-
+    print('test15')
     Rmat = np.zeros((4, 4, row))
 
     Tmat = np.swapaxes(Tmat, 0, -1)
     Tmat = np.swapaxes(Tmat, 0, 1)
 
+    print('tes18')
     for i in range(row):
         Rmat[:, :, i] = R1Mat[:, :, i] @ Tmat[:, :, i]
 
@@ -366,7 +381,7 @@ def transform_beam_ENUD(Data):
     Data['VertVel'] = pd.DataFrame(Data['ENU'][:, :, 2])
     Data['ErrVel'] = pd.DataFrame(Data['ENU'][:, :, 3])
     # print(f"Sample EastVel values: {Data['EastVel'].head()}") debugging line
-
+    print('test25')
     # Add matrices with NaN values together treating nan values as 0, this is for calculating the absolute velocity
     nan_mask = np.full((row, col), False)
 
@@ -469,7 +484,6 @@ def save_data(Data, save_dir):
     return
 
 
-
 ###############################################################################
 # convert mat files to h5 files
 ###############################################################################
@@ -541,5 +555,6 @@ if run_quality_control:
 ###############################################################################
 # bulk statistics
 ###############################################################################
-# if run_bulk_statistics:
-#     waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude)
+if run_bulk_statistics:
+    waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude)
+
