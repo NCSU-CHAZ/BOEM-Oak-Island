@@ -46,6 +46,14 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     del VelArray
     ADCPData["Burst_VelBeam"] = pd.DataFrame(reshaped)
 
+    # Save Vertical Amplitude coordinate velocity matrix
+    VelArray = Data["Data"][0, 0]["IBurst_Amplitude_Beam"]
+    reshaped = VelArray.reshape(VelArray.shape[0],-1)
+    print(reshaped.shape)
+    del VelArray
+    ADCPData['Burst_VertAmplitude'] = pd.DataFrame(reshaped)
+    print('saved VertAmp')
+
     # Save the correlation data matrix
     CorArray = Data["Data"][0, 0]["Burst_Correlation_Beam"]
     reshaped = CorArray.reshape(CorArray.shape[0], -1)
@@ -66,6 +74,15 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
     ADCPData["Burst_Roll"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Roll"])
     ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
+    # Fifth Beam
+    ADCPData['Burst_AltimeterDistanceLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceLE"])
+    print('saved LE dist')
+    ADCPData['Burst_AltimeterDistanceAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceAST"])
+    print('saved AST dist')
+    ADCPData['Burst_AltimeterQualityLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityLE"])
+    print('saved LE qual')
+    ADCPData['Burst_AltimeterQualityAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityAST"])
+    print('saved AST qual')
 
     BlankDist = pd.DataFrame(Config["Burst_BlankingDistance"])
     CellSize = pd.DataFrame(Config["Burst_CellSize"])
@@ -126,6 +143,13 @@ def read_raw_h5(path):
     Data['NCells'] = pd.read_hdf(os.path.join(path, 'Burst_NCells.h5'))
     Data['SampleRate'] = pd.read_hdf(os.path.join(path, 'Burst_SamplingRate.h5'))
     Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array[0].values))
+
+    # Get Fifth Beam
+    Data['Altimeter_DistLE'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterDistanceLE.h5'))
+    Data['Altimeter_DistAST'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterDistanceAST.h5'))
+    Data['Altimeter_QualLE'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterQualityLE.h5'))
+    Data['Altimeter_QualAST'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterQualityAST.h5'))
+    Data['VertAmp'] = pd.read_hdf(os.path.join(path, 'Burst_VertAmplitude.h5'))
 
     # Get individual beams
     number_vertical_cells = Data['NCells'][0][0]
@@ -449,6 +473,18 @@ def save_data(Data, save_dir):
     )
     Data['VelBeamCorr4'].to_hdf(
         os.path.join(save_dir, 'VelBeamCorr4.h5'), key="df", mode="w"
+    )
+    Data['AltimeterLE'].to_hdf(
+        os.path.join(save_dir, 'Burst_AltimeterDistanceLE.h5'), key="df", mode="w"
+    )
+    Data['AltimeterAST'].to_hdf(
+        os.path.join(save_dir, 'Burst_AltimeterDistanceAST.h5'), key="df", mode="w"
+    )
+    Data['QualityLE'].to_hdf(
+        os.path.join(save_dir, 'Burst_AltimeterQualityLE.h5'), key="df", mode="w"
+    )
+    Data['QualityAST'].to_hdf(
+        os.path.join(save_dir, 'Burst_AltimeterQualityAST.h5'), key="df", mode="w"
     )
     Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth.h5'), key="df", mode="w")
 
