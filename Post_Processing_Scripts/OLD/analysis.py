@@ -19,7 +19,7 @@ directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
-run_quality_control = False
+run_quality_control = True
 run_bulk_statistics = False
 
 
@@ -57,6 +57,7 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     ADCPData = {}  # Initialize the dictionary we'll use
     # Save the correlation data matrix
     CorArray = Data["Correlation_Beam"]
+    
     reshaped = CorArray.reshape(CorArray.shape[0], -1)
     ADCPData["Burst_CorBeam"] = pd.DataFrame(reshaped)
     
@@ -70,7 +71,7 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     del reshaped
 
     # Save amplitude velocity matrix
-    VelArray = Data["Amplitude_Beam"]
+    VelArray = Data["Amplitude_Beam"].T
     reshaped = VelArray.reshape(VelArray.shape[0], -1)
     del VelArray
     ADCPData["Burst_AmpBeam"] = pd.DataFrame(reshaped)
@@ -89,7 +90,7 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     ADCPData["ErrVel"] = pd.DataFrame(Data["Velocity_Error"])
     ADCPData["NorthVel"] = pd.DataFrame(Data["Velocity_North"])
     ADCPData["VertVel"] = pd.DataFrame(Data["Velocity_Up"])
-
+    print(ADCPData['Bin_mab'])
     # Make directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)
 
@@ -113,12 +114,12 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     Beam2xyz.to_hdf(os.path.join(save_dir, "Beam2xyz.h5"), key="df", mode="w")
     EchoTransmitLength.to_hdf(os.path.join(save_dir, "EchoTransmitLength.h5"), key="df", mode="w")
     SampleRate.to_hdf(os.path.join(save_dir, "SampleRate.h5"), key="df", mode="w")
-
+    
     for field_name, df in ADCPData.items():
         save_path = os.path.join(save_dir, f"{field_name}.h5")
         df.to_hdf(save_path, key="df", mode="w")
         print(f"Saved {field_name} to {save_path}")
-
+    
     print(f"Converted mat to hdr for {save_path}")
 
 def read_raw_h5(path):
@@ -159,49 +160,101 @@ def read_raw_h5(path):
     Data['EchoFrequency'] = pd.read_hdf(os.path.join(path, 'EchoFrequency.h5'))
     Data['Bin_mab_echo'] = pd.read_hdf(os.path.join(path, 'Bin_mab_echo.h5'))
     Data['SampleRate'] = pd.read_hdf(os.path.join(path, 'SampleRate.h5'))
-    Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array[0].values))
-
+    Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array.to_numpy()[0]))
+    
+    
     # Create cell depth vector
     Data["CellDepth"] = pd.read_hdf(os.path.join(path, 'Bin_mab.h5'))
 
     # Get individual beams
     number_vertical_cells = Data['CellDepth'].shape[0]
-    Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0:number_vertical_cells])
-    Data["VelBeam2"] = (Data["VelBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
-    Data['VelBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
-    Data['VelBeam2'].columns = range(Data['VelBeam2'].columns.size)  # resets the column number
-    Data["VelBeam3"] = (Data["VelBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
-    Data['VelBeam3'].reset_index(drop=True, inplace=True)
-    Data['VelBeam3'].columns = range(Data['VelBeam3'].columns.size)
-    Data["VelBeam4"] = (Data["VelBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
-    Data['VelBeam4'].reset_index(drop=True, inplace=True)
-    Data['VelBeam4'].columns = range(Data['VelBeam4'].columns.size)
-
-    # Get individual beams
-    Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0:number_vertical_cells])
-    Data["CorBeam2"] = (Data["CorBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
-    Data['CorBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
-    Data['CorBeam2'].columns = range(Data['CorBeam2'].columns.size)  # resets the column number
-    Data["CorBeam3"] = (Data["CorBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
-    Data['CorBeam3'].reset_index(drop=True, inplace=True)
-    Data['CorBeam3'].columns = range(Data['CorBeam3'].columns.size)
-    Data["CorBeam4"] = (Data["CorBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
-    Data['CorBeam4'].reset_index(drop=True, inplace=True)
-    Data['CorBeam4'].columns = range(Data['CorBeam4'].columns.size)
-
-    # Get individual beams
-    Data["AmpBeam1"] = (Data["AmpBeam"].iloc[:, 0:number_vertical_cells])
-    Data["AmpBeam2"] = (Data["AmpBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
-    Data['AmpBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
-    Data['AmpBeam2'].columns = range(Data['AmpBeam2'].columns.size)  # resets the column number
-    Data["AmpBeam3"] = (Data["AmpBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
-    Data['AmpBeam3'].reset_index(drop=True, inplace=True)
-    Data['AmpBeam3'].columns = range(Data['AmpBeam3'].columns.size)
-    Data["AmpBeam4"] = (Data["AmpBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
-    Data['AmpBeam4'].reset_index(drop=True, inplace=True)
-    Data['AmpBeam4'].columns = range(Data['AmpBeam4'].columns.size)
-
     
+    print(Data['VelBeam'].shape)  # debugging line to check shape of VelBeam
+    # Get individual beams
+    Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0::5])
+    Data['VelBeam1'].reset_index(drop=True, inplace=True)
+    Data["VelBeam2"] = (Data["VelBeam"].iloc[:, 1::5])
+    Data['VelBeam2'].reset_index(drop=True, inplace=True)
+    Data["VelBeam3"] = (Data["VelBeam"].iloc[:, 2::5])
+    Data['VelBeam3'].reset_index(drop=True, inplace=True)
+    Data["VelBeam4"] = (Data["VelBeam"].iloc[:, 3::5])
+    Data['VelBeam4'].reset_index(drop=True, inplace=True)
+    Data["VelBeam5"] = (Data["VelBeam"].iloc[:, 4::5])
+    Data['VelBeam5'].reset_index(drop=True, inplace=True)
+    
+
+    # Get individual beams
+    Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0::5])
+    Data['CorBeam1'].reset_index(drop=True, inplace=True)
+    Data["CorBeam2"] = (Data["CorBeam"].iloc[:, 1::5])
+    Data['CorBeam2'].reset_index(drop=True, inplace=True)
+    Data["CorBeam3"] = (Data["CorBeam"].iloc[:, 2::5])
+    Data['CorBeam3'].reset_index(drop=True, inplace=True)
+    Data["CorBeam4"] = (Data["CorBeam"].iloc[:, 3::5])
+    Data['CorBeam4'].reset_index(drop=True, inplace=True)
+    Data["CorBeam5"] = (Data["CorBeam"].iloc[:, 4::5])
+    Data['CorBeam5'].reset_index(drop=True, inplace=True)
+
+    """In the BOEM script the veloctieis have shapes (345000,4,30) and then get reshaped)"""
+
+    # Get individual beams
+    Data["AmpBeam1"] = (Data["AmpBeam"].iloc[:, 0::5])
+    Data['AmpBeam1'].reset_index(drop=True, inplace=True)
+    Data["AmpBeam2"] = (Data["AmpBeam"].iloc[:, 1::5])
+    Data['AmpBeam2'].reset_index(drop=True, inplace=True)
+    Data["AmpBeam3"] = (Data["AmpBeam"].iloc[:, 2::5])
+    Data['AmpBeam3'].reset_index(drop=True, inplace=True)
+    Data["AmpBeam4"] = (Data["AmpBeam"].iloc[:, 3::5])
+    Data['AmpBeam4'].reset_index(drop=True, inplace=True)
+    Data["AmpBeam5"] = (Data["AmpBeam"].iloc[:, 4::5])
+    Data['AmpBeam5'].reset_index(drop=True, inplace=True)
+
+    # # Get individual beams
+    # Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0:number_vertical_cells])
+    # Data["VelBeam2"] = (Data["VelBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
+    # Data['VelBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
+    # Data['VelBeam2'].columns = range(Data['VelBeam2'].columns.size)  # resets the column number
+    # Data["VelBeam3"] = (Data["VelBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
+    # Data['VelBeam3'].reset_index(drop=True, inplace=True)
+    # Data['VelBeam3'].columns = range(Data['VelBeam3'].columns.size)
+    # Data["VelBeam4"] = (Data["VelBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
+    # Data['VelBeam4'].reset_index(drop=True, inplace=True)
+    # Data['VelBeam4'].columns = range(Data['VelBeam4'].columns.size)
+    # Data["VelBeam5"] = (Data["VelBeam"].iloc[:, number_vertical_cells * 4:number_vertical_cells * 5])
+    # Data['VelBeam5'].reset_index(drop=True, inplace=True)
+    # Data['VelBeam5'].columns = range(Data['VelBeam5'].columns.size)
+
+    # # Get individual beams
+    # Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0:number_vertical_cells])
+    # Data["CorBeam2"] = (Data["CorBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
+    # Data['CorBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
+    # Data['CorBeam2'].columns = range(Data['CorBeam2'].columns.size)  # resets the column number
+    # Data["CorBeam3"] = (Data["CorBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
+    # Data['CorBeam3'].reset_index(drop=True, inplace=True)
+    # Data['CorBeam3'].columns = range(Data['CorBeam3'].columns.size)
+    # Data["CorBeam4"] = (Data["CorBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
+    # Data['CorBeam4'].reset_index(drop=True, inplace=True)
+    # Data['CorBeam4'].columns = range(Data['CorBeam4'].columns.size)
+    # Data["CorBeam5"] = (Data["CorBeam"].iloc[:, number_vertical_cells * 4:number_vertical_cells * 5])
+    # Data['CorBeam5'].reset_index(drop=True, inplace=True)
+    # Data['CorBeam5'].columns = range(Data['CorBeam5'].columns.size)
+
+    # #Get individual beams
+    # Data["AmpBeam1"] = (Data["AmpBeam"].iloc[:, 0:number_vertical_cells])
+    # Data["AmpBeam2"] = (Data["AmpBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
+    # Data['AmpBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
+    # Data['AmpBeam2'].columns = range(Data['AmpBeam2'].columns.size)  # resets the column number
+    # Data["AmpBeam3"] = (Data["AmpBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
+    # Data['AmpBeam3'].reset_index(drop=True, inplace=True)
+    # Data['AmpBeam3'].columns = range(Data['AmpBeam3'].columns.size)
+    # Data["AmpBeam4"] = (Data["AmpBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
+    # Data['AmpBeam4'].reset_index(drop=True, inplace=True)
+    # Data['AmpBeam4'].columns = range(Data['AmpBeam4'].columns.size)
+    # Data["AmpBeam5"] = (Data["AmpBeam"].iloc[:, number_vertical_cells * 4:number_vertical_cells * 5])
+    # Data['AmpBeam5'].reset_index(drop=True, inplace=True)
+    # Data['AmpBeam5'].columns = range(Data['AmpBeam5'].columns.size)
+    
+    print(f"Sample VelBeam1 values: {Data['VelBeam1'].shape}")  # debugging line
     return Data
 
 def remove_low_correlations(Data):
@@ -288,7 +341,7 @@ def transform_beam_ENUD(Data):
     
     # Load the transformation matrix
     T = pd.DataFrame(Data["Beam2xyz"]).to_numpy()[0][0]
-    print(T)
+    
     # Transform attitude data to radians
     hh = np.pi * (Data["Heading"].to_numpy() - 90) / 180
     pp = np.pi * Data["Pitch"].to_numpy() / 180
@@ -296,14 +349,14 @@ def transform_beam_ENUD(Data):
 
     # Create the tiled transformation matrix, this is for applying the transformation later to each data point
     row, col = Data["VelBeam1"].to_numpy().shape  # Get the dimensions of the matrices
-    print('test8')
+    
     Tmat = np.tile(T, (row, 1, 1))
-    print('test9')
+    
     # Initialize heading and tilt matrices
     Hmat = np.zeros((3, 3, row))
     Pmat = np.zeros((3, 3, row))
     
-    print('test10')
+    
     # Using vector mat populate the heading matrix and pitch/roll matrix with the appropriate values
     # The 3x3xrow matrix is the spatial dimensios at each measurement
     for i in range(row):
@@ -336,7 +389,7 @@ def transform_beam_ENUD(Data):
     #                Y   [                               ]             (at nth individual sample)
     #               Z1   [                          0    ]
     #               Z2   [                  0            ]
-    print('test14')
+    
     R1Mat = np.zeros((4, 4, row))  # initialize rotation matrix
 
     for i in range(row):
@@ -347,13 +400,13 @@ def transform_beam_ENUD(Data):
     # We zero out these value since Beams 3 and 4 can't measure both Z's
     R1Mat[2, 3, :] = 0
     R1Mat[3, 2, :] = 0
-    print('test15')
+    
     Rmat = np.zeros((4, 4, row))
 
     Tmat = np.swapaxes(Tmat, 0, -1)
     Tmat = np.swapaxes(Tmat, 0, 1)
 
-    print('tes18')
+    
     for i in range(row):
         Rmat[:, :, i] = R1Mat[:, :, i] @ Tmat[:, :, i]
 
@@ -381,7 +434,7 @@ def transform_beam_ENUD(Data):
     Data['VertVel'] = pd.DataFrame(Data['ENU'][:, :, 2])
     Data['ErrVel'] = pd.DataFrame(Data['ENU'][:, :, 3])
     # print(f"Sample EastVel values: {Data['EastVel'].head()}") debugging line
-    print('test25')
+    
     # Add matrices with NaN values together treating nan values as 0, this is for calculating the absolute velocity
     nan_mask = np.full((row, col), False)
 
@@ -401,7 +454,7 @@ def transform_beam_ENUD(Data):
     Data["AbsVel"] = pd.DataFrame(
         np.sqrt(NorthVel_no_nan ** 2 + EastVel_no_nan ** 2 + VertVel_no_nan ** 2)
     )
-
+    print(Data["Time"])
     # Reapply the mask to set positions with any original NaNs back to NaN
     Data["AbsVel"][~nan_mask] = np.nan
     Data['CellDepth'] = pd.DataFrame(Data['CellDepth'])
