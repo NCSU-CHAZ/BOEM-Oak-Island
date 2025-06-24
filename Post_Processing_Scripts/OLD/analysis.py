@@ -18,9 +18,9 @@ sensor_id = "E1_103071"  # S1_101418 or S0_103080
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = True
-run_quality_control = False
-run_bulk_statistics = False
+run_convert_mat_h5 = False
+run_quality_control = True
+run_bulk_statistics = True
 
 
 group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
@@ -55,50 +55,57 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     )  # Load mat oragnizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
     # dictionary with four nested numpy arrays with dtypes as data field titles
     ADCPData = {}  # Initialize the dictionary we'll use
+    Config = Data['Config'][0,0]
     # Save the correlation data matrix
-    CorArray = Data["Correlation_Beam"]
-    print(CorArray.shape)
-    reshaped = CorArray.reshape(CorArray.shape[0], -1)
-    ADCPData["Burst_CorBeam"] = pd.DataFrame(reshaped)
-    
-    del CorArray, reshaped
-
     # Save BEAM coordinate velocity matrix
-    VelArray = Data["Velocity_Beam"]
+    VelArray = Data["Data"][0, 0]["Burst_Velocity_Beam"]
     reshaped = VelArray.reshape(VelArray.shape[0], -1)
     del VelArray
     ADCPData["Burst_VelBeam"] = pd.DataFrame(reshaped)
-    del reshaped
 
-    # Save amplitude velocity matrix
-    VelArray = Data["Amplitude_Beam"]
-    reshaped = VelArray.reshape(VelArray.shape[0], -1)
+    # Save Vertical Amplitude coordinate velocity matrix
+    VelArray = Data["Data"][0, 0]["IBurst_Amplitude_Beam"]
+    reshaped = VelArray.reshape(VelArray.shape[0],-1)
     del VelArray
+    ADCPData['Burst_VertAmplitude'] = pd.DataFrame(reshaped)
+
+    # Save the correlation data matrix
+    CorArray = Data["Data"][0, 0]["Burst_Correlation_Beam"]
+    reshaped = CorArray.reshape(CorArray.shape[0], -1)
+    ADCPData["Burst_CorBeam"] = pd.DataFrame(reshaped)
+    del CorArray, reshaped
+
+    # Save the slanted amplitude data matrix
+    CorArray = Data["Data"][0, 0]["Burst_Amplitude_Beam"]
+    reshaped = CorArray.reshape(CorArray.shape[0], -1)
     ADCPData["Burst_AmpBeam"] = pd.DataFrame(reshaped)
-    del reshaped
+    del CorArray, reshaped
 
     # Save other fields
-    ADCPData["Burst_Time"] = pd.DataFrame(Data["Time"])
-    ADCPData["Pressure"] = pd.DataFrame(Data["Pressure"])
-    ADCPData["Heading"] = pd.DataFrame(Data["Heading"])
-    ADCPData["Pitch"] = pd.DataFrame(Data["Pitch"])
-    ADCPData["Roll"] = pd.DataFrame(Data["Roll"])
-    ADCPData["Echo1"] = pd.DataFrame(Data["Echo1Bin1_1000kHz_Echo"])
-    ADCPData["Echo2"] = pd.DataFrame(Data["Echo1Bin2_1000kHz_Echo"])
+    ADCPData["Burst_Time"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Time"])
+    ADCPData["Burst_NCells"] = pd.DataFrame(Data["Data"][0, 0]["Burst_NCells"])
+    ADCPData["Burst_Pressure"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pressure"])
+    ADCPData["Burst_Heading"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Heading"])
+    ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
+    ADCPData["Burst_Roll"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Roll"])
+    ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
+    ADCPData["Echo1"] = pd.DataFrame(Data["Data"][0, 0]["Echo1Bin1_1000kHz_Echo"])
+    ADCPData["Echo2"] = pd.DataFrame(Data["Data"][0, 0]["Echo2Bin1_1000kHz_Echo"])
     # Make directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)
 
-    Config = loadmat(config_filepath) 
-
-    BlankDist = pd.DataFrame(Config["Config"]["EchoSounder_BlankingDistance"])
-    EchoCellSize = pd.DataFrame(Config["Config"]["EchoSounder_CellSize"])
-    EchoFr = pd.DataFrame(Config["Config"]["EchoSounder_Frequency1"])
-    EchoTransmitLength = pd.DataFrame(Config["Config"]["EchoSounder_TransmitLength1"])
-    Beam2xyz = pd.DataFrame(Config["Config"]["Burst_Beam2xyz"])
-    SampleRate = pd.DataFrame(Config["Config"]["Burst_SamplingRate"])
-    NCells = pd.DataFrame(Config["Config"]["Burst_NCells"])
-    CellSize = pd.DataFrame(Config["Config"]["Burst_CellSize"])
-
+    # Save config parameters that are needed for processing
+    CellSize = pd.DataFrame(Config["Burst_CellSize"])
+    SampleRate = pd.DataFrame(Config["Burst_SamplingRate"])
+    Beam2xyz = pd.DataFrame(Config["Burst_Beam2xyz"])
+    BlankDist = pd.DataFrame(Config["EchoSounder_BlankingDistance"])
+    EchoCellSize = pd.DataFrame(Config["EchoSounder_CellSize"])
+    EchoFr = pd.DataFrame(Config["EchoSounder_Frequency1"])
+    EchoTransmitLength = pd.DataFrame(Config["EchoSounder_TransmitLength1"])
+    Beam2xyz = pd.DataFrame(Config["Burst_Beam2xyz"])
+    SampleRate = pd.DataFrame(Config["Burst_SamplingRate"])
+    NCells = pd.DataFrame(Config["Burst_NCells"])
+    
     # Save files there
     NCells.to_hdf(os.path.join(save_dir, "Burst_NCells.h5"), key="df", mode="w")
     CellSize.to_hdf(os.path.join(save_dir, "Burst_CellSize.h5"), key="df", mode="w")
@@ -140,22 +147,23 @@ def read_raw_h5(path):
 
     Data['CorBeam'] = pd.read_hdf(os.path.join(path, 'Burst_CorBeam.h5'))
     Data['AmpBeam'] = pd.read_hdf(os.path.join(path, 'Burst_AmpBeam.h5'))
-    Data['Heading'] = pd.read_hdf(os.path.join(path, 'Heading.h5'))
-    Data['Pressure'] = pd.read_hdf(os.path.join(path, 'Pressure.h5'))
-    Data['Roll'] = pd.read_hdf(os.path.join(path, 'Roll.h5'))
+    Data['Heading'] = pd.read_hdf(os.path.join(path, 'Burst_Heading.h5'))
+    Data['Pressure'] = pd.read_hdf(os.path.join(path, 'Burst_Pressure.h5'))
+    Data['Roll'] = pd.read_hdf(os.path.join(path, 'Burst_Roll.h5'))
     datenum_array = pd.read_hdf(os.path.join(path, 'Burst_Time.h5'))
     Data['VelBeam'] = pd.read_hdf(os.path.join(path, 'Burst_VelBeam.h5'))
     Data['TransmitLength'] = pd.read_hdf(os.path.join(path, 'EchoTransmitLength.h5'))
-    Data['Pitch'] = pd.read_hdf(os.path.join(path, 'Pitch.h5'))
+    Data['Pitch'] = pd.read_hdf(os.path.join(path, 'Burst_Pitch.h5'))
     Data['Echo1'] = pd.read_hdf(os.path.join(path, 'Echo1.h5'))
     Data['Echo2'] = pd.read_hdf(os.path.join(path, 'Echo2.h5'))
     Data['Beam2xyz'] = pd.read_hdf(os.path.join(path, 'Beam2xyz.h5'))
-    Data['EchoBlankingDistance'] = pd.read_hdf(os.path.join(path, 'EchoBlankingDistance.h5'))
+    Data['BlankingDistance'] = pd.read_hdf(os.path.join(path, 'EchoBlankingDistance.h5'))
     Data['EchoCellSize'] = pd.read_hdf(os.path.join(path, 'EchoCellSize.h5'))
     Data['EchoFrequency'] = pd.read_hdf(os.path.join(path, 'EchoFrequency.h5'))
     Data['NCells'] = pd.read_hdf(os.path.join(path, 'Burst_NCells.h5'))
     Data['CellSize'] = pd.read_hdf(os.path.join(path, 'Burst_CellSize.h5'))
     Data['SampleRate'] = pd.read_hdf(os.path.join(path, 'Burst_SampleRate.h5'))
+    Data['VbAmplitude'] = pd.read_hdf(os.path.join(path, 'Burst_VertAmplitude.h5'))
     Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array.to_numpy()[0]))
     
 
@@ -245,10 +253,9 @@ def remove_low_correlations(Data):
     )  # Threshold for correlation values as found in Elgar
     
     isbad = np.zeros((row, col))  # Initialize mask for above surface measurements
+    print('test')
     
-    Data['CellDepth'] = np.ravel(Data['CellDepth'])
-    
-     # Apply mask for surface measurements
+    # Apply mask for surface measurements
     for i in range(len(isbad)):
         Depth_Thresh = (
                 Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
@@ -289,7 +296,7 @@ def transform_beam_ENUD(Data):
     """
     
     # Load the transformation matrix
-    T = pd.DataFrame(Data["Beam2xyz"]).to_numpy()[0][0]
+    T = pd.DataFrame(Data["Beam2xyz"]).to_numpy()
     
     # Transform attitude data to radians
     hh = np.pi * (Data["Heading"].to_numpy() - 90) / 180
@@ -310,25 +317,25 @@ def transform_beam_ENUD(Data):
     # The 3x3xrow matrix is the spatial dimensios at each measurement
     for i in range(row):
         Hmat[:, :, i] = [
-            [np.cos(hh[0][i]), np.sin(hh[0][i]), 0],
-            [-np.sin(hh[0][i]), np.cos(hh[0][i]), 0],
+            [np.cos(hh[i][0]), np.sin(hh[i][0]), 0],
+            [-np.sin(hh[i][0]), np.cos(hh[i][0]), 0],
             [0, 0, 1],
         ]
 
         Pmat[:, :, i] = [
             [
-                np.cos(pp[0][i]),
-                -np.sin(pp[0][i]) * np.sin(rr[0][i]),
-                -np.cos(rr[0][i]) * np.sin(pp[0][i]),
+                np.cos(pp[i][0]),
+                -np.sin(pp[i][0]) * np.sin(rr[i][0]),
+                -np.cos(rr[i][0]) * np.sin(pp[i][0]),
             ],
-            [0, np.cos(rr[0][i]), -np.sin(rr[0][i])],
+            [0, np.cos(rr[i][0]), -np.sin(rr[i][0])],
             [
-                np.sin(pp[0][i]),
-                np.sin(rr[0][i]) * np.cos(pp[0][i]),
-                np.cos(pp[0][i]) * np.cos(rr[0][i]),
+                np.sin(pp[i][0]),
+                np.sin(rr[i][0]) * np.cos(pp[i][0]),
+                np.cos(pp[i][0]) * np.cos(rr[i][0]),
             ],
         ]
-
+    print('testest')    
     # Combine the Hmat and Pmat vectors into one rotation matrix, this conversion matrix is organized with beams in the
     # columns and the rotation values on the rows (for each data point). The original Hmat and Pmat matrices are only
     # made with the one Z value in mind so we duplicate the 4 row of the transform matirx to create the fourth, same
@@ -340,7 +347,7 @@ def transform_beam_ENUD(Data):
     #               Z2   [                  0            ]
     
     R1Mat = np.zeros((4, 4, row))  # initialize rotation matrix
-
+    print(Hmat.shape, Pmat.shape)  # debugging line
     for i in range(row):
         R1Mat[0:3, 0:3, i] = Hmat[:, :, i] @ Pmat[:, :, i]  # Matrix multiplication
         R1Mat[3, 0:4, i] = R1Mat[2, 0:4, i]  # Create fourth row
@@ -349,13 +356,13 @@ def transform_beam_ENUD(Data):
     # We zero out these value since Beams 3 and 4 can't measure both Z's
     R1Mat[2, 3, :] = 0
     R1Mat[3, 2, :] = 0
-    
+    print(R1Mat.shape)  # debugging line
     Rmat = np.zeros((4, 4, row))
 
     Tmat = np.swapaxes(Tmat, 0, -1)
     Tmat = np.swapaxes(Tmat, 0, 1)
 
-    
+    print(Tmat.shape)  # debugging line
     for i in range(row):
         Rmat[:, :, i] = R1Mat[:, :, i] @ Tmat[:, :, i]
 
@@ -369,7 +376,8 @@ def transform_beam_ENUD(Data):
             ]
         )
     )
-
+    print(Rmat.shape, Velocities.shape)  # debugging line
+    print(Tmat.shape)  # debugging line
     # Convert to ENU
     ENU = np.einsum("ijk,jkl->ikl", Rmat, Velocities)
     ENU = np.transpose(ENU, (1, 2, 0))
@@ -426,17 +434,12 @@ def save_data(Data, save_dir):
     none
 
     """
-    #Ensure all the data files are the correct shape with samples as rows and depths as columns
-    # Data['Pressure'] = Data['Pressure'].transpose()
-    # Data['Heading'] = Data['Pressure'].transpose()
-    # Data['Pitch'] = Data['Pitch'].transpose()
-    # Data['Roll'] = Data['Roll'].transpose()
-
-    # Open the HDF5 file in write mode
-    file_path = os.path.join(save_dir, 'DepthThresh.h5')
-    with h5py.File(file_path, 'w') as f:
-        # Save the NumPy array under the key 'df'
-        f.create_dataset('df', data=Data['DepthThresh'])
+    print("Saving data...")
+    # # Open the HDF5 file in write mode
+    # file_path = os.path.join(save_dir, 'DepthThresh.h5')
+    # with h5py.File(file_path, 'w') as f:
+    #     # Save the NumPy array under the key 'df'
+    #     f.create_dataset('df', data=Data['DepthThresh'])
 
     # Save the data fields
     Data['AbsVel'].to_hdf(
@@ -511,7 +514,6 @@ if run_convert_mat_h5:
         file_id += 1
         path = os.path.join(directory_path_mat, file_name)
         print(path)
-        file_id = 44
         if file_id < 10:
             save_path = os.path.join(save_dir_raw, f"Group0{file_id}")
         else:
