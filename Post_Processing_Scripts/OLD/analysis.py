@@ -18,7 +18,7 @@ sensor_id = "E1_103071"  # S1_101418 or S0_103080
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = False
+run_convert_mat_h5 = True
 run_quality_control = True
 run_bulk_statistics = True
 
@@ -217,6 +217,17 @@ def read_raw_h5(path):
     Data["CellDepth"] = (
             Data["BlankingDistance"][0].iloc[0]
             + vector * Data["CellSize"][0].iloc[0]
+    )
+
+    #Create echo cell depth vector
+    Data['EchoNCells'] = Data['Echo1'].shape[1]  # Number of echo cells
+    print(f"Number of echo cells: {Data['EchoNCells']}")  # debugging line
+    vector = np.arange(1, Data["EchoNCells"].iloc[0] + 1)
+
+    # Calculate the depth of each cell
+    Data["CellDepth_echo"] = (
+            Data["BlankingDistance"][0].iloc[0]
+            + vector * Data["EchoCellSize"][0].iloc[0]
     )
 
     print(f"Sample VelBeam1 values: {Data['VelBeam1'].shape}")  # debugging line
@@ -492,6 +503,7 @@ def save_data(Data, save_dir):
     Data['AmpBeam2'].to_hdf(os.path.join(save_dir, 'AmpBeam2.h5'), key="df", mode="w")
     Data['AmpBeam3'].to_hdf(os.path.join(save_dir, 'AmpBeam3.h5'), key="df", mode="w")
     Data['AmpBeam4'].to_hdf(os.path.join(save_dir, 'AmpBeam4.h5'), key="df", mode="w")
+    Data['VbAmplitude'].to_hdf(os.path.join(save_dir, 'VbAmplitude.h5'), key="df", mode="w")
 
     return
 
@@ -523,7 +535,7 @@ if run_convert_mat_h5:
             read_Sig1k(path, config_path,save_path)
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
-        break
+
 
 ###############################################################################
 # quality control
@@ -562,7 +574,7 @@ if run_quality_control:
             print(f"Processed {file_name} and saved to {save_dir_qc}")
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
-        break
+
 
 ###############################################################################
 # bulk statistics
