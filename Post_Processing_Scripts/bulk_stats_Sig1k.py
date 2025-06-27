@@ -575,8 +575,8 @@ def bulk_stats_analysis(
             )
 
             if i == 1:
-                Waves["fr"] = pd.DataFrame(fr[0:I[-1]])
-                Waves["k"] = k.loc[0:I[-1]]
+                Waves["fr"] = pd.DataFrame(fr[I])
+                Waves["k"] = k.loc[I]
 
             # remove stats for when ADCP is in air or very shallow water
             if dpth < depth_threshold:
