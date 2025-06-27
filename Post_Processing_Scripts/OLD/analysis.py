@@ -14,11 +14,11 @@ from analysis_bulkstats import bulk_stats_analysis
 deployment_num = 1
 sensor_id = "E1_103071"  # S1_101418 or S0_103080
 #directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
-#directory_initial_user_path = r"Z:/"  # Levi
+# directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
+directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = False
+run_convert_mat_h5 = True
 run_quality_control = True
 run_bulk_statistics = True
 
