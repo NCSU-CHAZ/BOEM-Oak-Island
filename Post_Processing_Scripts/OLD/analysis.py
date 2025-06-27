@@ -222,7 +222,7 @@ def read_raw_h5(path):
     #Create echo cell depth vector
     Data['EchoNCells'] = Data['Echo1'].shape[1]  # Number of echo cells
     print(f"Number of echo cells: {Data['EchoNCells']}")  # debugging line
-    vector = np.arange(1, Data["EchoNCells"] + 1)
+    vector = np.arange(1, Data["EchoNCells"].iloc[0] + 1)
 
     # Calculate the depth of each cell
     Data["CellDepth_echo"] = (
