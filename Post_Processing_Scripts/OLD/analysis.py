@@ -288,6 +288,8 @@ def remove_low_correlations(Data):
         isbad2 = isbad2.astype(bool)
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad, np.nan)
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
+        Data[f"AmpBeam{jj}"] = Data[f"AmpBeam{jj}"].mask(isbad, np.nan)
+        Data[f"AmpBeam{jj}"] = Data[f"AmpBeam{jj}"].mask(isbad2, np.nan)
         Data[f"VelBeamCorr{jj}"] = isbad2
 
     # Apply mask for surface measurements for the echo sounders 
