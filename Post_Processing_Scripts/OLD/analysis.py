@@ -31,7 +31,7 @@ group_ids_exclude = [0]  # for processing bulk statistics; skip group 1 (need to
 # create paths to save directories
 ###############################################################################
 directory_path_mat = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_mat/")
-save_dir_raw = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_hdf/")
+save_dir_data = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_hdf/")
 save_dir_qc = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Processed/", sensor_id + "/")
 save_dir_bulk_stats = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/BulkStats/",
                                    sensor_id + "/")
@@ -127,19 +127,19 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     
     print(f"Converted mat to hdr for {save_path}")
 
-def read_raw_h5(path):
+def read_data_h5(path):
     """
-    Read h5 files of raw data from Sig1000. Raw data converted from mat to h5 in 'read_Sig1k'
+    Read h5 files of data data from Sig1000. Raw data converted from mat to h5 in 'read_Sig1k'
 
     :param:
     path: string
-        path to directory to raw h5 files
+        path to directory to data h5 files
     save_dir: string
         path to directory where processed, quality controlled data should be saved
 
     :return:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
     """
 
     # initialize the Data dictionary as well as it's keys
@@ -246,11 +246,11 @@ def remove_low_correlations(Data):
 
     :param:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
 
     :return:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
 
     """
 
@@ -263,7 +263,12 @@ def remove_low_correlations(Data):
             0.3 + 0.4 * (Sr / 25) ** 0.5
     )  # Threshold for correlation values as found in Elgar
     
+    row, col = Data['Burst_VertAmplitude'].shape
+    row1, col2 = Data['Echo1'].shape
+
+
     isbad = np.zeros((row, col))  # Initialize mask for above surface measurements
+    echobad = np.zeros((row1, col2))
     print('test')
     
     # Apply mask for surface measurements
@@ -285,6 +290,23 @@ def remove_low_correlations(Data):
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
         Data[f"VelBeamCorr{jj}"] = isbad2
 
+    # Apply mask for surface measurements for the echo sounders 
+    for i in range(len(echobad)):
+        Depth_Thresh1 = (
+            Data["Burst_Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
+            - Data["EchoCellSize"][0].iloc[0]
+    )
+    echobad[i, :] = Data["CellDepth_echo"] >= Depth_Thresh1
+    echobad = echobad.astype(bool)
+    Data["EchoDepthThresh"] = echobad
+
+        # Mask the data 
+    Data["Echo1"] = Data["Echo1"].mask(echobad, np.nan)
+    Data["Echo2"] = Data["Echo2"].mask(echobad, np.nan)
+
+    #mask the Data
+    Data[f"Burst_VertAmplitude"] = Data[f"Burst_VertAmplitude"].mask(isbad, np.nan)
+
     return Data
 
 
@@ -299,11 +321,11 @@ def transform_beam_ENUD(Data):
 
     :param:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
 
     :return:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
     """
     
     # Load the transformation matrix
@@ -437,7 +459,7 @@ def save_data(Data, save_dir):
 
     :param:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
     save_dir: string
         path to directory where processed, quality controlled data should be saved
 
@@ -527,9 +549,9 @@ if run_convert_mat_h5:
         path = os.path.join(directory_path_mat, file_name)
         print(path)
         if file_id < 10:
-            save_path = os.path.join(save_dir_raw, f"Group0{file_id}")
+            save_path = os.path.join(save_dir_data, f"Group0{file_id}")
         else:
-            save_path = os.path.join(save_dir_raw, f"Group{file_id}")
+            save_path = os.path.join(save_dir_data, f"Group{file_id}")
         #read_Sig1k(path, config_path ,save_path) #Why is here, this makes it read twice?
         try:
             read_Sig1k(path, config_path,save_path)
@@ -543,7 +565,7 @@ if run_convert_mat_h5:
 if run_quality_control:
     print("Running Quality Control")
 
-    files = sorted(os.listdir(save_dir_raw))
+    files = sorted(os.listdir(save_dir_data))
 
     if '.DS_Store' in files:  # remove hidden files on macs
         files.remove('.DS_Store')
@@ -552,7 +574,7 @@ if run_quality_control:
     for file_name in files[folder_id:]:
         # import folder names
         folder_id += 1
-        path = os.path.join(save_dir_raw, file_name)
+        path = os.path.join(save_dir_data, file_name)
         print(path)
         if folder_id < 10:
             save_path_name = os.path.join(save_dir_qc, f"Group0{folder_id}")
@@ -561,7 +583,7 @@ if run_quality_control:
         print(f"Processing {file_name}")  # for debugging
         try:
             # call post-processing functions
-            Data = read_raw_h5(path)  # KA: needed to install pytables
+            Data = read_data_h5(path)  # KA: needed to install pytables
             print(f"read in data")
 
             Data = remove_low_correlations(Data)
