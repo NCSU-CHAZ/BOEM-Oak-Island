@@ -488,8 +488,11 @@ def bulk_stats_analysis(
             Waves["Hs"] = pd.concat(
                 [Waves["Hs"], pd.DataFrame([Hs])], axis=0, ignore_index=True
             )
-            Waves["Tm"] = pd.concat(
-                [Waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
+            Waves["Tm01"] = pd.concat(
+                [Waves["Tm01"], pd.DataFrame([Tm01])], axis=0, ignore_index=True
+            )
+            Waves["Tm02"] = pd.concat(
+                [Waves["Tm02"], pd.DataFrame([Tm02])], axis=0, ignore_index=True
             )
 
             # Now let's calculate the cospectra and mean wave direction
