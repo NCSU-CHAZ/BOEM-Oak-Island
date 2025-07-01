@@ -458,16 +458,20 @@ def bulk_stats_analysis(
 
             # final bulk wave statistics per burst
             df = fr.iloc[1] - fr.iloc[0]  # wind wave band
-            I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
+            I = np.where((fr >= 1 / 30) & (fr <= 1 / 1))[0] # extend windwave band to 1 to 30s
             m0 = np.nansum(
                 SePP.iloc[I] * df
             )  # zeroth moment (total energy in the spectrum w/in incident wave band)
             m1 = np.nansum(
                 fr.iloc[I] * SePP.iloc[I] * df
             )  # 1st moment (average frequency in spectrum w/in incident wave band)
+            m2= np.nansum(
+                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df
+            )  # 2nd moment (variance of the spectra w/in incident wave band)
 
             Hs = 4 * np.sqrt(m0)  # significant wave height
-            Tm = m0 / m1  # mean wave period
+            Tm01 = m0 / m1  # mean wave period (significant wave period)
+            Tm02=np.sqrt(m0/m2) # mean wave period 
 
             C = fr_rad / k  # wave celerity
             Cg = (
@@ -595,7 +599,8 @@ def bulk_stats_analysis(
     Waves["k"].to_hdf(os.path.join(save_dir, "WaveNumbers"), key="df", mode="w")
     Waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
     Waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
-    Waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
+    Waves["Tm01"].to_hdf(os.path.join(save_dir, "MeanPeriodTm01"), key="df", mode="w")
+    Waves["Tm02"].to_hdf(os.path.join(save_dir, "MeanPeriodTm02"), key="df", mode="w")
     Waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
     Waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVelocity"), key="df", mode="w")
     Waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVelocity"), key="df", mode="w")
