@@ -315,7 +315,7 @@ def bulk_stats_analysis(
         del group_dirs[index]
 
     # Initialize Waves structure that will contain the bulk stats
-    Waves = {"Time": pd.DataFrame([]), "Tm": pd.DataFrame([]), "Hs": pd.DataFrame([]), "C": pd.DataFrame([]),
+    Waves = {"Time": pd.DataFrame([]), "Tm01": pd.DataFrame([]),"Tm02": pd.DataFrame([]), "Hs": pd.DataFrame([]), "C": pd.DataFrame([]),
              "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "Wavg": pd.DataFrame([]),
              "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
