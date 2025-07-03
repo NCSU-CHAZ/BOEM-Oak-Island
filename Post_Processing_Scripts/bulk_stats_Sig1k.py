@@ -458,15 +458,15 @@ def bulk_stats_analysis(
 
             # final bulk wave statistics per burst
             df = fr.iloc[1] - fr.iloc[0]  # wind wave band
-            I = np.where((fr >= 1 / 30) & (fr <= 1 / 2))[0] # extend windwave band to 2 to 30s
+            I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0] # extend windwave band to 2 to 30s
             m0 = np.nansum(
-                SePP.iloc[I] * df
+                SePP.iloc[I] * df *dir1
             )  # zeroth moment (total energy in the spectrum w/in incident wave band)
             m1 = np.nansum(
-                fr.iloc[I] * SePP.iloc[I] * df
+                fr.iloc[I] * SePP.iloc[I] * df *dir1
             )  # 1st moment (average frequency in spectrum w/in incident wave band)
             m2= np.nansum(
-                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df
+                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df *dir1
             )  # 2nd moment (variance of the spectra w/in incident wave band)
 
             Hs = 4 * np.sqrt(m0)  # significant wave height
