@@ -315,7 +315,7 @@ def bulk_stats_analysis(
         del group_dirs[index]
 
     # Initialize Waves structure that will contain the bulk stats
-    Waves = {"Time": pd.DataFrame([]), "Tm01": pd.DataFrame([]),"Tm02": pd.DataFrame([]), "Hs": pd.DataFrame([]),"Tm01dir": pd.DataFrame([]),"Tm02dir": pd.DataFrame([]), "Hsdir": pd.DataFrame([]), "C": pd.DataFrame([]),
+    Waves = {"Time": pd.DataFrame([]), "Tm01": pd.DataFrame([]),"Tm02": pd.DataFrame([]), "Hs": pd.DataFrame([]),"Tm01dir": pd.DataFrame([]),"Tm02dir": pd.DataFrame([]), "C": pd.DataFrame([]),
              "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "Wavg": pd.DataFrame([]),
              "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
@@ -528,7 +528,7 @@ def bulk_stats_analysis(
             # Compute directional spread
             dir1 = r2d * np.arctan2(b1, a1)
             # spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1 ** 2 + b1 ** 2)))
-
+            fr=pd.DataFrame(fr)
             m0dir = np.nansum(
                 SePP.iloc[I] * df *dir1
             )  # zeroth moment (total energy in the spectrum w/in incident wave band)
@@ -539,13 +539,9 @@ def bulk_stats_analysis(
                 fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df *dir1
             )  # 2nd moment (variance of the spectra w/in incident wave band)
 
-            Hsdir = 4 * np.sqrt(m0dir)  # significant wave height
             Tm01dir = m0dir/ m1dir  # mean wave period (significant wave period)
             Tm02dir=np.sqrt(m0dir/m2dir) # mean wave period 
 
-            Waves["Hsdir"] = pd.concat(
-                [Waves["Hsdir"], pd.DataFrame([Hsdir])], axis=0, ignore_index=True
-            )
             Waves["Tm01dir"] = pd.concat(
                 [Waves["Tm01dir"], pd.DataFrame([Tm01dir])], axis=0, ignore_index=True
             )
