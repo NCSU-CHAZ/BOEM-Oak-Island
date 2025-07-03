@@ -528,16 +528,18 @@ def bulk_stats_analysis(
             # Compute directional spread
             dir1 = r2d * np.arctan2(b1, a1)
             # spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1 ** 2 + b1 ** 2)))
-            fr=pd.DataFrame(fr)
+            fr = pd.DataFrame(fr[1:]).reset_index(drop=True)  # frequency
             m0dir = np.nansum(
-                SePP.iloc[I] * df *dir1
+                SePP.iloc[I] * df * dir1
             )  # zeroth moment (total energy in the spectrum w/in incident wave band)
+            print(m0dir)
             m1dir = np.nansum(
-                fr.iloc[I] * SePP.iloc[I] * df *dir1
+                fr.iloc[I] * SePP.iloc[I] * df * dir1
             )  # 1st moment (average frequency in spectrum w/in incident wave band)
             m2dir = np.nansum(
-                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df *dir1
+                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df * dir1
             )  # 2nd moment (variance of the spectra w/in incident wave band)
+            print(m2dir)
 
             Tm01dir = m0dir/ m1dir  # mean wave period (significant wave period)
             Tm02dir=np.sqrt(m0dir/m2dir) # mean wave period 
