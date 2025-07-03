@@ -318,7 +318,7 @@ def bulk_stats_analysis(
     Waves = {"Time": pd.DataFrame([]), "Tm": pd.DataFrame([]), "Hs": pd.DataFrame([]), "C": pd.DataFrame([]),
              "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "Wavg": pd.DataFrame([]),
              "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
-             "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
+             "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),"Spp_ast": pd.DataFrame([]),
              "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
              "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([])}
 
@@ -331,6 +331,7 @@ def bulk_stats_analysis(
         Time = pd.read_hdf(os.path.join(group_path, "Time.h5"))
         Pressure = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
         Celldepth = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
+        AST_amp= pd.read_hdf(os.path.join(group_path, "Burst_AltimeterDistanceAST.h5"))
 
         # Get number of total samples in group
         nt = len(Time)
@@ -363,6 +364,7 @@ def bulk_stats_analysis(
             V = NorthVel.iloc[i * Nsamp: Nsamp * (i + 1), :]
             W = VertVel.iloc[i * Nsamp: Nsamp * (i + 1), :]
             P = Pressure.iloc[i * Nsamp: Nsamp * (i + 1)]
+            AST_amp=AST_amp.iloc[i*Nsamp:Nsamp*(i+1)]
 
             # Find the depth averaged velocity stat
             # Uavg = np.nanmean(np.nanmean(U, axis=1))  # there are slight differences if you first do axis = 1
@@ -427,12 +429,15 @@ def bulk_stats_analysis(
             Svv, fr = welch_method(V_no_nan, dt, Chunks, overlap)
             P_no_nan = np.nan_to_num(P.to_numpy(), nan=0.0)
             Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
+            AST_amp_no_nan=np.nan_to_num(AST_amp.to_numpy(),nan=0.0)
+            Spp_ast,fr=welch_method(AST_amp_no_nan,dt,Chunks,overlap)
 
             # Get rid of zero frequency and turn back into pandas dataframes
             fr = pd.DataFrame(fr[1:]).reset_index(drop=True)  # frequency
             Suu = pd.DataFrame(Suu[1:, :])
             Svv = pd.DataFrame(Svv[1:, :])
             Spp = pd.DataFrame(Spp[1:])
+            Spp_ast=pd.DataFrame(Spp_ast[1:])
 
             # Depth Attenuation
             fr_rad = 2 * np.pi * fr  # frequency in radians
@@ -561,6 +566,9 @@ def bulk_stats_analysis(
             Waves["Spp"] = pd.concat(
                 [Waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
+            Waves["Spp_ast"] = pd.concat(
+                [Waves["Spp_ast"], pd.DataFrame([np.nanmean(Spp_ast.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
+            )
             Waves["Svv"] = pd.concat(
                 [Waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
@@ -607,6 +615,7 @@ def bulk_stats_analysis(
     Waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
     Waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDirection"), key="df", mode="w")
     Waves["Spp"].to_hdf(os.path.join(save_dir, "PressureSpectra"), key="df", mode="w")
+    Waves["Spp_ast"].to_hdf(os.path.join(save_dir, "ASTPressureSpectra"), key="df", mode="w")
     Waves["Spu"].to_hdf(os.path.join(save_dir, "PressureEastVelCospectra"), key="df", mode="w")
     Waves["Spv"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
     Waves["Suu"].to_hdf(os.path.join(save_dir, "EastVelSpectra"), key="df", mode="w")
