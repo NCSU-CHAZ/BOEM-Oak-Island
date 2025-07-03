@@ -315,7 +315,7 @@ def bulk_stats_analysis(
         del group_dirs[index]
 
     # Initialize Waves structure that will contain the bulk stats
-    Waves = {"Time": pd.DataFrame([]), "Tm01": pd.DataFrame([]),"Tm02": pd.DataFrame([]), "Hs": pd.DataFrame([]), "C": pd.DataFrame([]),
+    Waves = {"Time": pd.DataFrame([]), "Tm01": pd.DataFrame([]),"Tm02": pd.DataFrame([]), "Hs": pd.DataFrame([]),"Tm01dir": pd.DataFrame([]),"Tm02dir": pd.DataFrame([]), "Hsdir": pd.DataFrame([]), "C": pd.DataFrame([]),
              "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "Wavg": pd.DataFrame([]),
              "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
@@ -460,13 +460,13 @@ def bulk_stats_analysis(
             df = fr.iloc[1] - fr.iloc[0]  # wind wave band
             I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0] # extend windwave band to 2 to 30s
             m0 = np.nansum(
-                SePP.iloc[I] * df *dir1
+                SePP.iloc[I] * df 
             )  # zeroth moment (total energy in the spectrum w/in incident wave band)
             m1 = np.nansum(
-                fr.iloc[I] * SePP.iloc[I] * df *dir1
+                fr.iloc[I] * SePP.iloc[I] * df 
             )  # 1st moment (average frequency in spectrum w/in incident wave band)
             m2= np.nansum(
-                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df *dir1
+                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df
             )  # 2nd moment (variance of the spectra w/in incident wave band)
 
             Hs = 4 * np.sqrt(m0)  # significant wave height
@@ -528,6 +528,30 @@ def bulk_stats_analysis(
             # Compute directional spread
             dir1 = r2d * np.arctan2(b1, a1)
             # spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1 ** 2 + b1 ** 2)))
+
+            m0dir = np.nansum(
+                SePP.iloc[I] * df *dir1
+            )  # zeroth moment (total energy in the spectrum w/in incident wave band)
+            m1dir = np.nansum(
+                fr.iloc[I] * SePP.iloc[I] * df *dir1
+            )  # 1st moment (average frequency in spectrum w/in incident wave band)
+            m2dir = np.nansum(
+                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df *dir1
+            )  # 2nd moment (variance of the spectra w/in incident wave band)
+
+            Hsdir = 4 * np.sqrt(m0dir)  # significant wave height
+            Tm01dir = m0dir/ m1dir  # mean wave period (significant wave period)
+            Tm02dir=np.sqrt(m0dir/m2dir) # mean wave period 
+
+            Waves["Hsdir"] = pd.concat(
+                [Waves["Hsdir"], pd.DataFrame([Hsdir])], axis=0, ignore_index=True
+            )
+            Waves["Tm01dir"] = pd.concat(
+                [Waves["Tm01dir"], pd.DataFrame([Tm01dir])], axis=0, ignore_index=True
+            )
+            Waves["Tm02dir"] = pd.concat(
+                [Waves["Tm02dir"], pd.DataFrame([Tm02dir])], axis=0, ignore_index=True
+            )
 
             # Compute weighted average for fourier coefficients
             ma1 = np.nansum(a1.loc[I] * SePP.loc[I] * df, axis=0) / m0
