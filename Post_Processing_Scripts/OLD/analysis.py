@@ -297,8 +297,8 @@ def remove_low_correlations(Data):
         Depth_Thresh1 = (
             Data["Burst_Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
             - Data["EchoCellSize"][0].iloc[0]
-    )
-    echobad[i, :] = Data["CellDepth_echo"] >= Depth_Thresh1
+        )
+        echobad[i, :] = Data["CellDepth_echo"] >= Depth_Thresh1
     echobad = echobad.astype(bool)
     Data["EchoDepthThresh"] = echobad
 
