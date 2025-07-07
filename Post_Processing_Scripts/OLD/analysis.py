@@ -222,7 +222,7 @@ def read_data_h5(path):
     #Create echo cell depth vector
     Data['EchoNCells'] = Data['Echo1'].shape[1]  # Number of echo cells
     print(f"Number of echo cells: {Data['EchoNCells']}")  # debugging line
-    vector = np.arange(1, Data["EchoNCells"].iloc[0] + 1)
+    vector = np.arange(1, Data["EchoNCells"]+ 1)
 
     # Calculate the depth of each cell
     Data["CellDepth_echo"] = (
@@ -263,7 +263,7 @@ def remove_low_correlations(Data):
             0.3 + 0.4 * (Sr / 25) ** 0.5
     )  # Threshold for correlation values as found in Elgar
     
-    row, col = Data['Burst_VertAmplitude'].shape
+    row, col = Data['VbAmplitude'].shape
     row1, col2 = Data['Echo1'].shape
 
 
@@ -275,7 +275,7 @@ def remove_low_correlations(Data):
     for i in range(len(isbad)):
         Depth_Thresh = (
                 Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
-                - Data["CellSize"][0]
+                - Data["CellSize"][0].iloc[0]
         )
         isbad[i, :] = Data["CellDepth"] >= Depth_Thresh
     isbad = isbad.astype(bool)
@@ -295,8 +295,8 @@ def remove_low_correlations(Data):
     # Apply mask for surface measurements for the echo sounders 
     for i in range(len(echobad)):
         Depth_Thresh1 = (
-            Data["Burst_Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
-            - Data["EchoCellSize"][0]
+            Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
+            - Data["EchoCellSize"][0].iloc[0]
         )
         echobad[i, :] = Data["CellDepth_echo"] >= Depth_Thresh1
     echobad = echobad.astype(bool)
@@ -307,7 +307,7 @@ def remove_low_correlations(Data):
     Data["Echo2"] = Data["Echo2"].mask(echobad, np.nan)
 
     #mask the Data
-    Data[f"Burst_VertAmplitude"] = Data[f"Burst_VertAmplitude"].mask(isbad, np.nan)
+    Data[f"VbAmplitude"] = Data[f"VbAmplitude"].mask(isbad, np.nan)
 
     return Data
 
@@ -450,7 +450,7 @@ def transform_beam_ENUD(Data):
     # Reapply the mask to set positions with any original NaNs back to NaN
     Data["AbsVel"][~nan_mask] = np.nan
     Data['CellDepth'] = pd.DataFrame(Data['CellDepth'])
-
+    Data['CellDepth_echo'] = pd.DataFrame(Data['CellDepth_echo'])
     # print(f"AbsVel shape: {Data['AbsVel'].shape}")
     # print(f"Sample AbsVel values: {Data['AbsVel'].head()}")
     return Data
@@ -542,7 +542,7 @@ if run_convert_mat_h5:
         for f in os.listdir(directory_path_mat)
         if os.path.isfile(os.path.join(directory_path_mat, f))
     ]
-    files.sort(key=lambda x: int(re.search(r"FPS4_(\d+)", x).group(1)) if re.search(r"FPS4_(\d+)", x) else float('inf'))
+    files.sort(key=lambda x: int(re.search(r"FPS4(\d+)", x).group(1)) if re.search(r"FPS4_(\d+)", x) else float('inf'))
 
     file_id = group_id - 1
 
