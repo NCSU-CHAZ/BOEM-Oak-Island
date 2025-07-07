@@ -18,7 +18,7 @@ sensor_id = "E1_103071"  # S1_101418 or S0_103080
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = True
+run_convert_mat_h5 = False
 run_quality_control = True
 run_bulk_statistics = True
 
@@ -275,7 +275,7 @@ def remove_low_correlations(Data):
     for i in range(len(isbad)):
         Depth_Thresh = (
                 Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
-                - Data["CellSize"][0].iloc[0]
+                - Data["CellSize"][0]
         )
         isbad[i, :] = Data["CellDepth"] >= Depth_Thresh
     isbad = isbad.astype(bool)
@@ -296,7 +296,7 @@ def remove_low_correlations(Data):
     for i in range(len(echobad)):
         Depth_Thresh1 = (
             Data["Burst_Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
-            - Data["EchoCellSize"][0].iloc[0]
+            - Data["EchoCellSize"][0]
         )
         echobad[i, :] = Data["CellDepth_echo"] >= Depth_Thresh1
     echobad = echobad.astype(bool)
