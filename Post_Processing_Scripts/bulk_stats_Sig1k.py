@@ -548,9 +548,11 @@ def bulk_stats_analysis(
             mb2 = np.nansum(b2.loc[I] * SePP.loc[I] * df, axis=0) / m0
 
             # Compute second order directional spectra
-            dir2 = (r2d / 2) * np.arctan2(b2, a2) # directional sprectra
+            dir2 = (r2d / 2) * np.arctan2(b2, a2) # directional sprectra (degrees)
+            #print("dir2", dir2.iloc[:,0])
             #print("dir2 is", dir2)
             mdir2 = 90 - (r2d / 2) * np.arctan2(mb2, ma2)
+           # print("mdir2", mdir2)
             mspread2 = r2d * np.sqrt(
                 np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir1 / r2d) + mb2 * np.sin(2 * mdir1 / r2d))))
             
@@ -561,16 +563,18 @@ def bulk_stats_analysis(
             #S_dir=SePP.iloc[I] * dir2.iloc[:,0]
             S_dir = SePP.iloc[I, :] * dir2.iloc[I, :]
             #print("directional spectrum is",S_dir)
-            theta = np.linspace(0, 2 * np.pi, S_dir.shape[1])
+            theta = np.linspace(0, 360, S_dir.shape[1],endpoint=False)
             print(S_dir.shape[1])
-            a = np.where((theta >= 0) & (theta <= 2 * np.pi))[0]    
+            a = np.where((theta >= 0) & (theta <= 360))[0]    
             #dtheta = dir2.iloc[1] - dir2.iloc[0] # directional band
             #a=np.where((dir2>= 0) & (dir2 <= 2*np.pi)) [0] # directioanl band
-            dtheta = theta[1] - theta[0]
+            dtheta = theta[1] - theta[0] # width of directional bin
+            print("dtheta is", dtheta)
 
             m0_dir=np.nansum(
                 S_dir.iloc[a] * df * dtheta
             )
+            print("M0dir is",m0_dir)
             m1_dir = np.nansum(
                 S_dir.iloc[a] * df * dtheta * fr.iloc[I]
 
@@ -581,7 +585,6 @@ def bulk_stats_analysis(
             )
             Hsdir  = 4 * np.sqrt(m0_dir)  # significant wave height
             print("Hs dir", Hsdir)
-            print("M0dir is",m0_dir)
             print("M2dir is", m2_dir)
             print("m1 dir is", m1_dir)
             
