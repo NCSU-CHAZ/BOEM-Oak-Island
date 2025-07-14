@@ -315,7 +315,7 @@ def bulk_stats_analysis(
         del group_dirs[index]
 
     # Initialize Waves structure that will contain the bulk stats
-    Waves = {"Time": pd.DataFrame([]), "Tm01": pd.DataFrame([]),"Tm02": pd.DataFrame([]), "Hs": pd.DataFrame([]),"Tm01dir": pd.DataFrame([]),"Tm02dir": pd.DataFrame([]), "C": pd.DataFrame([]),
+    Waves = {"Time": pd.DataFrame([]), "Tm01": pd.DataFrame([]),"Tm02": pd.DataFrame([]), "Hs": pd.DataFrame([]),"Tm01dir": pd.DataFrame([]),"Tm02dir": pd.DataFrame([]), "Hsdir": pd.DataFrame([]), "C": pd.DataFrame([]),
              "Cg": pd.DataFrame([]), "Uavg": pd.DataFrame([]), "Vavg": pd.DataFrame([]), "Wavg": pd.DataFrame([]),
              "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
@@ -471,6 +471,7 @@ def bulk_stats_analysis(
 
             Hs = 4 * np.sqrt(m0)  # significant wave height
             Tm01 = m0 / m1  # mean wave period (significant wave period)
+            print("Tm01 is",Tm01)
             Tm02=np.sqrt(m0/m2) # mean wave period 
 
             C = fr_rad / k  # wave celerity
@@ -527,37 +528,15 @@ def bulk_stats_analysis(
             b1 = coPV / np.sqrt(SePP * (SUU + SVV))
             # Compute directional spread
             dir1 = r2d * np.arctan2(b1, a1)
-            # spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1 ** 2 + b1 ** 2)))
-            fr = pd.DataFrame(fr[1:]).reset_index(drop=True)  # frequency
-            m0dir = np.nansum(
-                SePP.iloc[I] * df * dir1
-            )  # zeroth moment (total energy in the spectrum w/in incident wave band)
-            print(m0dir)
-            m1dir = np.nansum(
-                fr.iloc[I] * SePP.iloc[I] * df * dir1
-            )  # 1st moment (average frequency in spectrum w/in incident wave band)
-            m2dir = np.nansum(
-                fr.iloc[I] * fr.iloc[I] * SePP.iloc[I] * df * dir1
-            )  # 2nd moment (variance of the spectra w/in incident wave band)
-            print(m2dir)
-
-            Tm01dir = m0dir/ m1dir  # mean wave period (significant wave period)
-            Tm02dir=np.sqrt(m0dir/m2dir) # mean wave period 
-
-            Waves["Tm01dir"] = pd.concat(
-                [Waves["Tm01dir"], pd.DataFrame([Tm01dir])], axis=0, ignore_index=True
-            )
-            Waves["Tm02dir"] = pd.concat(
-                [Waves["Tm02dir"], pd.DataFrame([Tm02dir])], axis=0, ignore_index=True
-            )
+            # mspread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1 ** 2 + b1 ** 2)))
 
             # Compute weighted average for fourier coefficients
             ma1 = np.nansum(a1.loc[I] * SePP.loc[I] * df, axis=0) / m0
             mb1 = np.nansum(b1.loc[I] * SePP.loc[I] * df, axis=0) / m0
 
             # Compute average directional spreads
-            mdir1 = np.remainder(90 + 180 - r2d * np.arctan2(mb1, ma1), 360)
-            mspread1 = r2d * np.sqrt(np.abs(2 * (1 - (ma1 * np.cos(mdir1 / r2d) + mb1 * np.sin(mdir1 / r2d)))))
+            mdir1 = np.remainder(90 + 180 - r2d * np.arctan2(mb1, ma1), 360) # mean direction
+            mspread1 = r2d * np.sqrt(np.abs(2 * (1 - (ma1 * np.cos(mdir1 / r2d) + mb1 * np.sin(mdir1 / r2d))))) # directional spreading
 
             # Compute a2 and b2
             a2 = (SUU - SVV) / (SUU + SVV)
@@ -569,10 +548,50 @@ def bulk_stats_analysis(
             mb2 = np.nansum(b2.loc[I] * SePP.loc[I] * df, axis=0) / m0
 
             # Compute second order directional spectra
-            dir2 = (r2d / 2) * np.arctan2(b2, a2)
+            dir2 = (r2d / 2) * np.arctan2(b2, a2) # directional sprectra
+            #print("dir2 is", dir2)
             mdir2 = 90 - (r2d / 2) * np.arctan2(mb2, ma2)
             mspread2 = r2d * np.sqrt(
                 np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir1 / r2d) + mb2 * np.sin(2 * mdir1 / r2d))))
+            
+            # Calculate Directional Wave Spectra 
+            fr = pd.DataFrame(fr[1:]).reset_index(drop=True)  # frequency
+            df = fr.iloc[1] - fr.iloc[0]  # wind wave band
+            I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0] # extend windwave band to 2 to 30s
+            #S_dir=SePP.iloc[I] * dir2.iloc[:,0]
+            S_dir = SePP.iloc[I, :] * dir2.iloc[I, :]
+            #print("directional spectrum is",S_dir)
+            theta = np.linspace(0, 2 * np.pi, S_dir.shape[1])
+            print(S_dir.shape[1])
+            a = np.where((theta >= 0) & (theta <= 2 * np.pi))[0]    
+            #dtheta = dir2.iloc[1] - dir2.iloc[0] # directional band
+            #a=np.where((dir2>= 0) & (dir2 <= 2*np.pi)) [0] # directioanl band
+            dtheta = theta[1] - theta[0]
+
+            m0_dir=np.nansum(
+                S_dir.iloc[a] * df * dtheta
+            )
+            m1_dir = np.nansum(
+                S_dir.iloc[a] * df * dtheta * fr.iloc[I]
+
+            )
+            m2_dir = np.nansum(
+                S_dir.iloc[a] * df * dtheta * fr.iloc[I] * fr.iloc[I]
+
+            )
+            Hsdir  = 4 * np.sqrt(m0_dir)  # significant wave height
+            print("Hs dir", Hsdir)
+            print("M0dir is",m0_dir)
+            print("M2dir is", m2_dir)
+            print("m1 dir is", m1_dir)
+            
+            Tm01_dir= m0_dir/m1_dir 
+            #print("Tm01 dir is", Tm01_dir)
+            Tm02_dir = np.sqrt(m0_dir/m2_dir) # mean wave period 
+            #print("Tm02_dir is", Tm02_dir)
+
+
+
 
             # Put the directions and spreads for the waves into Waves structure
             Waves["MeanDir1"] = pd.concat(
