@@ -321,7 +321,7 @@ def bulk_stats_analysis(
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
              "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
              "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([])}
-
+    jjj = 0
     # Start loop that will load in data for each variable from each day ("group")
     for group_dir in group_dirs:
         group_path = group_dir.path  # Get the full path of the current group
@@ -330,8 +330,9 @@ def bulk_stats_analysis(
         NorthVel = pd.read_hdf(os.path.join(group_path, "NorthVel.h5"))
         Time = pd.read_hdf(os.path.join(group_path, "Time.h5"))
         Pressure = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
-        Celldepth = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
-
+        Celldepth = pd.read_hdf(os.path.join(group_path, "CellDepth.h5"))
+    
+        jjj += 1
         # Get number of total samples in group
         nt = len(Time)
         N = math.floor(nt / Nsamp)
@@ -577,6 +578,7 @@ def bulk_stats_analysis(
             if i == 1:
                 Waves["fr"] = pd.DataFrame(fr[0:I[-1]])
                 Waves["k"] = k.loc[0:I[-1]]
+            
 
             # remove stats for when ADCP is in air or very shallow water
             if dpth < depth_threshold:
@@ -584,7 +586,8 @@ def bulk_stats_analysis(
                     print(key)  # debugging
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         Waves[key].loc[i] = np.nan
-
+        if jjj == 9 :
+            break
         print(f"Processed {group_path} for bulk_statistics")  # for debugging
 
     ###############################################################################
