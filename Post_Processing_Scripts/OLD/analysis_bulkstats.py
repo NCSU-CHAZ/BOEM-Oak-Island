@@ -20,6 +20,7 @@ import pandas as pd
 import os
 import math
 import time
+from scipy.io import loadmat
 
 np.seterr(all='raise')  # for debugging in Pycharm: raise exceptions for RuntimeWarning
 
@@ -251,6 +252,65 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     return CoSP, frequency, QuSP, PHI
 
+def sediment_analysis(Echo,S,T,P,CellDepth_echo,Burst_Pressure,transmit_length):
+    # Attempts at sediment attentuation of the amplitude data, at the start are the required parameters for calculation
+    ph = 8.1  # pH
+    freq = 1000  # Frequency in kHz
+    transmit_power = 0  # Units?
+    gain_correciton = 0  # Gain correction in dB 
+    beam_angle = .015  # For E1
+    g = 9.81  # m/s^2
+    y = 2.226 * 10 ** (-6)  # ms^-2 dBar^-1
+
+    copy = Echo.copy()  # Copy the Echo1 data to avoid modifying the original
+    # Broadcast depth (305x1) to (12850x305)
+    ranges = CellDepth_echo.values.flatten()  # shape: (305,)
+    range_matrix = np.tile(ranges, (Echo.shape[0], 1))  # shape: (12850, 305)
+
+    depths_matrix = pd.DataFrame(Burst_Pressure.values - ranges[np.newaxis, :])  # shape: (12850, 305)
+
+    surfacemask = depths_matrix <= 0 
+    depths_matrix = depths_matrix.mask(surfacemask,np.nan)
+
+    T0 = float(np.nanmean(T))
+    S0 = float(np.nanmean(S))
+
+
+    soundspeed = 1448.96 + 4.591*T0 -5.304e-2*T0**2 + 2.374e-4*T0**3 +1.34*(S0-35) # Approximated mackenzie equation for sound speed in water
+
+    # Calculate attenuation coefficients
+    A_1 = (8.66*10**(.78*ph-5))/soundspeed
+    A_2 = (21.44*S0*(1+.025*T0))/soundspeed
+    f_1 = 2.8*np.sqrt(S0/35)*10**(4-1245/(T0+273))
+    f_2 = (8.17*10**(8-(1990/(T0+273))))/(1+.0018*(S0-35))
+
+    P_2 = 1 - 1.37e-4*depths_matrix + 6.2e-9*depths_matrix**2
+    P_3 = 1 - 3.83e-5*depths_matrix + 4.9e-10*depths_matrix**2
+
+    if T0 <= 20:
+        A_3 = 4.937e-4 -2.59e-5*T0 + 3.2e-7*T0**2 -1.5e-8*T0**3
+    else:
+        A_3 = 3.964e-4 -1.146e-5*T0 +1.45e-7*T0**2 -6.5e-10*T0**3
+
+    a_w = (freq**2)*(((A_1*f_1)/(f_1**2+freq**2))+((A_2*P_2*f_2)/(f_2**2+freq**2))+A_3*P_3) # Calculate abosrbtion coefficient shape: (305,)
+    a_w = a_w/1000 # Convert from dB/km to dB/m
+
+    # transmit_length likely in ms → convert to sec:
+    transmit_length_sec = transmit_length / 1000
+
+    # define Csv:
+    Csv = 0 # or compute properly
+
+    Sv = copy*.01 + 20*np.log10(depths_matrix) + 2*a_w*depths_matrix \
+            + transmit_power - 10*np.log10((soundspeed*transmit_length_sec)/2) \
+            - beam_angle + Csv
+
+    Sv = pd.DataFrame(Sv, index=copy.index, columns=copy.columns)
+
+    echoavg = pd.DataFrame(Echo.mean(axis=1))
+
+    return echoavg,Sv
+
 
 def bulk_stats_analysis(
         dirpath,
@@ -320,8 +380,23 @@ def bulk_stats_analysis(
              "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
              "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
-             "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([])}
-    jjj = 0
+             "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([]), "Echo1avg": pd.DataFrame([]), 
+             "Echo2avg": pd.DataFrame([]), "Sv1": pd.DataFrame([]),"Sv2": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
+             "sedtime":pd.DataFrame([])}
+
+    ##Load in Seabird Data for sediment analysis
+
+    sbepath = "Z:\deployment_1\Raw\E1RBR\SBE_00003570_DEP4_FPSE1_L0.mat"
+    stuff = loadmat(
+        sbepath
+    )  # Load mat oragnizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
+    # dictionary with four nested numpy arrays with dtypes as data field titles
+    sbe = {}
+    for names in stuff.keys() :
+        sbe[names] = stuff[names]  # Convert the numpy arrays to a dictionary with the data field titles as keys
+    del stuff
+
+
     # Start loop that will load in data for each variable from each day ("group")
     for group_dir in group_dirs:
         group_path = group_dir.path  # Get the full path of the current group
@@ -330,14 +405,41 @@ def bulk_stats_analysis(
         NorthVel = pd.read_hdf(os.path.join(group_path, "NorthVel.h5"))
         Time = pd.read_hdf(os.path.join(group_path, "Time.h5"))
         Pressure = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
-        Celldepth = pd.read_hdf(os.path.join(group_path, "CellDepth.h5"))
-    
-        jjj += 1
+        Celldepth = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
+        VbAmplitude = pd.read_hdf(os.path.join(group_path, "VbAmplitude.h5"))
+        Celldepth_echo = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
+        Echo1 = pd.read_hdf(os.path.join(group_path, "Echo1.h5"))
+        Echo2 = pd.read_hdf(os.path.join(group_path, "Echo2.h5"))
+
+        #Perform sediment analysis
+        Echo1avg, S_v1 = sediment_analysis(Echo1,sbe['salinity'],sbe['temperature'],sbe['pressure'],Celldepth_echo,Pressure,.330)
+        Echo2avg, S_v2 = sediment_analysis(Echo2,sbe['salinity'],sbe['temperature'],sbe['pressure'],Celldepth_echo,Pressure,.033)
+        vertavg = pd.DataFrame(np.nanmean(VbAmplitude,axis= 1))
+
+        Waves["sedtime"] = pd.concat(
+            [Waves["sedtime"], Time], axis=0, ignore_index=True
+        )
+        Waves["vertavg"] = pd.concat(
+            [Waves["vertavg"], vertavg], axis=0, ignore_index=True
+        )
+        Waves["Echo1avg"] = pd.concat(
+            [Waves["Echo1avg"], Echo1avg], axis=0, ignore_index=True
+        )
+        Waves["Echo2avg"] = pd.concat(
+            [Waves["Echo2avg"], Echo2avg], axis=0, ignore_index=True
+        )
+        Waves["Sv1"] = pd.concat(
+            [Waves["Sv1"], pd.DataFrame(np.nanmean(S_v1,axis = 1))], axis=0, ignore_index=True
+        )
+        Waves["Sv2"] = pd.concat(
+            [Waves["Sv2"], pd.DataFrame(np.nanmean(S_v2,axis = 1))], axis=0, ignore_index=True
+        )
+
         # Get number of total samples in group
         nt = len(Time)
         N = math.floor(nt / Nsamp)
         Nb = len(Celldepth)  # Number of bins
-
+        
         # Loop over ensembles ("bursts")
         for i in range(N):
 
@@ -346,15 +448,14 @@ def bulk_stats_analysis(
 
             # Grab the time series associated with these ensembles
             t = Time.iloc[i * Nsamp: Nsamp * (i + 1)]
-
+            
             tavg = t.iloc[
                 round(Nsamp / 2)
             ]  # Take the time for this ensemble by grabbing the middle time
-
             Waves["Time"] = pd.concat(
                 [Waves["Time"], pd.DataFrame([tavg])], ignore_index=True
             )  # Record time for this ensemble in Waves stats structure
-
+           
             ###############################################################################
             # calculate depth averaged statistics
             ###############################################################################
@@ -373,7 +474,6 @@ def bulk_stats_analysis(
             Vavg = np.nanmean(V)
             Wavg = np.nanmean(W)
             current_velocity = np.sqrt(Uavg ** 2 + Vavg ** 2)
-
             # Compute depth-averaged current direction in degrees
             avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg))
 
@@ -459,7 +559,7 @@ def bulk_stats_analysis(
 
             # final bulk wave statistics per burst
             df = fr.iloc[1] - fr.iloc[0]  # wind wave band
-            I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
+            I = np.where((fr >= 1 / 20) & (fr <= 1 ))[0]
             m0 = np.nansum(
                 SePP.iloc[I] * df
             )  # zeroth moment (total energy in the spectrum w/in incident wave band)
@@ -494,7 +594,6 @@ def bulk_stats_analysis(
             [Suv, _, _, _] = welch_cospec(U_no_nan, V_no_nan, dt, Chunks, overlap)
             [Spu, _, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
             [Spv, fr, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
-
             # Remove zero frequency
             Suv = pd.DataFrame(Suv[1:, :])
             Spu = pd.DataFrame(Spu[1:, :])
@@ -504,8 +603,8 @@ def bulk_stats_analysis(
             SUV = Suv * Usurf ** 2
             SPU = np.repeat(Paeta, Nb, axis=1) * Spu * Usurf
             SPV = np.repeat(Paeta, Nb, axis=1) * Spv * Usurf
-
             # Map to Surface Elevation Spectra
+
             SeUV = Suv * Usurf ** 2
             SePU = np.repeat(Paeta, Nb, axis=1) * Spu * Usurf
             SePV = np.repeat(Paeta, Nb, axis=1) * Spv * Usurf
@@ -560,25 +659,24 @@ def bulk_stats_analysis(
                 [Waves["MeanSpread2"], pd.DataFrame([np.nanmean(mspread2)])], axis=0, ignore_index=True
             )
             Waves["Spp"] = pd.concat(
-                [Waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
             Waves["Svv"] = pd.concat(
-                [Waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
             Waves["Suu"] = pd.concat(
-                [Waves["Suu"], pd.DataFrame([np.nanmean(Suu.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Suu"], pd.DataFrame([np.nanmean(Suu.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
             Waves["Spu"] = pd.concat(
-                [Waves["Spu"], pd.DataFrame([np.nanmean(Spu.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Spu"], pd.DataFrame([np.nanmean(Spu.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
             Waves["Spv"] = pd.concat(
-                [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
 
             if i == 1:
-                Waves["fr"] = pd.DataFrame(fr[0:I[-1]])
-                Waves["k"] = k.loc[0:I[-1]]
-            
+                Waves["fr"] = pd.DataFrame(fr[I])
+                Waves["k"] = k.loc[I]
 
             # remove stats for when ADCP is in air or very shallow water
             if dpth < depth_threshold:
@@ -586,10 +684,12 @@ def bulk_stats_analysis(
                     print(key)  # debugging
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         Waves[key].loc[i] = np.nan
-        if jjj == 9 :
+        # Ask the user if they want to continue
+        if group_dir == group_dirs[4]:
             break
-        print(f"Processed {group_path} for bulk_statistics")  # for debugging
 
+        print(f"Processed {group_path} for bulk_statistics")  # for debugging
+    
     ###############################################################################
     # save bulk statistics to directory
     ###############################################################################
@@ -614,6 +714,11 @@ def bulk_stats_analysis(
     Waves["Spv"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
     Waves["Suu"].to_hdf(os.path.join(save_dir, "EastVelSpectra"), key="df", mode="w")
     Waves["Svv"].to_hdf(os.path.join(save_dir, "NorthVelSpectra"), key="df", mode="w")
+    Waves["Sv1"].to_hdf(os.path.join(save_dir, "VolumetricBackscatter1"), key="df", mode="w")
+    Waves["Sv2"].to_hdf(os.path.join(save_dir, "VolumetricBackscatter2"), key="df", mode="w")
+    Waves["Echo1avg"].to_hdf(os.path.join(save_dir, "Echo1avg"), key="df", mode="w")
+    Waves["Echo2avg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
+    Waves["vertavg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
 
     endtime = time.time()
 

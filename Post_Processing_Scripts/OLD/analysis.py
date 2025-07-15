@@ -18,7 +18,7 @@ sensor_id = "E1_103071"  # S1_101418 or S0_103080
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = False
+run_convert_mat_h5 = True
 run_quality_control = True
 run_bulk_statistics = True
 
@@ -607,6 +607,6 @@ if run_quality_control:
 if run_bulk_statistics:
     waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude)
 
-print(waves['DepthAveragedCurrentVelocity'])
-print(waves['SignificantWaveHeight'])
-print(waves['WaveDirection'])   
+print(waves['Current'])
+print(waves['Hs'])
+  
