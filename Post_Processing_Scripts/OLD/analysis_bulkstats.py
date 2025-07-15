@@ -716,7 +716,7 @@ def bulk_stats_analysis(
     Waves["Sv2"].to_hdf(os.path.join(save_dir, "VolumetricBackscatter2"), key="df", mode="w")
     Waves["Echo1avg"].to_hdf(os.path.join(save_dir, "Echo1avg"), key="df", mode="w")
     Waves["Echo2avg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
-    Waves["vertavg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
+    Waves["vertavg"].to_hdf(os.path.join(save_dir, "Vertavg"), key="df", mode="w")
     Waves["sedtime"].to_hdf(os.path.join(save_dir, "SedTime"), key="df", mode="w")
 
     endtime = time.time()
