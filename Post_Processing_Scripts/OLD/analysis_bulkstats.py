@@ -684,7 +684,7 @@ def bulk_stats_analysis(
                     print(key)  # debugging
                     if key != "Time":  # Exclude 'Time' from being set to NaN
                         Waves[key].loc[i] = np.nan
-     
+            
 
         print(f"Processed {group_path} for bulk_statistics")  # for debugging
     
