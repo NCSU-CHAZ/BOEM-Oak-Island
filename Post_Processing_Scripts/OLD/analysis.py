@@ -18,9 +18,9 @@ sensor_id = "E1_103071"  # S1_101418 or S0_103080
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = False
+run_convert_mat_h5 = True
 run_quality_control = False
-run_bulk_statistics = True
+run_bulk_statistics = False
 
 
 group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
@@ -543,7 +543,9 @@ if run_convert_mat_h5:
         for f in os.listdir(directory_path_mat)
         if os.path.isfile(os.path.join(directory_path_mat, f))
     ]
-    files.sort(key=lambda x: int(re.search(r"FPS4(\d+)", x).group(1)) if re.search(r"FPS4_(\d+)", x) else float('inf'))
+    
+
+    files.sort(key=lambda x: int(re.search(r"FPS4_(\d+)", x).group(1)) if re.search(r"FPS4_(\d+)", x) else float('inf'))
 
     file_id = group_id - 1
 

@@ -20,6 +20,7 @@ import pandas as pd
 import os
 import math
 import time
+import matplotlib.pyplot as plt
 
 np.seterr(all='raise')  # for debugging in Pycharm: raise exceptions for RuntimeWarning
 
@@ -458,7 +459,7 @@ def bulk_stats_analysis(
 
             # final bulk wave statistics per burst
             df = fr.iloc[1] - fr.iloc[0]  # wind wave band
-            I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
+            I = np.where((fr >= 1 / 20) & (fr <= 1 / 2))[0]
             m0 = np.nansum(
                 SePP.iloc[I] * df
             )  # zeroth moment (total energy in the spectrum w/in incident wave band)
@@ -508,6 +509,25 @@ def bulk_stats_analysis(
             SeUV = Suv * Usurf ** 2
             SePU = np.repeat(Paeta, Nb, axis=1) * Spu * Usurf
             SePV = np.repeat(Paeta, Nb, axis=1) * Spv * Usurf
+
+            ### Plotter to look at spectra at noon ###
+            print(SePP)
+            print(fr[1:])
+            if tavg[0].hour ==12 :
+                fig1 = plt.figure()
+                sc = plt.semilogy(fr[1:],SePP,'-r', linewidth=3, label='$S_{\eta\eta}$')
+                plt.semilogy(fr[1:], Spp, '--k', linewidth=3, label='$S_{pp}$')
+                plt.xlim([1/(30*60), 1/2])
+                plt.ylim(bottom = 10e-5,top=100000)
+                plt.grid(True)
+                plt.xlabel('cycles per second', fontsize=12)
+                plt.ylabel(r'm$^2$/Hz', fontsize=12)
+                plt.title("Looking at frequency limits for pressure attenuation")
+                plt.legend()
+                plt.tight_layout()
+                plt.show()
+
+
 
             # Assuming SPU, SPV, SUV, SePP, SUU, SVV, fq are defined as NumPy arrays
             coPU = SPU.copy()
@@ -573,7 +593,7 @@ def bulk_stats_analysis(
             Waves["Spv"] = pd.concat(
                 [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
-
+            print(Waves['Tm'].iloc[-1])
             if i == 1:
                 Waves["fr"] = pd.DataFrame(fr[0:I[-1]])
                 Waves["k"] = k.loc[0:I[-1]]
