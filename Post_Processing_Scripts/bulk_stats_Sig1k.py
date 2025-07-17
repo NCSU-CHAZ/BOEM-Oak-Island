@@ -559,24 +559,24 @@ def bulk_stats_analysis(
                 [Waves["MeanSpread2"], pd.DataFrame([np.nanmean(mspread2)])], axis=0, ignore_index=True
             )
             Waves["Spp"] = pd.concat(
-                [Waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
             Waves["Svv"] = pd.concat(
-                [Waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
             Waves["Suu"] = pd.concat(
-                [Waves["Suu"], pd.DataFrame([np.nanmean(Suu.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Suu"], pd.DataFrame([np.nanmean(Suu.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
             Waves["Spu"] = pd.concat(
-                [Waves["Spu"], pd.DataFrame([np.nanmean(Spu.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Spu"], pd.DataFrame([np.nanmean(Spu.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
             Waves["Spv"] = pd.concat(
-                [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
 
             if i == 1:
-                Waves["fr"] = pd.DataFrame(fr[I])
-                Waves["k"] = k.loc[I]
+                Waves["fr"] = pd.DataFrame(fr[0:I[-1]])
+                Waves["k"] = k.loc[0:I[-1]]
 
             # remove stats for when ADCP is in air or very shallow water
             if dpth < depth_threshold:
