@@ -458,7 +458,7 @@ def bulk_stats_analysis(
 
             # final bulk wave statistics per burst
             df = fr.iloc[1] - fr.iloc[0]  # wind wave band
-            I = np.where((fr >= 1 / 20) & (fr <= 1 / 4))[0]
+            I = np.where((fr >= 1 / 20) & (fr <= 1 / 2))[0]  # 0.05 to 0.5 Hz [20 to 2 sec]
             m0 = np.nansum(
                 SePP.iloc[I] * df
             )  # zeroth moment (total energy in the spectrum w/in incident wave band)
