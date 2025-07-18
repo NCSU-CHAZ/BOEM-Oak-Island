@@ -252,75 +252,100 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     return CoSP, frequency, QuSP, PHI
 
-def sediment_analysis(Echo,S,T,P,CellDepth_echo,Burst_Pressure,transmit_length):
-    # Attempts at sediment attentuation of the amplitude data, at the start are the required parameters for calculation
-    ph = 8.1  # pH
-    freq = 1000  # Frequency in kHz
-    transmit_power = 0  # Units?
-    gain_correciton = 0  # Gain correction in dB 
-    beam_angle = .015  # For E1
-    g = 9.81  # m/s^2
-    y = 2.226 * 10 ** (-6)  # ms^-2 dBar^-1
+def sediment_analysis(Echo, S, T, P, CellDepth_echo, Burst_Pressure, transmit_length):
 
-    copy = Echo.copy()  # Copy the Echo1 data to avoid modifying the original
-    # Broadcast depth (305x1) to (12850x305)
-    ranges = CellDepth_echo.values.flatten()  # shape: (305,)
-    range_matrix = np.tile(ranges, (Echo.shape[0], 1))  # shape: (12850, 305)
+    ph = 8.1
+    freq = 1000  # kHz
+    transmit_power = 0
+    beam_angle = 0.015
+    Csv = 0
+    transmit_length_sec = transmit_length / 1000
 
-    depths_matrix = pd.DataFrame(Burst_Pressure.values - ranges[np.newaxis, :])  # shape: (12850, 305)
+    # Convert to arrays
+    echo_array = Echo.values
+    ranges = CellDepth_echo.values.flatten()  # shape (n_cells,)
+    n_samples, n_cells = echo_array.shape
 
-    surfacemask = depths_matrix <= 0 
-    depths_matrix = depths_matrix.mask(surfacemask,np.nan)
+    # build depth matrix
+    pressures = Burst_Pressure.values.flatten()  # shape (n_samples,)
+    depths_matrix = pressures[:, None] - ranges[None, :]  # shape (n_samples, n_cells)
+    depths_matrix[depths_matrix <= 0] = 0
+
+    range_matrix = np.tile(ranges, (n_samples, 1))  # shape (n_samples, n_cells)
+
+    
 
     T0 = float(np.nanmean(T))
     S0 = float(np.nanmean(S))
 
+    # Sound speed
+    soundspeed = (
+        1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
+    )
 
-    soundspeed = 1448.96 + 4.591*T0 -5.304e-2*T0**2 + 2.374e-4*T0**3 +1.34*(S0-35) # Approximated mackenzie equation for sound speed in water
+    # Attenuation coefficients
+    A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
+    A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
+    f_1 = 2.8 * np.sqrt(S0 / 35) * 10 ** (4 - 1245 / (T0 + 273))
+    f_2 = (8.17 * 10 ** (8 - (1990 / (T0 + 273)))) / (1 + 0.0018 * (S0 - 35))
 
-    # Calculate attenuation coefficients
-    A_1 = (8.66*10**(.78*ph-5))/soundspeed
-    A_2 = (21.44*S0*(1+.025*T0))/soundspeed
-    f_1 = 2.8*np.sqrt(S0/35)*10**(4-1245/(T0+273))
-    f_2 = (8.17*10**(8-(1990/(T0+273))))/(1+.0018*(S0-35))
-
-    P_2 = 1 - 1.37e-4*depths_matrix + 6.2e-9*depths_matrix**2
-    P_3 = 1 - 3.83e-5*depths_matrix + 4.9e-10*depths_matrix**2
+    P_2 = 1 - 1.37e-4 * depths_matrix + 6.2e-9 * depths_matrix**2
+    P_3 = 1 - 3.83e-5 * depths_matrix + 4.9e-10 * depths_matrix**2
 
     if T0 <= 20:
-        A_3 = 4.937e-4 -2.59e-5*T0 + 3.2e-7*T0**2 -1.5e-8*T0**3
+        A_3 = 4.937e-4 - 2.59e-5 * T0 + 3.2e-7 * T0**2 - 1.5e-8 * T0**3
     else:
-        A_3 = 3.964e-4 -1.146e-5*T0 +1.45e-7*T0**2 -6.5e-10*T0**3
+        A_3 = 3.964e-4 - 1.146e-5 * T0 + 1.45e-7 * T0**2 - 6.5e-10 * T0**3
 
-    a_w = (freq**2)*(((A_1*f_1)/(f_1**2+freq**2))+((A_2*P_2*f_2)/(f_2**2+freq**2))+A_3*P_3) # Calculate abosrbtion coefficient shape: (305,)
-    a_w = a_w/1000 # Convert from dB/km to dB/m
+    # absorption, shape: (n_samples, n_cells)
+    a_w = (freq**2) * (
+        ((A_1 * f_1) / (f_1**2 + freq**2))
+        + ((A_2 * P_2 * f_2) / (f_2**2 + freq**2))
+        + A_3 * P_3
+    )
+    a_w /= 1000  # dB/m
 
-    # transmit_length likely in ms → convert to sec:
-    transmit_length_sec = transmit_length / 1000
+    # Sv calculation
+    Sv = (
+        echo_array * 0.43
+        + 20 * np.log10(range_matrix)
+        + 2 * a_w * range_matrix
+        + transmit_power
+        - 10 * np.log10((soundspeed * transmit_length_sec) / 2)
+        - beam_angle
+        + Csv
+    )
 
-    # define Csv:
-    Csv = 0 # or compute properly
+    print("Look at magnitudes",20 * np.log10(range_matrix).max(),a_w.max(),np.nanmax(echo_array*.43))
 
-    Sv = copy*.01 + 20*np.log10(depths_matrix) + 2*a_w*depths_matrix \
-            + transmit_power - 10*np.log10((soundspeed*transmit_length_sec)/2) \
-            - beam_angle + Csv
+    # TS calculation
+    TS = (
+        echo_array * 0.43
+        + 40 * np.log10(10 * range_matrix)
+        + 2 * a_w * range_matrix
+        + transmit_power
+    )
 
-    Sv = pd.DataFrame(Sv, index=copy.index, columns=copy.columns)
+    # Convert back to DataFrames
+    Sv_df = pd.DataFrame(Sv, index=Echo.index, columns=Echo.columns)
+    TS_df = pd.DataFrame(TS, index=Echo.index, columns=Echo.columns)
 
-    echoavg = pd.DataFrame(Echo.mean(axis=1))
+    # mean echo amplitude
+    echoavg = Echo.mean(axis=1)
 
-    return echoavg,Sv
+    return echoavg, Sv_df, TS_df
 
 
 def bulk_stats_analysis(
         dirpath,
         save_dir,
         group_ids_exclude,
+        sbepath,
         dtburst=3600,
         dtens=512,
         fs=4,
         sensor_height=0.508,
-        depth_threshold=3
+        depth_threshold=3,
 ):
     """
     This code will produce bulk statistics and frequency-directional spectra based on multi-dimensional
@@ -382,11 +407,10 @@ def bulk_stats_analysis(
              "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
              "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([]), "Echo1avg": pd.DataFrame([]), 
              "Echo2avg": pd.DataFrame([]), "Sv1": pd.DataFrame([]),"Sv2": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
-             "sedtime":pd.DataFrame([])}
+             "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([])}
 
     ##Load in Seabird Data for sediment analysis
 
-    sbepath = "Z:\deployment_1\Raw\E1RBR\SBE_00003570_DEP4_FPSE1_L0.mat"
     stuff = loadmat(
         sbepath
     )  # Load mat oragnizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
@@ -412,9 +436,24 @@ def bulk_stats_analysis(
         Echo2 = pd.read_hdf(os.path.join(group_path, "Echo2.h5"))
 
         #Perform sediment analysis
-        Echo1avg, S_v1 = sediment_analysis(Echo1,sbe['salinity'],sbe['temperature'],sbe['pressure'],Celldepth_echo,Pressure,.330)
-        Echo2avg, S_v2 = sediment_analysis(Echo2,sbe['salinity'],sbe['temperature'],sbe['pressure'],Celldepth_echo,Pressure,.033)
+        Echo1avg, S_v1,TS, depths_matrix = sediment_analysis(Echo1,sbe['salinity'],sbe['temperature'],sbe['pressure'],Celldepth_echo,Pressure,.330)
+        Echo2avg, S_v2, ___, ___ = sediment_analysis(Echo2,sbe['salinity'],sbe['temperature'],sbe['pressure'],Celldepth_echo,Pressure,.033)
         vertavg = pd.DataFrame(np.nanmean(VbAmplitude,axis= 1))
+
+        topmask = np.zeros(depths_matrix.shape, dtype=bool)
+        bottommask = np.zeros(depths_matrix.shape, dtype=bool)
+        depths_matrix_no_nan = np.nan_to_num(depths_matrix,nan = 0.0)
+
+        for i in range(depths_matrix.shape[0]):
+            
+            surface = depths_matrix_no_nan[i,:].max()
+            middle = surface / 2
+            bottommask[i,:] = depths_matrix_no_nan[i,:] < middle
+            topmask[i,:] = depths_matrix_no_nan[i,:] >= middle
+
+        botscatt = Data['Echo1'].mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
+        topscatt =  Data['Echo1'].mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
+
 
         Waves["sedtime"] = pd.concat(
             [Waves["sedtime"], Time], axis=0, ignore_index=True
@@ -433,6 +472,9 @@ def bulk_stats_analysis(
         )
         Waves["Sv2"] = pd.concat(
             [Waves["Sv2"], pd.DataFrame(np.nanmean(S_v2,axis = 1))], axis=0, ignore_index=True
+        )
+        Waves["TS"] = pd.concat(
+            [Waves["TS"], pd.DataFrame(np.nanmean(TS,axis = 1))], axis=0, ignore_index=True
         )
 
         # Get number of total samples in group
@@ -718,6 +760,7 @@ def bulk_stats_analysis(
     Waves["Echo2avg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
     Waves["vertavg"].to_hdf(os.path.join(save_dir, "Vertavg"), key="df", mode="w")
     Waves["sedtime"].to_hdf(os.path.join(save_dir, "SedTime"), key="df", mode="w")
+    Waves["TS"].to_hdf(os.path.join(save_dir, "TargetStrength"), key="df", mode="w")
 
     endtime = time.time()
 

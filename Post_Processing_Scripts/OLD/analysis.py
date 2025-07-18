@@ -14,13 +14,13 @@ from analysis_bulkstats import bulk_stats_analysis
 deployment_num = 1
 sensor_id = "E1_103071"  # S1_101418 or S0_103080
 #directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
-#directory_initial_user_path = r"Z:/"  # Levi
+# directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
+directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = True
+run_convert_mat_h5 = False
 run_quality_control = False
-run_bulk_statistics = False
+run_bulk_statistics = True
 
 
 group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
@@ -35,6 +35,7 @@ save_dir_data = os.path.join(directory_initial_user_path, f"deployment_{deployme
 save_dir_qc = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Processed/", sensor_id + "/")
 save_dir_bulk_stats = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/BulkStats/",
                                    sensor_id + "/")
+sbepath = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_mat/" + "SBE_00003570_DEP4_FPSE1_L0.mat")
 config_path = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_mat/" + "SIG_00103071_DEP4_FPSE1_config.mat")
 
 """"""""""""""""""
@@ -607,8 +608,6 @@ if run_quality_control:
 # bulk statistics
 ###############################################################################
 if run_bulk_statistics:
-    waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude)
+    waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude,sbepath)
 
-print(waves['Current'])
-print(waves['Hs'])
-  
+
