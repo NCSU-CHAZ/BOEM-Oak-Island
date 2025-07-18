@@ -73,7 +73,7 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     ADCPData["Burst_Heading"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Heading"])
     ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
     ADCPData["Burst_Roll"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Roll"])
-    ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
+
     # Fifth Beam
     ADCPData['Burst_AltimeterDistanceLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceLE"])
     print('saved LE dist')
