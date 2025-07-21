@@ -333,7 +333,7 @@ def sediment_analysis(Echo, S, T, P, CellDepth_echo, Burst_Pressure, transmit_le
     # mean echo amplitude
     echoavg = Echo.mean(axis=1)
 
-    return echoavg, Sv_df, TS_df
+    return echoavg, Sv_df, TS_df, depths_matrix
 
 
 def bulk_stats_analysis(
@@ -407,7 +407,9 @@ def bulk_stats_analysis(
              "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
              "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([]), "Echo1avg": pd.DataFrame([]), 
              "Echo2avg": pd.DataFrame([]), "Sv1": pd.DataFrame([]),"Sv2": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
-             "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([])}
+             "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([]),"botscatt": pd.DataFrame([]),"topscatt": pd.DataFrame([])
+             ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([])
+             }
 
     ##Load in Seabird Data for sediment analysis
 
@@ -451,9 +453,10 @@ def bulk_stats_analysis(
             bottommask[i,:] = depths_matrix_no_nan[i,:] < middle
             topmask[i,:] = depths_matrix_no_nan[i,:] >= middle
 
-        botscatt = Data['Echo1'].mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
-        topscatt =  Data['Echo1'].mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
-
+        botscatt = Echo1.mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
+        topscatt =  Echo1.mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
+        Bsv1 = S_v1.mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
+        Tsv1 =  S_v1.mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
 
         Waves["sedtime"] = pd.concat(
             [Waves["sedtime"], Time], axis=0, ignore_index=True
@@ -475,6 +478,18 @@ def bulk_stats_analysis(
         )
         Waves["TS"] = pd.concat(
             [Waves["TS"], pd.DataFrame(np.nanmean(TS,axis = 1))], axis=0, ignore_index=True
+        )
+        Waves["botscatt"] = pd.concat(
+            [Waves["botscatt"], pd.DataFrame(np.nanmean(botscatt,axis = 1))], axis=0, ignore_index=True
+        )
+        Waves["topscatt"] = pd.concat(
+            [Waves["topscatt"], pd.DataFrame(np.nanmean(topscatt,axis = 1))], axis=0, ignore_index=True
+        )
+        Waves["TopSv1"] = pd.concat(
+            [Waves["TopSv1"], pd.DataFrame(np.nanmean(Tsv1,axis = 1))], axis=0, ignore_index=True
+        )
+        Waves["BotSv1"] = pd.concat(
+            [Waves["BotSv1"], pd.DataFrame(np.nanmean(Bsv1,axis = 1))], axis=0, ignore_index=True
         )
 
         # Get number of total samples in group
@@ -761,6 +776,11 @@ def bulk_stats_analysis(
     Waves["vertavg"].to_hdf(os.path.join(save_dir, "Vertavg"), key="df", mode="w")
     Waves["sedtime"].to_hdf(os.path.join(save_dir, "SedTime"), key="df", mode="w")
     Waves["TS"].to_hdf(os.path.join(save_dir, "TargetStrength"), key="df", mode="w")
+    Waves["botscatt"].to_hdf(os.path.join(save_dir, "BottomhalfScatterersavg"), key="df", mode="w")
+    Waves["topscatt"].to_hdf(os.path.join(save_dir, "TophalfScatterersavg"), key="df", mode="w")
+    Waves["TopSv1"].to_hdf(os.path.join(save_dir, "TopVolumetricBackscatter1"), key="df", mode="w")
+    Waves["BotSv1"].to_hdf(os.path.join(save_dir, "BotVolumetricBackscatter1"), key="df", mode="w")
+
 
     endtime = time.time()
 

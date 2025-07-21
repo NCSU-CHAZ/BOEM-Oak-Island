@@ -35,7 +35,7 @@ save_dir_data = os.path.join(directory_initial_user_path, f"deployment_{deployme
 save_dir_qc = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Processed/", sensor_id + "/")
 save_dir_bulk_stats = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/BulkStats/",
                                    sensor_id + "/")
-sbepath = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_mat/" + "SBE_00003570_DEP4_FPSE1_L0.mat")
+sbepath = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", "E1RBR", "SBE_00003570_DEP4_FPSE1_L0.mat")
 config_path = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_mat/" + "SIG_00103071_DEP4_FPSE1_config.mat")
 
 """"""""""""""""""
