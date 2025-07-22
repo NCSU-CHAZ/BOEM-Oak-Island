@@ -18,12 +18,12 @@ sensor_id = "E1_103071"  # S1_101418 or S0_103080
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = False
-run_quality_control = False
+run_convert_mat_h5 = Falsee
+run_quality_control = True
 run_bulk_statistics = True
 
 
-group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
+group_id = 6 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [0]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
