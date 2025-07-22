@@ -24,10 +24,10 @@ import itertools
 # user input
 ###############################################################################
 
-deployment_num = 1
+deployment_num = 2
 sensor_id = "S0_103080"  # S1_101418 or S0_103080
-directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-# directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke
+# directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
+directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke
 # directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
