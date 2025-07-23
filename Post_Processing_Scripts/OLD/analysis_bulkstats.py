@@ -408,7 +408,7 @@ def bulk_stats_analysis(
              "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([]), "Echo1avg": pd.DataFrame([]), 
              "Echo2avg": pd.DataFrame([]), "Sv1": pd.DataFrame([]),"Sv2": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
              "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([]),"botscatt": pd.DataFrame([]),"topscatt": pd.DataFrame([])
-             ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([])
+             ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([]), "Pressure": pd.DataFrame([])
              }
 
     ##Load in Seabird Data for sediment analysis
@@ -436,6 +436,9 @@ def bulk_stats_analysis(
         Celldepth_echo = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
         Echo1 = pd.read_hdf(os.path.join(group_path, "Echo1.h5"))
         Echo2 = pd.read_hdf(os.path.join(group_path, "Echo2.h5"))
+        Waves['Pressure'] = pd.concat(
+                [Waves['Pressure'], Pressure], axis=0, ignore_index=True
+            )
 
         #Perform sediment analysis
         Echo1avg, S_v1,TS, depths_matrix = sediment_analysis(Echo1,sbe['salinity'],sbe['temperature'],sbe['pressure'],Celldepth_echo,Pressure,.330)
@@ -513,9 +516,9 @@ def bulk_stats_analysis(
                 [Waves["Time"], pd.DataFrame([tavg])], ignore_index=True
             )  # Record time for this ensemble in Waves stats structure
            
-            ###############################################################################
+            ##############################################################################
             # calculate depth averaged statistics
-            ###############################################################################
+            ##############################################################################
 
             # Grab the slices of data fields for this ensemble, (bad data are represented as nans)
             U = EastVel.iloc[i * Nsamp: Nsamp * (i + 1), :]
@@ -730,17 +733,18 @@ def bulk_stats_analysis(
             Waves["Spv"] = pd.concat(
                 [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[1:I[-1], :], axis=1)])], axis=0, ignore_index=True
             )
+            
 
             if i == 1:
                 Waves["fr"] = pd.DataFrame(fr[I])
                 Waves["k"] = k.loc[I]
 
             # remove stats for when ADCP is in air or very shallow water
-            if dpth < depth_threshold:
-                for key in Waves.keys():
-                    print(key)  # debugging
-                    if key != "Time":  # Exclude 'Time' from being set to NaN
-                        Waves[key].loc[i] = np.nan
+            # if dpth < depth_threshold:  #This line causes a bug where a group in the middle of the time serieis is gets nan
+            #     for key in Waves.keys():
+            #         print(key)  # debugging
+            #         if key != "Time":  # Exclude 'Time' from being set to NaN
+            #             Waves[key].loc[i] = np.nan
             
 
         print(f"Processed {group_path} for bulk_statistics")  # for debugging
@@ -780,6 +784,8 @@ def bulk_stats_analysis(
     Waves["topscatt"].to_hdf(os.path.join(save_dir, "TophalfScatterersavg"), key="df", mode="w")
     Waves["TopSv1"].to_hdf(os.path.join(save_dir, "TopVolumetricBackscatter1"), key="df", mode="w")
     Waves["BotSv1"].to_hdf(os.path.join(save_dir, "BotVolumetricBackscatter1"), key="df", mode="w")
+    Waves["Pressure"].to_hdf(os.path.join(save_dir, "Pressure"), key="df", mode="w")
+
 
 
     endtime = time.time()
