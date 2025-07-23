@@ -540,6 +540,8 @@ def bulk_stats_analysis(
             # Convert to compass direction (0° = North, 90° = East)
             avgFlowDir = (avgFlowDir + 360) % 360
 
+            print("Uavg is",Uavg)
+
             # Store results in DataFrame
             Waves["avgFlowDir"] = pd.concat(
                 [Waves["avgFlowDir"], pd.DataFrame([avgFlowDir])], axis=0, ignore_index=True
@@ -556,6 +558,8 @@ def bulk_stats_analysis(
             Waves["Current"] = pd.concat(
                 [Waves["Current"], pd.DataFrame([current_velocity])], axis=0, ignore_index=True
             )
+
+            print("Uavg in the dataframe is",Waves["Uavg"].iloc[-1])
 
             # Grab mean depth for the ensemble
             dpthP = np.mean(P)
