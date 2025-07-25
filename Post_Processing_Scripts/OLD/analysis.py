@@ -1,46 +1,10 @@
 from scipy.io import loadmat
 import pandas as pd
 import os
-import h5py
 import numpy as np
 import re
 from datetime import datetime, timedelta
-from analysis_bulkstats import bulk_stats_analysis
 
-###############################################################################
-# user input
-###############################################################################
-
-deployment_num = 1
-sensor_id = "E1_103071"  # S1_101418 or S0_103080
-#directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-# directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
-directory_initial_user_path = r"Z:/"  # Levi
-
-# define which processing steps you would like to perform
-run_convert_mat_h5 = False
-run_quality_control = False
-run_bulk_statistics = True
-
-
-group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
-group_ids_exclude = [0]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
-# remove 1 so that I can make [1,2] here
-
-###############################################################################
-# create paths to save directories
-###############################################################################
-directory_path_mat = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_mat/")
-save_dir_data = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_hdf/")
-save_dir_qc = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Processed/", sensor_id + "/")
-save_dir_bulk_stats = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/BulkStats/",
-                                   sensor_id + "/")
-sbepath = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", "E1RBR", "SBE_00003570_DEP4_FPSE1_L0.mat")
-config_path = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_mat/" + "SIG_00103071_DEP4_FPSE1_config.mat")
-
-""""""""""""""""""
-##################
-""""""""""""""""""
 
 
 def dtnum_dttime_adcp(datenum_array):
@@ -298,7 +262,7 @@ def remove_low_correlations(Data):
     for i in range(len(echobad)):
         Depth_Thresh1 = (
             Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
-            - Data["EchoCellSize"][0].iloc[0]
+            - Data["EchoCellSize"][0].iloc[0]-.5 # Subtract an additional .5 to get rid of the top several bins that often times have weird looking spikes in signals
         )
         echobad[i, :] = Data["CellDepth_echo"] >= Depth_Thresh1
     echobad = echobad.astype(bool)
@@ -532,82 +496,4 @@ def save_data(Data, save_dir):
     Data['VbAmplitude'].to_hdf(os.path.join(save_dir, 'VbAmplitude.h5'), key="df", mode="w")
 
     return
-
-
-###############################################################################
-# convert mat files to h5 files
-###############################################################################
-if run_convert_mat_h5:
-    print("Running mat conversion")
-    files = [
-        f
-        for f in os.listdir(directory_path_mat)
-        if os.path.isfile(os.path.join(directory_path_mat, f))
-    ]
-    
-
-    files.sort(key=lambda x: int(re.search(r"FPS4_(\d+)", x).group(1)) if re.search(r"FPS4_(\d+)", x) else float('inf'))
-
-    file_id = group_id - 1
-
-    for file_name in files[file_id:]:
-        file_id += 1
-        path = os.path.join(directory_path_mat, file_name)
-        print(path)
-        if file_id < 10:
-            save_path = os.path.join(save_dir_data, f"Group0{file_id}")
-        else:
-            save_path = os.path.join(save_dir_data, f"Group{file_id}")
-        #read_Sig1k(path, config_path ,save_path) #Why is here, this makes it read twice?
-        try:
-            read_Sig1k(path, config_path,save_path)
-        except Exception as e:
-            print(f"Error processing {file_name}: {e}")
-
-
-###############################################################################
-# quality control
-###############################################################################
-if run_quality_control:
-    print("Running Quality Control")
-
-    files = sorted(os.listdir(save_dir_data))
-
-    if '.DS_Store' in files:  # remove hidden files on macs
-        files.remove('.DS_Store')
-    folder_id = group_id - 1
-
-    for file_name in files[folder_id:]:
-        # import folder names
-        folder_id += 1
-        path = os.path.join(save_dir_data, file_name)
-        print(path)
-        if folder_id < 10:
-            save_path_name = os.path.join(save_dir_qc, f"Group0{folder_id}")
-        else:
-            save_path_name = os.path.join(save_dir_qc, f"Group{folder_id}")
-        print(f"Processing {file_name}")  # for debugging
-        try:
-            # call post-processing functions
-            Data = read_data_h5(path)  # KA: needed to install pytables
-            print(f"read in data")
-
-            Data = remove_low_correlations(Data)
-            print(f"removed low correlations")
-
-            Data = transform_beam_ENUD(Data)
-            print("transformed to ENUD")
-
-            save_data(Data, save_path_name)
-            print(f"Processed {file_name} and saved to {save_dir_qc}")
-        except Exception as e:
-            print(f"Error processing {file_name}: {e}")
-
-
-###############################################################################
-# bulk statistics
-###############################################################################
-if run_bulk_statistics:
-    waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude,sbepath)
-
 
