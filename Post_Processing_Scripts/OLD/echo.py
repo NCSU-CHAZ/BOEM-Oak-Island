@@ -162,7 +162,7 @@ if run_bulk_statistics:
     try:
         print("Running bulk statistics")
 
-        Waves, sbe = intialize_bulk(
+        Waves, sbe = initialize_bulk(
             save_dir_qc,
             sbepath,
             dtburst=3600,
@@ -187,10 +187,10 @@ if run_bulk_statistics:
 
         for group_dir in group_dirs:
             group_path = group_dir.path  # Get the full path of the current group
-            Data = load_qc_data(group_path)
+            Data, Waves = load_qc_data(group_path, Waves)
             if echosounder:
                 print("analysing echosounder data")
-                Data, Waves = sediment_analysis(Data, Waves, sbe, 0.330)
+                Data, Waves = sediment_analysis(Waves, Data, sbe, 0.330)
             else:
                 print("analyising vertical beam")
                 # Data, Waves = sediment_analysis_vert(
@@ -204,9 +204,12 @@ if run_bulk_statistics:
             Nsamp = dtburst * fs  # number of samples per burst
             N = nt // Nsamp
             Nb = len(Data["Celldepth"])  # Number of bins
+            
+            print("Iterating...")
 
             # Loop over ensembles ("bursts")
             for i in range(N):
+            
                 Waves, Data = bulk_stats_depth_averages(
                     Waves,
                     Data,
@@ -222,10 +225,12 @@ if run_bulk_statistics:
                     Waves, Data, Nsamp, i, 
                     sensor_height=0.508, fs=4, dtburst=3600, dtens=512)
                 
-            print(f"Processed {group_dir.name} for bulk statistics")
+            print(f"Processed {group_path} for bulk statistics")
+
             # Save the processed waves data
+
         save_waves(Waves, group_path)
-           
+    
     except Exception as e:
-        print(f"Error processing group {group_dir.name}:{e}")
+        print(f"Error processing {e}")
 

@@ -332,7 +332,7 @@ def load_qc_data(group_path,Waves):
     Data['Pressure'] = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
     Data['Celldepth'] = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
     Data['VbAmplitude'] = pd.read_hdf(os.path.join(group_path, "VbAmplitude.h5"))
-    Data['Celldepth_echo'] = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
+    Data['CellDepth_echo'] = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
     Data['Echo1'] = pd.read_hdf(os.path.join(group_path, "Echo1.h5"))
     Data['Echo2'] = pd.read_hdf(os.path.join(group_path, "Echo2.h5"))
 
@@ -350,7 +350,8 @@ def sediment_analysis(Waves,Data,sbe, transmit_length):
     beam_angle = 0.015
     Csv = 0
     transmit_length_sec = transmit_length / 1000
-
+    
+    print('tesyy')
     # Convert to arrays
     echo_array = Data['Echo1'].values
     ranges = Data['CellDepth_echo'].values.flatten()  # shape (n_cells,)
@@ -370,7 +371,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length):
     soundspeed = (
         1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
     )
-
+    print('testy')
     # Attenuation coefficients
     A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
     A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
@@ -404,7 +405,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length):
         + Csv
     )
 
-
+    print("vert")
     # TS calculation
     TS = (
         echo_array * 0.43
@@ -415,8 +416,8 @@ def sediment_analysis(Waves,Data,sbe, transmit_length):
 
     
     # Convert back to DataFrames
-    Sv_df = pd.DataFrame(Sv, index=Data['Echo1'].index, columns=Data['Echo'].columns)
-    TS_df = pd.DataFrame(TS, index=Data['Echo1'].index, columns=Data['Echo'].columns)
+    Sv_df = pd.DataFrame(Sv, index=Data['Echo1'].index, columns=Data['Echo1'].columns)
+    TS_df = pd.DataFrame(TS, index=Data['Echo1'].index, columns=Data['Echo1'].columns)
 
     # mean echo1 amplitude
     echo1avg = Data['Echo1'].mean(axis=1)
@@ -438,8 +439,8 @@ def sediment_analysis(Waves,Data,sbe, transmit_length):
 
     botscatt = Data['Echo1'].mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
     topscatt =  Data['Echo1'].mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
-    Bsv1 = Sv.mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
-    Tsv1 =  Sv.mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
+    Bsv1 = Sv_df.mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
+    Tsv1 =  Sv_df.mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
 
     Waves["sedtime"] = pd.concat(
         [Waves["sedtime"], Data['Time']], axis=0, ignore_index=True
@@ -454,10 +455,10 @@ def sediment_analysis(Waves,Data,sbe, transmit_length):
         [Waves["Echo2avg"], echo2avg], axis=0, ignore_index=True
     )
     Waves["Sv1"] = pd.concat(
-        [Waves["Sv1"], pd.DataFrame(np.nanmean(Data['S_v1'],axis = 1))], axis=0, ignore_index=True
+        [Waves["Sv1"], pd.DataFrame(np.nanmean(Sv_df,axis = 1))], axis=0, ignore_index=True
     )
     Waves["TS"] = pd.concat(
-        [Waves["TS"], pd.DataFrame(np.nanmean(Data['TS'],axis = 1))], axis=0, ignore_index=True
+        [Waves["TS"], pd.DataFrame(np.nanmean(TS_df,axis = 1))], axis=0, ignore_index=True
     )
     Waves["botscatt"] = pd.concat(
         [Waves["botscatt"], pd.DataFrame(np.nanmean(botscatt,axis = 1))], axis=0, ignore_index=True
