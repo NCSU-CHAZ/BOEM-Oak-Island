@@ -342,7 +342,79 @@ def load_qc_data(group_path,Waves):
     
     return Data, Waves
 
-def sediment_analysis(Waves,Data,sbe, transmit_length):
+def sediment_analysis_vert(
+                    Data, Waves, sbe, transmit_length = 0.330, vertical_beam=True
+                ):
+        ph = 8.1
+        freq = 1000  # kHz
+        transmit_power = 0
+        beam_angle = 0.015
+        Csv = 0
+        transmit_length_sec = transmit_length / 1000
+        
+        print('tesyy')
+        
+        # Convert to arrays
+        echo_array = Data['VbAmplitude'].values
+        ranges = Data['Celldepth'].values.flatten()  # shape (n_cells,)
+        n_samples, n_cells = echo_array.shape
+
+        # build depth matrix
+        pressures = Data['Pressure'].values.flatten()  # shape (n_samples,)
+        depths_matrix = pressures[:, None] - ranges[None, :]  # shape (n_samples, n_cells)
+        depths_matrix[depths_matrix <= 0] = 0
+
+        range_matrix = np.tile(ranges, (n_samples, 1))  # shape (n_samples, n_cells)
+
+        T0 = float(np.nanmean(sbe['temperature']))
+        S0 = float(np.nanmean(sbe['salinity']))
+
+        # Sound speed
+        soundspeed = (
+            1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
+        )
+        print('testy')
+        # Attenuation coefficients
+        A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
+        A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
+        f_1 = 2.8 * np.sqrt(S0 / 35) * 10 ** (4 - 1245 / (T0 + 273))
+        f_2 = (8.17 * 10 ** (8 - (1990 / (T0 + 273)))) / (1 + 0.0018 * (S0 - 35))
+
+        P_2 = 1 - 1.37e-4 * depths_matrix + 6.2e-9 * depths_matrix**2
+        P_3 = 1 - 3.83e-5 * depths_matrix + 4.9e-10 * depths_matrix**2
+
+        if T0 <= 20:
+            A_3 = 4.937e-4 - 2.59e-5 * T0 + 3.2e-7 * T0**2 - 1.5e-8 * T0**3
+        else:
+            A_3 = 3.964e-4 - 1.146e-5 * T0 + 1.45e-7 * T0**2 - 6.5e-10 * T0**3
+
+        # absorption, shape: (n_samples, n_cells)
+        a_w = (freq**2) * (
+            ((A_1 * f_1) / (f_1**2 + freq**2))
+            + ((A_2 * P_2 * f_2) / (f_2**2 + freq**2))
+            + A_3 * P_3
+        )
+        a_w /= 1000  # dB/m
+
+        # Sv calculation
+        Vb_corrected = (
+            echo_array * 0.43
+            + 20 * np.log10(range_matrix)
+            + 2 * a_w * range_matrix
+        )
+
+        vertavg = pd.DataFrame(np.nanmean(Vb_corrected,axis= 1))
+
+        Waves["sedtime"] = pd.concat(
+            [Waves["sedtime"], Data['Time']], axis=0, ignore_index=True
+        )
+        Waves["vertavg"] = pd.concat(
+            [Waves["vertavg"], vertavg], axis=0, ignore_index=True
+        )
+
+        return Waves, Data
+
+def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
 
     ph = 8.1
     freq = 1000  # kHz

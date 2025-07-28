@@ -6,7 +6,7 @@ from analysis_bulkstats import (
     sediment_analysis,
     save_waves,
     bulk_stats_depth_averages,
-    initialize_bulk, calculate_wave_stats
+    initialize_bulk, calculate_wave_stats,sediment_analysis_vert
 )
 from analysis import (
     read_Sig1k,
@@ -193,9 +193,9 @@ if run_bulk_statistics:
                 Data, Waves = sediment_analysis(Waves, Data, sbe, 0.330)
             else:
                 print("analyising vertical beam")
-                # Data, Waves = sediment_analysis_vert(
-                #     Data, Waves, sbe, 0.330, vertical_beam=True
-                # )
+                Data, Waves = sediment_analysis_vert(
+                    Data, Waves, sbe, 0.330, vertical_beam=True
+                )
 
             dtburst = 3600  # duration of each burst in seconds
             fs = 4  # sampling frequency
