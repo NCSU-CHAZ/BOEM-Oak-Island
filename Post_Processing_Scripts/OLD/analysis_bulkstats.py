@@ -353,7 +353,7 @@ def sediment_analysis_vert(
         transmit_length_sec = transmit_length / 1000
         
         print('tesyy')
-        
+
         # Convert to arrays
         echo_array = Data['VbAmplitude'].values
         ranges = Data['Celldepth'].values.flatten()  # shape (n_cells,)
@@ -606,6 +606,8 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp):
 def calculate_wave_stats(
         Waves, Data, Nsamp, i, 
         sensor_height=0.508, fs=4, dtburst=3600, dtens=512):
+    
+    g= 9.81  # m/s^2, gravitational constant
 
     U = Data['EastVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     V = Data['NorthVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
