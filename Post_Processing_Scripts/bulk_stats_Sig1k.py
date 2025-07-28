@@ -48,6 +48,7 @@ def welch_method(data, dt, M, overlap):
     # Size of the input data
     sd = data.shape
     Ns = int(np.floor(sd[0] / (M - (M - 1) * overlap)))  # Number of samples in each chunk
+    print("Ns is ", Ns)
     M = int(M)  # Ensure M is an integer
     ds = int(np.floor(Ns * (1 - overlap)))  # Number of indices to shift by in the loop
     ii = np.arange(Ns)  # Indices for each chunk
@@ -429,12 +430,17 @@ def bulk_stats_analysis(
             Svv, fr = welch_method(V_no_nan, dt, Chunks, overlap)
             P_no_nan = np.nan_to_num(P.to_numpy(), nan=0.0)
             Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
+
             AST_amp_no_nan = np.nan_to_num(AST_amp.to_numpy(),nan=0.0)
-            print("dt", dt)
+            print("shape of AST is ", np.shape(AST_amp_no_nan))
+            if AST_amp_no_nan.shape[0]==0:
+                continue
+            
             Spp_ast,fr_ast = welch_method(AST_amp_no_nan,dt,Chunks,overlap)
 
             # Get rid of zero frequency and turn back into pandas dataframes
             fr = pd.DataFrame(fr[1:]).reset_index(drop=True)  # frequency
+            fr_ast= pd.DataFrame(fr_ast[1:]).reset_index(drop=True)  # frequency
             Suu = pd.DataFrame(Suu[1:, :])
             Svv = pd.DataFrame(Svv[1:, :])
             Spp = pd.DataFrame(Spp[1:])
