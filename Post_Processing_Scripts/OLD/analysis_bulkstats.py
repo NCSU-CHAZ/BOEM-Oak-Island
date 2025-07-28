@@ -296,10 +296,8 @@ def initialize_bulk(
     dt = 1 / fs  # sample rate
     
     overlap = 2 / 3
-    Nens = dtens * fs  # number of samples in each ensemble/burst
-    Chunks = (Nsamp - Nens * overlap - 1) / (
-            Nens * (1 - overlap)
-    )  # Number of averaged groups
+    Nens = dtens * fs  # number of samples in each ensemble
+    Nsamp = dtburst * fs
 
     # Initialize Waves structure that will contain the bulk stats
     Waves = {"Time": pd.DataFrame([]), "Tm": pd.DataFrame([]), "Hs": pd.DataFrame([]), "C": pd.DataFrame([]),
@@ -477,7 +475,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length):
     return Waves, Data
 
     
-def bulk_stats_depth_averages(Waves,Data,i,Nsamp,sensor_height, dtburst, dtens, fs):
+def bulk_stats_depth_averages(Waves,Data,i,Nsamp)
     # for the first group the ADCP is out of the water prior to deployment so statistics are not
     # calculated during this time
 
@@ -499,7 +497,6 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp,sensor_height, dtburst, dtens, 
     U = Data['EastVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     V = Data['NorthVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     W = Data['VertVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
-    P = Data['Pressure'].iloc[i * Nsamp: Nsamp * (i + 1)]
 
     # Find the depth averaged velocity stat
     # Uavg = np.nanmean(np.nanmean(U, axis=1))  # there are slight differences if you first do axis = 1
@@ -533,13 +530,17 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp,sensor_height, dtburst, dtens, 
     )
     return Waves
 
-
+def calculate_wave_stats(
+        Waves, Data, Nsamp, i, 
+        sensor_height=0.508, fs=4, dtburst=3600, dtens=512):
+    
+    P = Data['Pressure'].iloc[i * Nsamp: Nsamp * (i + 1)]
     # Grab mean depth for the ensemble
     dpthP = np.mean(P)
     dpth = dpthP + sensor_height
 
     # Create a map for the bins that are in the water
-    dpthU = dpthP - Celldepth
+    dpthU = dpthP - Data['CellDepth']
     dpthU = abs(
         dpthU.iloc[::-1].reset_index(drop=True)
     )  # Now dpthU is measured from the surface water level instead of distance from ADCP
@@ -547,6 +548,12 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp,sensor_height, dtburst, dtens, 
     ###############################################################################
     # calculate wave statistics
     ###############################################################################
+    overlap = 2 / 3  # overlap between windows
+    Nens = dtens * fs  # number of samples in each ensemble
+    dt = 1 / fs
+    Chunks = (Nsamp - Nens * overlap - 1) / (
+            Nens * (1 - overlap)
+    ) 
 
     # Now calculate the spectral energy densities for each variable, first replacing nans with zeroes; note
     # that at the time of coding this, the psd is returned over the surface of the water but is all zero.
@@ -625,6 +632,8 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp,sensor_height, dtburst, dtens, 
     Waves["Tm"] = pd.concat(
         [Waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
     )
+
+    return Waves, I
 
     # Now let's calculate the cospectra and mean wave direction
     P_expanded = np.tile(P.to_numpy(), (1, Nb))

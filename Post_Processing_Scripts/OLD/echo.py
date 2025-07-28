@@ -152,7 +152,7 @@ if run_bulk_statistics:
 
             # Loop over ensembles ("bursts")
             for i in range(N):
-                Waves, = bulk_stats_depth_averages(Waves, Data, i, Nsamp, sensor_height=0.508, dtburst=dtburst, dtens=512, fs=fs)
+                Waves, Data = bulk_stats_depth_averages(Waves, Data, i, Nsamp, sensor_height=0.508, dtburst=dtburst, dtens=512, fs=fs)
                 
 
     except Exception as e:
