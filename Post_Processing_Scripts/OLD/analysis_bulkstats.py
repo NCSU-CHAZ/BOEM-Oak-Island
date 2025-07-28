@@ -475,7 +475,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length):
     return Waves, Data
 
     
-def bulk_stats_depth_averages(Waves,Data,i,Nsamp)
+def bulk_stats_depth_averages(Waves,Data,i,Nsamp):
     # for the first group the ADCP is out of the water prior to deployment so statistics are not
     # calculated during this time
 
@@ -533,7 +533,9 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp)
 def calculate_wave_stats(
         Waves, Data, Nsamp, i, 
         sensor_height=0.508, fs=4, dtburst=3600, dtens=512):
-    
+
+    U = Data['EastVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
+    V = Data['NorthVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     P = Data['Pressure'].iloc[i * Nsamp: Nsamp * (i + 1)]
     # Grab mean depth for the ensemble
     dpthP = np.mean(P)
@@ -633,8 +635,7 @@ def calculate_wave_stats(
         [Waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
     )
 
-    return Waves, I
-
+    Nb = U.shape[1]  # Number of bins
     # Now let's calculate the cospectra and mean wave direction
     P_expanded = np.tile(P.to_numpy(), (1, Nb))
     [Suv, _, _, _] = welch_cospec(U_no_nan, V_no_nan, dt, Chunks, overlap)
@@ -720,12 +721,10 @@ def calculate_wave_stats(
         [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
     )
     
-
-    if i == 1:
+    if i ==1 :
         Waves["fr"] = pd.DataFrame(fr[0:I[-1]])
         Waves["k"] = k.loc[0:I[-1]]
-        Waves["fr"].to_hdf(os.path.join(save_dir, "Frequencies"), key="df", mode="w")
-        Waves["k"].to_hdf(os.path.join(save_dir, "WaveNumbers"), key="df", mode="w")
+  
 
     # remove stats for when ADCP is in air or very shallow water
     # if dpth < depth_threshold:  #This line causes a bug where a group in the middle of the time serieis is gets nan
@@ -733,49 +732,56 @@ def calculate_wave_stats(
     #         print(key)  # debugging
     #         if key != "Time":  # Exclude 'Time' from being set to NaN
     #             Waves[key].loc[i] = np.nan
+    return Waves
+
+def save_waves(Waves, save_dir):
+    """
+    Save the Waves dictionary to the specified directory.
     
+    :param Waves: dictionary containing wave statistics
+    :param save_dir: string path to the directory where the data should be saved
+    """
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
-print(f"Processed {group_path} for bulk_statistics")  # for debugging
+    # Save each DataFrame in Waves to an HDF5 file
+    for key, df in Waves.items():
+        df.to_hdf(os.path.join(save_dir, f"{key}.h5"), key="df", mode="w")
+    ###############################################################################
+    # save bulk statistics to directory
+    ###############################################################################
+    Waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
+    Waves["fr"].to_hdf(os.path.join(save_dir, "Frequencies"), key="df", mode="w")
+    Waves["k"].to_hdf(os.path.join(save_dir, "WaveNumbers"), key="df", mode="w")
+    Waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
+    Waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
+    Waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
+    Waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
+    Waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVelocity"), key="df", mode="w")
+    Waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVelocity"), key="df", mode="w")
+    Waves["Wavg"].to_hdf(os.path.join(save_dir, "DepthAveragedUpVelocity"), key="df", mode="w")
+    Waves["Current"].to_hdf(os.path.join(save_dir, "DepthAveragedCurrentVelocity"), key="df", mode="w")
+    Waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
+    Waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeanSpread1"), key="df", mode="w")
+    Waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
+    Waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
+    Waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDirection"), key="df", mode="w")
+    Waves["Spp"].to_hdf(os.path.join(save_dir, "PressureSpectra"), key="df", mode="w")
+    Waves["Spu"].to_hdf(os.path.join(save_dir, "PressureEastVelCospectra"), key="df", mode="w")
+    Waves["Spv"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
+    Waves["Suu"].to_hdf(os.path.join(save_dir, "EastVelSpectra"), key="df", mode="w")
+    Waves["Svv"].to_hdf(os.path.join(save_dir, "NorthVelSpectra"), key="df", mode="w")
+    Waves["Sv1"].to_hdf(os.path.join(save_dir, "VolumetricBackscatter1"), key="df", mode="w")
+    Waves["Echo1avg"].to_hdf(os.path.join(save_dir, "Echo1avg"), key="df", mode="w")
+    Waves["Echo2avg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
+    Waves["vertavg"].to_hdf(os.path.join(save_dir, "Vertavg"), key="df", mode="w")
+    Waves["sedtime"].to_hdf(os.path.join(save_dir, "SedTime"), key="df", mode="w")
+    Waves["TS"].to_hdf(os.path.join(save_dir, "TargetStrength"), key="df", mode="w")
+    Waves["botscatt"].to_hdf(os.path.join(save_dir, "BottomhalfScatterersavg"), key="df", mode="w")
+    Waves["topscatt"].to_hdf(os.path.join(save_dir, "TophalfScatterersavg"), key="df", mode="w")
+    Waves["TopSv1"].to_hdf(os.path.join(save_dir, "TopVolumetricBackscatter1"), key="df", mode="w")
+    Waves["BotSv1"].to_hdf(os.path.join(save_dir, "BotVolumetricBackscatter1"), key="df", mode="w")
+    Waves["Pressure"].to_hdf(os.path.join(save_dir, "Pressure"), key="df", mode="w")
 
-###############################################################################
-# save bulk statistics to directory
-###############################################################################
-Waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
-# Waves["fr"].to_hdf(os.path.join(save_dir, "Frequencies"), key="df", mode="w")
-# Waves["k"].to_hdf(os.path.join(save_dir, "WaveNumbers"), key="df", mode="w")
-Waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
-Waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
-Waves["Tm"].to_hdf(os.path.join(save_dir, "MeanPeriod"), key="df", mode="w")
-Waves["Hs"].to_hdf(os.path.join(save_dir, "SignificantWaveHeight"), key="df", mode="w")
-Waves["Uavg"].to_hdf(os.path.join(save_dir, "DepthAveragedEastVelocity"), key="df", mode="w")
-Waves["Vavg"].to_hdf(os.path.join(save_dir, "DepthAveragedNorthVelocity"), key="df", mode="w")
-Waves["Wavg"].to_hdf(os.path.join(save_dir, "DepthAveragedUpVelocity"), key="df", mode="w")
-Waves["Current"].to_hdf(os.path.join(save_dir, "DepthAveragedCurrentVelocity"), key="df", mode="w")
-Waves["MeanDir1"].to_hdf(os.path.join(save_dir, "MeanDirection1"), key="df", mode="w")
-Waves["MeanSpread1"].to_hdf(os.path.join(save_dir, "MeanSpread1"), key="df", mode="w")
-Waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
-Waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
-Waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDirection"), key="df", mode="w")
-Waves["Spp"].to_hdf(os.path.join(save_dir, "PressureSpectra"), key="df", mode="w")
-Waves["Spu"].to_hdf(os.path.join(save_dir, "PressureEastVelCospectra"), key="df", mode="w")
-Waves["Spv"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
-Waves["Suu"].to_hdf(os.path.join(save_dir, "EastVelSpectra"), key="df", mode="w")
-Waves["Svv"].to_hdf(os.path.join(save_dir, "NorthVelSpectra"), key="df", mode="w")
-Waves["Sv1"].to_hdf(os.path.join(save_dir, "VolumetricBackscatter1"), key="df", mode="w")
-Waves["Echo1avg"].to_hdf(os.path.join(save_dir, "Echo1avg"), key="df", mode="w")
-Waves["Echo2avg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
-Waves["vertavg"].to_hdf(os.path.join(save_dir, "Vertavg"), key="df", mode="w")
-Waves["sedtime"].to_hdf(os.path.join(save_dir, "SedTime"), key="df", mode="w")
-Waves["TS"].to_hdf(os.path.join(save_dir, "TargetStrength"), key="df", mode="w")
-Waves["botscatt"].to_hdf(os.path.join(save_dir, "BottomhalfScatterersavg"), key="df", mode="w")
-Waves["topscatt"].to_hdf(os.path.join(save_dir, "TophalfScatterersavg"), key="df", mode="w")
-Waves["TopSv1"].to_hdf(os.path.join(save_dir, "TopVolumetricBackscatter1"), key="df", mode="w")
-Waves["BotSv1"].to_hdf(os.path.join(save_dir, "BotVolumetricBackscatter1"), key="df", mode="w")
-Waves["Pressure"].to_hdf(os.path.join(save_dir, "Pressure"), key="df", mode="w")
 
-
-
-endtime = time.time()
-
-print("Time taken to process bulk stats was", endtime - start_time, "seconds")
 
