@@ -30,9 +30,8 @@ directory_initial_user_path = r"Z:/"  # Levi
 run_convert_mat_h5 = False
 run_quality_control = False
 run_bulk_statistics = True
-echosounder = (
-    True  # set to True if you want to process echosounder data, False for vertical beam
-)
+echosounder = False  # set to True if you want to process echosounder data, False for vertical beam
+
 
 
 group_id = 1  # specify if you want to process starting at a specific group_id; must be 1 or greater
@@ -190,10 +189,10 @@ if run_bulk_statistics:
             Data, Waves = load_qc_data(group_path, Waves)
             if echosounder:
                 print("analysing echosounder data")
-                Data, Waves = sediment_analysis(Waves, Data, sbe, 0.330)
-            else:
+                Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
+            if not echosounder:
                 print("analyising vertical beam")
-                Data, Waves = sediment_analysis_vert(
+                Waves, Data = sediment_analysis_vert(
                     Data, Waves, sbe, 0.330, vertical_beam=True
                 )
 
@@ -210,15 +209,8 @@ if run_bulk_statistics:
             # Loop over ensembles ("bursts")
             for i in range(N):
             
-                Waves, Data = bulk_stats_depth_averages(
-                    Waves,
-                    Data,
-                    i,
-                    Nsamp,
-                    sensor_height=0.508,
-                    dtburst=dtburst,
-                    dtens=512,
-                    fs=fs,
+                Waves = bulk_stats_depth_averages(
+                    Waves,Data,i,Nsamp
                 )
 
                 Waves = calculate_wave_stats(

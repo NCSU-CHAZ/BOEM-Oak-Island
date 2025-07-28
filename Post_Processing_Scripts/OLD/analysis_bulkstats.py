@@ -342,18 +342,13 @@ def load_qc_data(group_path,Waves):
     
     return Data, Waves
 
+
 def sediment_analysis_vert(
                     Data, Waves, sbe, transmit_length = 0.330, vertical_beam=True
                 ):
         ph = 8.1
         freq = 1000  # kHz
-        transmit_power = 0
-        beam_angle = 0.015
-        Csv = 0
-        transmit_length_sec = transmit_length / 1000
         
-        print('tesyy')
-
         # Convert to arrays
         echo_array = Data['VbAmplitude'].values
         ranges = Data['Celldepth'].values.flatten()  # shape (n_cells,)
@@ -617,7 +612,7 @@ def calculate_wave_stats(
     dpth = dpthP + sensor_height
 
     # Create a map for the bins that are in the water
-    dpthU = dpthP - Data['CellDepth']
+    dpthU = dpthP - Data['Celldepth']
     dpthU = abs(
         dpthU.iloc[::-1].reset_index(drop=True)
     )  # Now dpthU is measured from the surface water level instead of distance from ADCP
