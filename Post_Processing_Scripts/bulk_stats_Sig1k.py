@@ -607,6 +607,7 @@ def bulk_stats_analysis(
     ###############################################################################
     Waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
     Waves["fr"].to_hdf(os.path.join(save_dir, "Frequencies"), key="df", mode="w")
+    Waves["fr_ast"].to_hdf(os.path.join(save_dir, "Frequencies_AST"), key="df", mode="w")
     Waves["k"].to_hdf(os.path.join(save_dir, "WaveNumbers"), key="df", mode="w")
     Waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
     Waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
