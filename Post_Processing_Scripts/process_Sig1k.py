@@ -79,10 +79,6 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     print('saved LE dist')
     ADCPData['Burst_AltimeterDistanceAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceAST"])
     print('saved AST dist')
-    ADCPData['Burst_AltimeterQualityLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityLE"])
-    print('saved LE qual')
-    ADCPData['Burst_AltimeterQualityAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityAST"])
-    print('saved AST qual')
 
     BlankDist = pd.DataFrame(Config["Burst_BlankingDistance"])
     CellSize = pd.DataFrame(Config["Burst_CellSize"])
