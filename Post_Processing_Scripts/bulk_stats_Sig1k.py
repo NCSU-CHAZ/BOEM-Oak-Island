@@ -321,7 +321,7 @@ def bulk_stats_analysis(
              "MeanDir1": pd.DataFrame([]), "MeanSpread1": pd.DataFrame([]), "MeanDir2": pd.DataFrame([]),
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),"Spp_ast": pd.DataFrame([]),
              "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
-             "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([])}
+             "fr": pd.DataFrame([]),"fr_ast": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([])}
 
     # Start loop that will load in data for each variable from each day ("group")
     for group_dir in group_dirs:
