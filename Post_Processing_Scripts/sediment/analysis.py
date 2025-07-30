@@ -187,7 +187,6 @@ def read_data_h5(path):
 
     #Create echo cell depth vector
     Data['EchoNCells'] = Data['Echo1'].shape[1]  # Number of echo cells
-    print(f"Number of echo cells: {Data['EchoNCells']}")  # debugging line
     vector = np.arange(1, Data["EchoNCells"]+ 1)
 
     # Calculate the depth of each cell
@@ -196,7 +195,6 @@ def read_data_h5(path):
             + vector * Data["EchoCellSize"][0].iloc[0]
     )
 
-    print(f"Sample VelBeam1 values: {Data['VelBeam1'].shape}")  # debugging line
     return Data
 
 def remove_low_correlations(Data):
@@ -235,7 +233,6 @@ def remove_low_correlations(Data):
 
     isbad = np.zeros((row, col))  # Initialize mask for above surface measurements
     echobad = np.zeros((row1, col2))
-    print('test')
     
     # Apply mask for surface measurements
     for i in range(len(isbad)):
@@ -336,7 +333,6 @@ def transform_beam_ENUD(Data):
                 np.cos(pp[i][0]) * np.cos(rr[i][0]),
             ],
         ]
-    print('testest')    
     # Combine the Hmat and Pmat vectors into one rotation matrix, this conversion matrix is organized with beams in the
     # columns and the rotation values on the rows (for each data point). The original Hmat and Pmat matrices are only
     # made with the one Z value in mind so we duplicate the 4 row of the transform matirx to create the fourth, same
@@ -348,7 +344,6 @@ def transform_beam_ENUD(Data):
     #               Z2   [                  0            ]
     
     R1Mat = np.zeros((4, 4, row))  # initialize rotation matrix
-    print(Hmat.shape, Pmat.shape)  # debugging line
     for i in range(row):
         R1Mat[0:3, 0:3, i] = Hmat[:, :, i] @ Pmat[:, :, i]  # Matrix multiplication
         R1Mat[3, 0:4, i] = R1Mat[2, 0:4, i]  # Create fourth row
@@ -357,13 +352,11 @@ def transform_beam_ENUD(Data):
     # We zero out these value since Beams 3 and 4 can't measure both Z's
     R1Mat[2, 3, :] = 0
     R1Mat[3, 2, :] = 0
-    print(R1Mat.shape)  # debugging line
     Rmat = np.zeros((4, 4, row))
 
     Tmat = np.swapaxes(Tmat, 0, -1)
     Tmat = np.swapaxes(Tmat, 0, 1)
 
-    print(Tmat.shape)  # debugging line
     for i in range(row):
         Rmat[:, :, i] = R1Mat[:, :, i] @ Tmat[:, :, i]
 
@@ -377,8 +370,7 @@ def transform_beam_ENUD(Data):
             ]
         )
     )
-    print(Rmat.shape, Velocities.shape)  # debugging line
-    print(Tmat.shape)  # debugging line
+
     # Convert to ENU
     ENU = np.einsum("ijk,jkl->ikl", Rmat, Velocities)
     ENU = np.transpose(ENU, (1, 2, 0))
@@ -391,7 +383,6 @@ def transform_beam_ENUD(Data):
     Data['NorthVel'] = pd.DataFrame(Data['ENU'][:, :, 1])
     Data['VertVel'] = pd.DataFrame(Data['ENU'][:, :, 2])
     Data['ErrVel'] = pd.DataFrame(Data['ENU'][:, :, 3])
-    # print(f"Sample EastVel values: {Data['EastVel'].head()}") debugging line
     
     # Add matrices with NaN values together treating nan values as 0, this is for calculating the absolute velocity
     nan_mask = np.full((row, col), False)
@@ -412,13 +403,11 @@ def transform_beam_ENUD(Data):
     Data["AbsVel"] = pd.DataFrame(
         np.sqrt(NorthVel_no_nan ** 2 + EastVel_no_nan ** 2 + VertVel_no_nan ** 2)
     )
-    print(Data["Time"])
     # Reapply the mask to set positions with any original NaNs back to NaN
     Data["AbsVel"][~nan_mask] = np.nan
     Data['CellDepth'] = pd.DataFrame(Data['CellDepth'])
     Data['CellDepth_echo'] = pd.DataFrame(Data['CellDepth_echo'])
-    # print(f"AbsVel shape: {Data['AbsVel'].shape}")
-    # print(f"Sample AbsVel values: {Data['AbsVel'].head()}")
+
     return Data
 
 def save_data(Data, save_dir):
@@ -435,7 +424,7 @@ def save_data(Data, save_dir):
     none
 
     """
-    print("Saving data...")
+    print("Saving data to ", save_dir)
     # # Open the HDF5 file in write mode
     # file_path = os.path.join(save_dir, 'DepthThresh.h5')
     # with h5py.File(file_path, 'w') as f:

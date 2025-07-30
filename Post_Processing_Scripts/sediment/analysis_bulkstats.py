@@ -368,7 +368,7 @@ def sediment_analysis_vert(
         soundspeed = (
             1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
         )
-        print('testy')
+        
         # Attenuation coefficients
         A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
         A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
@@ -391,7 +391,7 @@ def sediment_analysis_vert(
         )
         a_w /= 1000  # dB/m
 
-        # Sv calculation
+        # Correct Vertical beam for absorbtion and spreading loss
         Vb_corrected = (
             echo_array * 0.43
             + 20 * np.log10(range_matrix)
@@ -418,7 +418,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
     Csv = 0
     transmit_length_sec = transmit_length / 1000
     
-    print('tesyy')
+    
     # Convert to arrays
     echo_array = Data['Echo1'].values
     ranges = Data['CellDepth_echo'].values.flatten()  # shape (n_cells,)
@@ -438,7 +438,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
     soundspeed = (
         1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
     )
-    print('testy')
+   
     # Attenuation coefficients
     A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
     A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
@@ -472,7 +472,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
         + Csv
     )
 
-    print("vert")
+   
     # TS calculation
     TS = (
         echo_array * 0.43
@@ -797,11 +797,11 @@ def calculate_wave_stats(
   
 
     # remove stats for when ADCP is in air or very shallow water
-    # if dpth < depth_threshold:  #This line causes a bug where a group in the middle of the time serieis is gets nan
-    #     for key in Waves.keys():
-    #         print(key)  # debugging
-    #         if key != "Time":  # Exclude 'Time' from being set to NaN
-    #             Waves[key].loc[i] = np.nan
+    if dpth < depth_threshold:  #This line causes a bug where a group in the middle of the time serieis is gets nan
+        for key in Waves.keys():
+            print(key)  # debugging
+            if key != "Time":  # Exclude 'Time' from being set to NaN
+                Waves[key].loc[i] = np.nan
     return Waves
 
 def save_waves(Waves, save_dir):
@@ -811,6 +811,9 @@ def save_waves(Waves, save_dir):
     :param Waves: dictionary containing wave statistics
     :param save_dir: string path to the directory where the data should be saved
     """
+    
+    print("Saving Waves data to directory:", save_dir)
+
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
