@@ -75,7 +75,8 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     ADCPData["Burst_Roll"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Roll"])
     ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
     # Fifth Beam
-    ADCPData['Burst_AltimeterDistanceAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceAST"])
+    ADCPData['Burst_AltimeterDistanceAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceAST"]) # this should save for each burst
+    print("AST is",ADCPData["Burst_AltimeterDistanceAST"]) # debugging
     print('saved AST dist')
 
     BlankDist = pd.DataFrame(Config["Burst_BlankingDistance"])
