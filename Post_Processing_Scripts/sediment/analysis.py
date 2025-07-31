@@ -109,7 +109,7 @@ def read_data_h5(path):
 
     # initialize the Data dictionary as well as it's keys
     Data = {}
-
+    
     Data['CorBeam'] = pd.read_hdf(os.path.join(path, 'Burst_CorBeam.h5'))
     Data['AmpBeam'] = pd.read_hdf(os.path.join(path, 'Burst_AmpBeam.h5'))
     Data['Heading'] = pd.read_hdf(os.path.join(path, 'Burst_Heading.h5'))
@@ -131,7 +131,6 @@ def read_data_h5(path):
     Data['VbAmplitude'] = pd.read_hdf(os.path.join(path, 'Burst_VertAmplitude.h5'))
     Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array.to_numpy().ravel()))
 
-    
 
     # Get individual beams
     number_vertical_cells = Data['NCells'][0][0]
@@ -233,7 +232,6 @@ def remove_low_correlations(Data):
 
     isbad = np.zeros((row, col))  # Initialize mask for above surface measurements
     echobad = np.zeros((row1, col2))
-    
     # Apply mask for surface measurements
     for i in range(len(isbad)):
         Depth_Thresh = (
@@ -254,8 +252,8 @@ def remove_low_correlations(Data):
         Data[f"AmpBeam{jj}"] = Data[f"AmpBeam{jj}"].mask(isbad, np.nan)
         Data[f"AmpBeam{jj}"] = Data[f"AmpBeam{jj}"].mask(isbad2, np.nan)
         Data[f"VelBeamCorr{jj}"] = isbad2
-
     # Apply mask for surface measurements for the echo sounders 
+    
     for i in range(len(echobad)):
         Depth_Thresh1 = (
             Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
@@ -264,11 +262,12 @@ def remove_low_correlations(Data):
         echobad[i, :] = Data["CellDepth_echo"] >= Depth_Thresh1
     echobad = echobad.astype(bool)
     Data["EchoDepthThresh"] = echobad
+  
 
-        # Mask the data 
+    # Mask the data 
     Data["Echo1"] = Data["Echo1"].mask(echobad, np.nan)
-    Data["Echo2"] = Data["Echo2"].mask(echobad, np.nan)
-
+    Data["Echo2"] = Data["Echo2"].iloc[1:,:].mask(echobad, np.nan)
+    
     #mask the Data
     Data[f"VbAmplitude"] = Data[f"VbAmplitude"].mask(isbad, np.nan)
 

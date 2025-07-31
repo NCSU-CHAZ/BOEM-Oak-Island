@@ -796,12 +796,13 @@ def calculate_wave_stats(
         Waves["k"] = k.loc[0:I[-1]]
   
 
-    # remove stats for when ADCP is in air or very shallow water
-    if dpth < depth_threshold:  #This line causes a bug where a group in the middle of the time serieis is gets nan
-        for key in Waves.keys():
-            print(key)  # debugging
-            if key != "Time":  # Exclude 'Time' from being set to NaN
-                Waves[key].loc[i] = np.nan
+    # # remove stats for when ADCP is in air or very shallow water
+    # if dpth < depth_threshold:  #This line causes a bug where a group in the middle of the time serieis is gets nan
+    #     for key in Waves.keys():
+    #         print(key)  # debugging
+    #         if key != "Time":  # Exclude 'Time' from being set to NaN
+    #             Waves[key].loc[i] = np.nan
+    
     return Waves
 
 def save_waves(Waves, save_dir):

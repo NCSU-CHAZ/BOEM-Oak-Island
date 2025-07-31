@@ -1,14 +1,14 @@
 import os
 import numpy as np
 import re
-from Post_Processing_Scripts.sediment.analysis_bulkstats import (
+from analysis_bulkstats import (
     load_qc_data,
     sediment_analysis,
     save_waves,
     bulk_stats_depth_averages,
     initialize_bulk, calculate_wave_stats,sediment_analysis_vert
 )
-from Post_Processing_Scripts.sediment.analysis import (
+from analysis import (
     read_Sig1k,
     read_data_h5,
     remove_low_correlations,
@@ -16,7 +16,7 @@ from Post_Processing_Scripts.sediment.analysis import (
     save_data,
 )
 
-from Post_Processing_Scripts.sediment.spectral_sediment import (calculate_sed_stats, despiker)
+from spectral_sediment import (calculate_sed_stats, despiker)
 
 ###############################################################################
 # user input
@@ -36,7 +36,7 @@ echosounder = True  # set to True if you want to process echosounder data, False
 
 
 
-group_id = 36 # specify if you want to process starting at a specific group_id; must be 1 or greater
+group_id = 41 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [
     0
 ]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
@@ -80,6 +80,7 @@ config_path = os.path.join(
 ###############################################################################
 # convert mat files to h5 files
 ###############################################################################
+
 if run_convert_mat_h5:
     print("Running mat conversion")
     files = [
@@ -110,7 +111,7 @@ if run_convert_mat_h5:
             read_Sig1k(path, config_path, save_path)
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
-
+        break
 
 ###############################################################################
 # quality control
@@ -137,19 +138,22 @@ if run_quality_control:
         print(f"Processing {file_name}")  # for debugging
         try:
             # call post-processing functions
-            Data = read_data_h5(path)  # KA: needed to install pytables
             print(f"read in data")
+            Data = read_data_h5(path)  # KA: needed to install pytables
 
             Data = remove_low_correlations(Data)
             print(f"removed low correlations")
 
             Data = transform_beam_ENUD(Data)
             print("transformed to ENUD")
+            #If the save path does not exist, create it
+            os.makedirs(save_path_name, exist_ok=True)
 
             save_data(Data, save_path_name)
             print(f"Processed {file_name} and saved to {save_dir_qc}")
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
+        
 
 
 ###############################################################################
@@ -162,13 +166,13 @@ if run_quality_control:
 if run_bulk_statistics:
     try:
         print("Running bulk statistics")
-
+        fs=2 #Sampling frequency in Hz
         Waves, sbe = initialize_bulk(
             save_dir_qc,
             sbepath,
             dtburst=3600,
             dtens=512,
-            fs=2,
+            fs=fs,
             sensor_height=0.508,
             depth_threshold=3,
         )
@@ -199,7 +203,6 @@ if run_bulk_statistics:
                 )
 
             dtburst = 3600  # duration of each burst in seconds
-            fs = 4  # sampling frequency
             # Get number of total samples in group
             nt = len(Data["Time"])
             Nsamp = dtburst * fs  # number of samples per burst
@@ -217,7 +220,7 @@ if run_bulk_statistics:
 
                 Waves = calculate_wave_stats(
                     Waves, Data, Nsamp, i, 
-                    sensor_height=0.508, fs=4, dtburst=3600, dtens=512)
+                    sensor_height=0.508, fs=fs, dtburst=3600, dtens=512)
                 
             print(f"Processed {group_path} for bulk statistics")
 
