@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import time
+from scipy.signal import medfilt
 
 def welch_method(data, dt, M, overlap):
     """
@@ -231,11 +232,74 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     return CoSP, frequency, QuSP, PHI
 
-def despiker(Data):
+def despiker(Data, window_size=5,fs=2):
+    """"This function removes spikes from the data using a simple median filter.
+    data should be a dictionary with keys corresponding to the data arrays.
+    window_size: int
+        Size of the median filter window in sec (default is 5 sec).
+    fs: sampling frequency in Hz
+    """""
 
-    return Data
+    wind = window_size * fs  # Convert window size from seconds to samples
 
-def calculate_sed_stats(Data):
+    echoavg = Data['Echo1avg']
+    # Apply a median filter to remove spikes
+ 
+    filtered = np.apply_along_axis(lambda x: medfilt(x, kernel_size=wind), 0, echoavg)
+ 
+    return filtered
+
+def calculate_sed_stats(Data, event_time, fs =2,dtburst = 3600, overlap = 0.5, dtens=512):
+    """"This function calculates sediment statistics from the data using spectral analysis.
+    
+    Data: bulkstats dict
+    fs: sampling frequency in Hz
+    event_time: datetime
+        The time period where the event starts and it will split the data into two sections.
+    """
+
+    # Seperate the data into the event section and the non event section
+    sect1 = Data['Time'] < event_time
+    sect2 = Data['Time'] > event_time
+
+    # Get the data for each section
+    echosect1 = Data['Echo1avg'].iloc[sect1]
+    echosect2 = Data['Echo1avg'].iloc[sect2]
+    
+    #Calculate windows and chunks for section 1
+    nt = len (echosect1) 
+    Nsamp = fs * dtburst 
+    N = nt // Nsamp
+
+    for echo in [echosect1, echosect2]:
+        # Calculate the number of chunks
+        Nchunks = len(echo) // Nsamp
+
+        # Initialize arrays to hold the results
+        psd = np.zeros((Nchunks, Nsamp // 2 + 1))
+        frequency = np.zeros((Nchunks, Nsamp // 2 + 1))
+        
+        # Loop through each chunk
+        for i in range(Nchunks):
+            Nens = dtens * fs
+            M = (Nsamp - Nens * overlap - 1) / (
+            Nens * (1 - overlap)
+    ) 
+            chunkecho = echo[i * Nsamp: Nsamp * (i + 1), :].values
+            # Calculate the PSD using Welch's method
+            psd[i, :], frequency[i, :] = welch_method(chunkecho, 1/fs, M, overlap)
+        
+
+        # Store the results in a dictionary
+        sediment_stats = {
+            'psd': psd,
+            'frequency': frequency,
+            'event_time': event_time
+        }
+
+
     sediment = {}
     
+
+
     return sediment
