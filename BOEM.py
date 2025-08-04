@@ -32,11 +32,11 @@ directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
-run_quality_control =False
+run_quality_control = False
 run_bulk_statistics = True
 
-group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
-group_ids_exclude = [0,30,31,32,33,34]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
+group_id = 3 # specify if you want to process starting at a specific group_id; must be 1 or greater
+group_ids_exclude = [0,29,30,31,32,33,34]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
 ###############################################################################
