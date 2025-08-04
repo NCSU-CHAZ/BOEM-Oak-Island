@@ -367,7 +367,7 @@ def bulk_stats_analysis(
             P = Pressure.iloc[i * Nsamp: Nsamp * (i + 1),:]
 
             AST_amp_ens=AST_amp.iloc[i * Nsamp: Nsamp * (i + 1),:] # try this out
-            print(AST_amp_ens) # deugging
+           
 
             # Find the depth averaged velocity stat
             # Uavg = np.nanmean(np.nanmean(U, axis=1))  # there are slight differences if you first do axis = 1
@@ -434,7 +434,7 @@ def bulk_stats_analysis(
             Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
 
             AST_amp_no_nan = np.nan_to_num(AST_amp.to_numpy(),nan=0.0)
-            print("shape of AST is ", np.shape(AST_amp_no_nan))
+            
             Spp_ast,fr_ast = welch_method(AST_amp_no_nan,dt,Chunks,overlap)
 
             # Get rid of zero frequency and turn back into pandas dataframes
