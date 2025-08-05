@@ -802,7 +802,7 @@ def calculate_wave_stats(
     #         print(key)  # debugging
     #         if key != "Time":  # Exclude 'Time' from being set to NaN
     #             Waves[key].loc[i] = np.nan
-    
+
     return Waves
 
 def save_waves(Waves, save_dir):
@@ -818,9 +818,6 @@ def save_waves(Waves, save_dir):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    # Save each DataFrame in Waves to an HDF5 file
-    for key, df in Waves.items():
-        df.to_hdf(os.path.join(save_dir, f"{key}.h5"), key="df", mode="w")
     ###############################################################################
     # save bulk statistics to directory
     ###############################################################################

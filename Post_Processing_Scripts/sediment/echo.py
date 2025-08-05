@@ -111,7 +111,7 @@ if run_convert_mat_h5:
             read_Sig1k(path, config_path, save_path)
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
-        break
+        
 
 ###############################################################################
 # quality control
