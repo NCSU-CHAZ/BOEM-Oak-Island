@@ -2,7 +2,8 @@
 
 import numpy as np
 import pandas as pd
-from scipy.signal import medfilt
+from scipy.signal import butter, filtfilt
+
 
 def welch_method(data, dt, M, overlap):
     """
@@ -28,7 +29,9 @@ def welch_method(data, dt, M, overlap):
 
     # Size of the input data
     sd = data.shape
-    Ns = int(np.floor(sd[0] / (M - (M - 1) * overlap)))  # Number of samples in each chunk
+    Ns = int(
+        np.floor(sd[0] / (M - (M - 1) * overlap))
+    )  # Number of samples in each chunk
     M = int(M)  # Ensure M is an integer
     ds = int(np.floor(Ns * (1 - overlap)))  # Number of indices to shift by in the loop
     ii = np.arange(Ns)  # Indices for each chunk
@@ -67,7 +70,9 @@ def welch_method(data, dt, M, overlap):
         X = np.fft.fft(x, axis=0)
         X = X[:stop, :]  # Keep only positive frequencies
         A2 = np.abs(X) ** 2  # Amplitude squared
-        A2[1:-inyq, :] *= 2  # Double the amplitude for positive frequencies (except Nyquist)
+        A2[
+            1:-inyq, :
+        ] *= 2  # Double the amplitude for positive frequencies (except Nyquist)
 
         SX += A2
 
@@ -75,6 +80,7 @@ def welch_method(data, dt, M, overlap):
     psd = SX * dt / (M * Ns)
 
     return psd, frequency
+
 
 def waveNumber_dispersion(fr_rad, depth):
     """
@@ -105,13 +111,15 @@ def waveNumber_dispersion(fr_rad, depth):
         err = 10
         ct = 0
         T = (2 * np.pi) / fr  # wave period
-        L_0 = ((T ** 2) * g) / (2 * np.pi)  # deep water wave length
-        kguess = (2 * np.pi) / L_0  # initial guess of wave number as deep water wave number
+        L_0 = ((T**2) * g) / (2 * np.pi)  # deep water wave length
+        kguess = (
+            2 * np.pi
+        ) / L_0  # initial guess of wave number as deep water wave number
         while err > errortol and ct < 1000:
             ct = ct + 1
             argument = kguess * depth
-            k[idx] = (fr ** 2) / (
-                    g * np.tanh(argument)
+            k[idx] = (fr**2) / (
+                g * np.tanh(argument)
             )  # calculate k with dispersion relationship
             err = abs(k[idx] - kguess)  # check for error
             kguess = k[idx]  # update k guess and repeat
@@ -151,7 +159,9 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     # Size of the input data
     sd = datax.shape
-    Ns = int(np.floor(sd[0] / (M - (M - 1) * overlap)))  # Number of samples in each chunk
+    Ns = int(
+        np.floor(sd[0] / (M - (M - 1) * overlap))
+    )  # Number of samples in each chunk
     M = int(M)  # Ensure M is an integer
     ds = int(np.floor(Ns * (1 - overlap)))  # Number of indices to shift by in the loop
     ii = np.arange(Ns)  # Indices for each chunk
@@ -174,7 +184,13 @@ def welch_cospec(datax, datay, dt, M, overlap):
     # Initialize spectras
     Sxx = np.zeros((stop, sd[1]))
     Syy = np.zeros((stop, sd[1]))
-    Cxy = np.zeros((stop, sd[1],), dtype=complex)
+    Cxy = np.zeros(
+        (
+            stop,
+            sd[1],
+        ),
+        dtype=complex,
+    )
 
     # Loop through chunks
     for m in range(M):
@@ -231,79 +247,177 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     return CoSP, frequency, QuSP, PHI
 
-def despiker(Data, window_size=5,fs=2):
-    """"This function removes spikes from the data using a simple median filter.
+def lowpass_filter(data, fs, cutoff=0.001, order=4):
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return filtfilt(b, a, data)
+
+def goring_nikora_despike(x, threshold_x=3.5, threshold_dx=6, threshold_ddx=8):
+    x = np.asarray(x)
+    x_mean = np.nanmean(x)
+    x_std = np.nanstd(x)
+
+    dx = np.gradient(x)
+    ddx = np.gradient(dx)
+
+    dx_std = np.nanstd(dx)
+    ddx_std = np.nanstd(ddx)
+
+    mask = (
+        (np.abs((x - x_mean) / x_std) < threshold_x) &
+        (np.abs(dx / dx_std) < threshold_dx) &
+        (np.abs(ddx / ddx_std) < threshold_ddx)
+    )
+
+    x_clean = x.copy()
+    x_clean[~mask] = np.nan  # or interpolate later
+    return x_clean, mask
+
+def despiker(ssc, fs, tide_cutoff=0.001):
+    """"This function removes spikes from the data using phase space thresholding according to Goring and Nikora (2002)
+    https://doi.org/10.1061/(ASCE)0733-9429(2002)128:1(117)
+
     data should be a dictionary with keys corresponding to the data arrays.
     window_size: int
         Size of the median filter window in sec (default is 5 sec).
     fs: sampling frequency in Hz
-    """""
+    """ ""
 
-    wind = window_size * fs  # Convert window size from seconds to samples
+   # Step 1: Extract tidal signal (low-pass)
+    tidal_component = lowpass_filter(ssc, fs, cutoff=tide_cutoff)
 
-    if wind % 2 == 0 : 
-        wind = wind + 1 
+    # Step 2: Get high-frequency residual
+    highfreq_residual = ssc - tidal_component
+
+    # Step 3: Despike only the high-frequency part
+    cleaned_residual, mask = goring_nikora_despike(highfreq_residual)
+
+    # Optional: interpolate spikes
+    def interpolate_nans(y):
+        nans = np.isnan(y)
+        if np.any(nans):
+            y[nans] = np.interp(np.flatnonzero(nans), np.flatnonzero(~nans), y[~nans])
+        return y
+
+    cleaned_residual = interpolate_nans(cleaned_residual)
+
+    # Step 4: Add tidal signal back
+    ssc_cleaned = cleaned_residual + tidal_component
+
+    return ssc_cleaned, mask
 
 
-    echoavg = Data['Echo1avg']
-    # Apply a median filter to remove spikes
- 
-    filtered = np.apply_along_axis(lambda x: medfilt(x, kernel_size=wind), 0, echoavg)
+def calculate_sed_stats(
+    Data, event_time, fs=2, dtburst=3600, window_size=1.5, overlap=0.5, dtens=516
+):
+    """ "This function calculates sediment statistics from the data using spectral analysis.
 
-    filtered = pd.DataFrame(filtered)
- 
-    return filtered
-
-def calculate_sed_stats(Data, event_time, fs =2,dtburst = 3600, overlap = 0.5, dtens=512):
-    """"This function calculates sediment statistics from the data using spectral analysis.
-    
     Data: bulkstats dict
     fs: sampling frequency in Hz
     event_time: datetime
         The time period where the event starts and it will split the data into two sections.
-    """
-    sediment = {}
+    dtburst: length of averages that statistics are returned for
+    overlap: fft window overlap as a fraction
+    dtens: fft window length in seconds
 
+    """
+    sediment = {
+        "Calm_psd": pd.DataFrame([]),
+        "Storm_psd": pd.DataFrame([]),
+        "Calm_freq": pd.DataFrame([]),
+        "Storm_freq": pd.DataFrame([]),
+        "Calm_time": pd.DataFrame([]),
+        "Storm_time": pd.DataFrame([]),
+    }
 
     # Seperate the data into the event section and the non event section
-    sect1 = Data['SedTime'] < event_time
-    sect2 = Data['SedTime'] > event_time
+    sect1 = (Data["SedTime"] < event_time).squeeze()
+    sect2 = (Data["SedTime"] > event_time).squeeze()
 
-
-    sediment['echosect1_time'] = Data['SedTime'][sect1]
-    sediment['echosect2_time'] = Data['SedTime'][sect2]
-
-    #Run Data through despiker
-    Echo1avg = despiker(Data, fs=fs)
-    Echo2avg = despiker(Data, fs=fs)
-
+    # Run Data through despiker
+    Echo1avg = despiker(Data, window_size=window_size, fs=fs)
 
     # Get the data for each section
     echosect1 = Echo1avg[sect1]
     echosect2 = Echo1avg[sect2]
-    
-    #Calculate windows and chunks for section 1
-    nt = len (echosect1) 
-    Nsamp = fs * dtburst 
-    N = nt // Nsamp
+    timesect1 = Data["SedTime"][sect1]
+    timesect2 = Data["SedTime"][sect2]
 
-    for echo in [echosect1, echosect2]:
+    # Calculate windows and chunks for section 1
+    Nsamp = fs * dtburst
+
+    # Remove nans this will mess with welch method calculations
+    echosect1_no_nan = pd.DataFrame(np.nan_to_num(echosect1, nan=0.0))
+    echosect2_no_nan = pd.DataFrame(np.nan_to_num(echosect2, nan=0.0))
+
+    # Define number of fft windows and how points are in them
+    Nens = dtens * fs
+    M = (Nsamp - Nens * overlap - 1) / (Nens * (1 - overlap))
+
+    bigpsd1, bigfreq1 = welch_method(echosect1_no_nan.to_numpy(), 1 / fs, M, overlap)
+    bigpsd2, bigfreq2 = welch_method(echosect2_no_nan.to_numpy(), 1 / fs, M, overlap)
+
+    sediment["BigCalm"] = bigpsd1
+    sediment["BigStorm"] = bigpsd2
+    sediment["BigFreq1"] = bigfreq1
+    sediment["BigFreq2"] = bigfreq2
+
+    for echo, time in zip([echosect1_no_nan, echosect2_no_nan], [timesect1, timesect2]):
         # Calculate the number of chunks
         Nchunks = len(echo) // Nsamp
-        
+
         # Loop through each chunk
         for i in range(Nchunks):
-            Nens = dtens * fs
-            M = (Nsamp - Nens * overlap - 1) / (
-            Nens * (1 - overlap)
-    ) 
-            chunkecho = echo.iloc[i * Nsamp: Nsamp * (i + 1), :].values
+            t = time.iloc[i * Nsamp : Nsamp * (i + 1)]
+            tavg = t.iloc[round(Nsamp / 2)]
+
+            M = (Nsamp - Nens * overlap - 1) / (Nens * (1 - overlap))
+            chunkecho = echo.iloc[i * Nsamp : Nsamp * (i + 1), :].values
 
             # Calculate the PSD using Welch's method
-            psd, freq = welch_method(chunkecho, 1/fs, M, overlap)
-        
+            psd, freq = welch_method(chunkecho, 1 / fs, M, overlap)
+
+            if echo is echosect1_no_nan:
+
+                sediment["Calm_psd"] = pd.concat(
+                    [
+                        sediment["Calm_psd"],
+                        pd.DataFrame([np.nanmean(psd, axis=1)]),
+                    ],
+                    axis=0,
+                    ignore_index=True,
+                )
+                sediment["Calm_time"] = pd.concat(
+                    [
+                        sediment["Calm_time"],
+                        pd.DataFrame([tavg]),
+                    ],
+                    ignore_index=True,
+                )
+
+            elif echo is echosect2_no_nan:
+
+                sediment["Storm_psd"] = pd.concat(
+                    [
+                        sediment["Storm_psd"],
+                        pd.DataFrame([np.nanmean(psd, axis=1)]),
+                    ],
+                    axis=0,
+                    ignore_index=True,
+                )
+
+                sediment["Storm_time"] = pd.concat(
+                    [
+                        sediment["Storm_time"],
+                        pd.DataFrame([tavg]),
+                    ],
+                    ignore_index=True,
+                )
+
         # Store the results in a dictionary
-        sediment[f'{echo}_psd'] = psd
-        sediment[f'{echo}_freq'] = freq
-    
+        if echo is echosect1_no_nan:
+            sediment["Calm_freq"] = pd.DataFrame(freq)
+        elif echo is echosect2_no_nan:
+            sediment["Storm_freq"] = pd.DataFrame(freq)
     return sediment
