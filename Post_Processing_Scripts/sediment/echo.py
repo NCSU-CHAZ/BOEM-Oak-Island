@@ -38,7 +38,7 @@ echosounder = True  # set to True if you want to process echosounder data, False
 
 group_id = 41 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [
-    0
+    0, -1
 ]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
@@ -159,8 +159,6 @@ if run_quality_control:
 ###############################################################################
 # bulk wave statistics and SSC calc
 ###############################################################################
-
-# waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude,sbepath)
 
 
 if run_bulk_statistics:
