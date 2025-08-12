@@ -257,12 +257,10 @@ def check_psd_variance(chunk, fs, M, overlap, welch_func, rtol=0.05):
     Returns ratio = var_spec / var_time
     """
     dt = 1.0 / fs
-    # detrend chunk same way as welch does
-    chunk_det = sig.detrend(chunk, axis=0, type="linear")
-
+    
     psd, freq = welch_func(chunk, dt, M, overlap)
     df = freq[1] - freq[0]
-    var_time = np.var(chunk_det, axis=0)
+    var_time = np.var(chunk, axis=0)
     var_spec = np.sum(psd, axis=0) * df
 
     # return ratio and optionally whether within tolerance
@@ -375,8 +373,9 @@ def calculate_sed_stats(Data, event_time, fs=2, dtburst=3600, overlap=0.5, dtens
     first, mask = despiker(Data["Echo1avg"])
     Echo1avg, mask = despiker(first)
 
-    # Detrend the signals for spectral analysis
+    # Detrend the signals for spectral analysis and demean
     detrended = sig.detrend(Echo1avg, axis=0, type="linear")
+    detrended = detrended - np.nanmean(detrended)
 
     # Get the data for each section
     echosect1 = detrended[sect1]
