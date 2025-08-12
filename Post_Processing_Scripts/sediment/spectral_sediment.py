@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from scipy.signal import butter, filtfilt
+import scipy.signal as sig
 
 
 def welch_method(data, dt, M, overlap):
@@ -59,7 +59,8 @@ def welch_method(data, dt, M, overlap):
         x = data[inds, :]  # Data from this block
         s2i = np.var(x, axis=0)  # Input variance
 
-        x = win * (x - np.mean(x, axis=0))  # Detrend and apply window
+        x = sig.detrend(x, axis=0, type="linear")
+        x = win * x
         s2f = np.var(x, axis=0)  # Reduced variance
         s2f[s2f == 0] = 1e-10  # Prevent division by zero just in case
 
@@ -247,51 +248,88 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     return CoSP, frequency, QuSP, PHI
 
-def lowpass_filter(data, fs, cutoff=0.001, order=4):
+
+def check_psd_variance(chunk, fs, M, overlap, welch_func, rtol=0.05):
+    """
+    chunk: ndarray [samples, channels]
+    fs: sampling frequency (Hz)
+    welch_func: function that returns (psd, freq)
+    Returns ratio = var_spec / var_time
+    """
+    dt = 1.0 / fs
+    # detrend chunk same way as welch does
+    chunk_det = sig.detrend(chunk, axis=0, type="linear")
+
+    psd, freq = welch_func(chunk, dt, M, overlap)
+    df = freq[1] - freq[0]
+    var_time = np.var(chunk_det, axis=0)
+    var_spec = np.sum(psd, axis=0) * df
+
+    # return ratio and optionally whether within tolerance
+    ratio = var_spec / var_time
+    return ratio
+
+
+def lowpass_filter(data, fs, cutoff=0.0001, order=4):
+    arr = np.asarray(data, dtype=float)
+    arr_no_nan = np.nan_to_num(data, nan=0.0)
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
-    return filtfilt(b, a, data)
+    sos = sig.butter(order, normal_cutoff, btype="low", output="sos")
+    y = sig.sosfiltfilt(sos, arr_no_nan, axis=0)
+    return y
 
-def goring_nikora_despike(x, threshold_x=3.5, threshold_dx=6, threshold_ddx=8):
-    x = np.asarray(x)
-    x_mean = np.nanmean(x)
-    x_std = np.nanstd(x)
 
-    dx = np.gradient(x)
-    ddx = np.gradient(dx)
+def goring_nikora_despike(x, dt, lam=3.0):
+    x = x.to_numpy()
 
-    dx_std = np.nanstd(dx)
-    ddx_std = np.nanstd(ddx)
+    # 1. Remove mean / trend
+    x_detrended = sig.detrend(x, axis=0, type="linear").ravel()
 
-    mask = (
-        (np.abs((x - x_mean) / x_std) < threshold_x) &
-        (np.abs(dx / dx_std) < threshold_dx) &
-        (np.abs(ddx / ddx_std) < threshold_ddx)
-    )
+    # 2. First and second derivatives
+    dx = np.gradient(x_detrended, dt)
+    ddx = np.gradient(dx, dt)
 
+    # 3. Build phase space
+    X = np.column_stack((x_detrended, dx, ddx))
+
+    # 4. Rotate to principal axes (PCA)
+    cov = np.cov(X, rowvar=False)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    X_rot = X @ eigvecs  # rotated coordinates
+
+    # 5. Normalize by std deviation
+    sigmas = X_rot.std(axis=0)
+    X_norm = X_rot / sigmas
+
+    # 6. Ellipsoid threshold
+    R2 = np.sum((X_norm / lam) ** 2, axis=1)
+    spikes = R2 > 1  # True where spike
+
+    # 7. Replace spikes with NaN (or interpolate)
     x_clean = x.copy()
-    x_clean[~mask] = np.nan  # or interpolate later
-    return x_clean, mask
+    x_clean[spikes] = np.nan
 
-def despiker(ssc, fs, tide_cutoff=0.001):
+    return x_clean, spikes
+
+
+def despiker(ssc, fs=2, tide_cutoff=0.001):
     """"This function removes spikes from the data using phase space thresholding according to Goring and Nikora (2002)
     https://doi.org/10.1061/(ASCE)0733-9429(2002)128:1(117)
 
     data should be a dictionary with keys corresponding to the data arrays.
-    window_size: int
         Size of the median filter window in sec (default is 5 sec).
     fs: sampling frequency in Hz
     """ ""
 
-   # Step 1: Extract tidal signal (low-pass)
+    # Step 1: Extract tidal signal (low-pass)
     tidal_component = lowpass_filter(ssc, fs, cutoff=tide_cutoff)
 
     # Step 2: Get high-frequency residual
     highfreq_residual = ssc - tidal_component
 
     # Step 3: Despike only the high-frequency part
-    cleaned_residual, mask = goring_nikora_despike(highfreq_residual)
+    cleaned_residual, mask = goring_nikora_despike(highfreq_residual, dt=1 / fs)
 
     # Optional: interpolate spikes
     def interpolate_nans(y):
@@ -304,13 +342,11 @@ def despiker(ssc, fs, tide_cutoff=0.001):
 
     # Step 4: Add tidal signal back
     ssc_cleaned = cleaned_residual + tidal_component
-
+    ssc_cleaned = pd.DataFrame(ssc_cleaned)
     return ssc_cleaned, mask
 
 
-def calculate_sed_stats(
-    Data, event_time, fs=2, dtburst=3600, window_size=1.5, overlap=0.5, dtens=516
-):
+def calculate_sed_stats(Data, event_time, fs=2, dtburst=3600, overlap=0.5, dtens=516):
     """ "This function calculates sediment statistics from the data using spectral analysis.
 
     Data: bulkstats dict
@@ -335,12 +371,16 @@ def calculate_sed_stats(
     sect1 = (Data["SedTime"] < event_time).squeeze()
     sect2 = (Data["SedTime"] > event_time).squeeze()
 
-    # Run Data through despiker
-    Echo1avg = despiker(Data, window_size=window_size, fs=fs)
+    # Run Data through despiker twice to remove spikes
+    first, mask = despiker(Data["Echo1avg"])
+    Echo1avg, mask = despiker(first)
+
+    # Detrend the signals for spectral analysis
+    detrended = sig.detrend(Echo1avg, axis=0, type="linear")
 
     # Get the data for each section
-    echosect1 = Echo1avg[sect1]
-    echosect2 = Echo1avg[sect2]
+    echosect1 = detrended[sect1]
+    echosect2 = detrended[sect2]
     timesect1 = Data["SedTime"][sect1]
     timesect2 = Data["SedTime"][sect2]
 
@@ -377,6 +417,11 @@ def calculate_sed_stats(
 
             # Calculate the PSD using Welch's method
             psd, freq = welch_method(chunkecho, 1 / fs, M, overlap)
+
+            print(
+                "Variance of spectra differs from original variance by",
+                check_psd_variance(chunkecho, fs, M, overlap, welch_method),
+            )
 
             if echo is echosect1_no_nan:
 
