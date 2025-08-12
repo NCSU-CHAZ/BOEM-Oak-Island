@@ -39,7 +39,7 @@ echosounder = True  # set to True if you want to process echosounder data, False
 group_id = 41 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [
     0, -1
-]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
+]  # for processing bulk statistics; skip group 1 and the last group (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
 ###############################################################################
