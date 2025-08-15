@@ -72,7 +72,7 @@ def welch_method(data, dt, M, overlap):
     SX = np.zeros((stop, sd[1]))
 
     for m in range(M):
-        inds = ii + (m - 1) * ds  # Indices in the current block
+        inds = ii + (m) * ds  # Indices in the current block
         x = data[inds, :]  # Data from this block
         s2i = np.var(x, axis=0)  # Input variance
 
@@ -80,19 +80,20 @@ def welch_method(data, dt, M, overlap):
         s2f = np.var(x, axis=0)  # Reduced variance
         s2f[s2f == 0] = 1e-10  # Prevent division by zero just in case
 
-        # Apply scaling factor
-        x = np.sqrt(s2i / s2f) * x
-
         # FFT
         X = np.fft.fft(x, axis=0)
         X = X[:stop, :]  # Keep only positive frequencies
         A2 = np.abs(X) ** 2  # Amplitude squared
-        A2[1:-inyq, :] *= 2  # Double the amplitude for positive frequencies (except Nyquist)
-
+        if inyq:
+            A2[1:-1, :] *= 2
+        else:
+            A2[1:, :] *= 2 # Double the amplitude for positive frequencies (except Nyquist)
+            
         SX += A2
 
+    U = np.mean(win[:,0]**2)  # mean-square of window
     # Final PSD estimate
-    psd = SX * dt / (M * Ns)
+    psd = SX * dt / (U * M * Ns)
 
     return psd, frequency
 
