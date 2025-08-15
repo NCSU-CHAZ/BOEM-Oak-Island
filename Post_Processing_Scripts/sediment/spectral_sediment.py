@@ -5,7 +5,7 @@ import pandas as pd
 import scipy.signal as sig
 
 
-def welch_method(data, dt, M, overlap):
+def welch_method(data, dt, Ns, overlap):
     """
     Estimates the power spectral density (PSD) of 'data' using Welch's method.
 
@@ -14,8 +14,8 @@ def welch_method(data, dt, M, overlap):
         Input time-series data as numpy array (shape: [samples, bins])
     dt: float
         Sampling time interval (seconds)
-    M: int
-        Number of subwindows
+    Ns: int
+        Number of samples in window
     overlap: float
         Fractional overlap between windows (0 <= overlap < 1)
 
@@ -29,12 +29,12 @@ def welch_method(data, dt, M, overlap):
 
     # Size of the input data
     sd = data.shape
-    Ns = int(
-        np.floor(sd[0] / (M - (M - 1) * overlap))
-    )  # Number of samples in each chunk
-    M = int(M)  # Ensure M is an integer
-    ds = int(np.floor(Ns * (1 - overlap)))  # Number of indices to shift by in the loop
+    Nsamp = int(sd[0])
+    ds = int(np.floor(Ns * (1 - overlap)))  # step size
+    M = int(np.floor((Nsamp - Ns) / ds) + 1)  # number of segments
     ii = np.arange(Ns)  # Indices for each chunk
+    var = []
+    acc = 0
 
     # Hanning window
     win = np.hanning(Ns)
@@ -54,31 +54,35 @@ def welch_method(data, dt, M, overlap):
     # Initialize the PSD estimate
     SX = np.zeros((stop, sd[1]))
 
+    U = np.mean(win[:, 0] ** 2)  # mean-square of window
+
+    # Loop through windows
     for m in range(M):
-        inds = ii + (m - 1) * ds  # Indices in the current block
+        inds = ii + (m) * ds  # Indices in the current block
         x = data[inds, :]  # Data from this block
-        s2i = np.var(x, axis=0)  # Input variance
-
-        x = sig.detrend(x, axis=0, type="linear")
+        x = x - np.mean(x, axis=0, keepdims=True)
         x = win * x
-        s2f = np.var(x, axis=0)  # Reduced variance
-        s2f[s2f == 0] = 1e-10  # Prevent division by zero just in case
 
-        # Apply scaling factor
-        x = np.sqrt(s2i / s2f) * x
+        acc += (x**2).mean(axis=0)  # Variance corrected for window reduction
 
         # FFT
         X = np.fft.fft(x, axis=0)
         X = X[:stop, :]  # Keep only positive frequencies
         A2 = np.abs(X) ** 2  # Amplitude squared
-        A2[
-            1:-inyq, :
-        ] *= 2  # Double the amplitude for positive frequencies (except Nyquist)
 
+        if inyq:
+            A2[1:-1, :] *= 2
+        else:
+            A2[
+                1:, :
+            ] *= 2  # Double the amplitude for positive frequencies (except Nyquist)
         SX += A2
 
     # Final PSD estimate
-    psd = SX * dt / (M * Ns)
+    psd = SX * dt / (U * M * Ns)
+    var = (
+        np.mean(acc, axis=0)
+    )  # average reduced variance across segments 
 
     return psd, frequency
 
@@ -195,7 +199,7 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     # Loop through chunks
     for m in range(M):
-        inds = ii + (m - 1) * ds
+        inds = ii + (m) * ds
         x = datax[inds, :]  # Acquire data in this chunk
         y = datay[inds, :]
         sx2i = np.var(x, axis=0)  # Find variance
@@ -248,26 +252,6 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     return CoSP, frequency, QuSP, PHI
 
-
-def check_psd_variance(chunk, fs, M, overlap, welch_func, rtol=0.05):
-    """
-    chunk: ndarray [samples, channels]
-    fs: sampling frequency (Hz)
-    welch_func: function that returns (psd, freq)
-    Returns ratio = var_spec / var_time
-    """
-    dt = 1.0 / fs
-    
-    psd, freq = welch_func(chunk, dt, M, overlap)
-    df = freq[1] - freq[0]
-    var_time = np.var(chunk, axis=0)
-    var_spec = np.sum(psd, axis=0) * df
-
-    # return ratio and optionally whether within tolerance
-    ratio = var_spec / var_time
-    return ratio
-
-
 def lowpass_filter(data, fs, cutoff=0.0001, order=4):
     arr = np.asarray(data, dtype=float)
     arr_no_nan = np.nan_to_num(data, nan=0.0)
@@ -311,7 +295,14 @@ def goring_nikora_despike(x, dt, lam=3.0):
     return x_clean, spikes
 
 
-def despiker(ssc, fs=2, tide_cutoff=0.001):
+def interpolate_nans(y):
+    nans = np.isnan(y)
+    if np.any(nans):
+        y[nans] = np.interp(np.flatnonzero(nans), np.flatnonzero(~nans), y[~nans])
+    return y
+
+
+def despiker(ssc, fs=2, tide_cutoff=0.001, lam=2):
     """"This function removes spikes from the data using phase space thresholding according to Goring and Nikora (2002)
     https://doi.org/10.1061/(ASCE)0733-9429(2002)128:1(117)
 
@@ -327,14 +318,9 @@ def despiker(ssc, fs=2, tide_cutoff=0.001):
     highfreq_residual = ssc - tidal_component
 
     # Step 3: Despike only the high-frequency part
-    cleaned_residual, mask = goring_nikora_despike(highfreq_residual, dt=1 / fs)
-
-    # Optional: interpolate spikes
-    def interpolate_nans(y):
-        nans = np.isnan(y)
-        if np.any(nans):
-            y[nans] = np.interp(np.flatnonzero(nans), np.flatnonzero(~nans), y[~nans])
-        return y
+    cleaned_residual, mask = goring_nikora_despike(
+        highfreq_residual, dt=1 / fs, lam=lam
+    )
 
     cleaned_residual = interpolate_nans(cleaned_residual)
 
@@ -370,16 +356,12 @@ def calculate_sed_stats(Data, event_time, fs=2, dtburst=3600, overlap=0.5, dtens
     sect2 = (Data["SedTime"] > event_time).squeeze()
 
     # Run Data through despiker twice to remove spikes
-    first, mask = despiker(Data["Echo1avg"])
-    Echo1avg, mask = despiker(first)
-
-    # Detrend the signals for spectral analysis and demean
-    detrended = sig.detrend(Echo1avg, axis=0, type="linear")
-    detrended = detrended - np.nanmean(detrended)
+    Echo1avg, mask = despiker(Data["Echo1avg"], lam=2)
+    Echo1avg, mask = despiker(Echo1avg, lam=3)
 
     # Get the data for each section
-    echosect1 = detrended[sect1]
-    echosect2 = detrended[sect2]
+    echosect1 = Echo1avg[sect1]
+    echosect2 = Echo1avg[sect2]
     timesect1 = Data["SedTime"][sect1]
     timesect2 = Data["SedTime"][sect2]
 
@@ -387,15 +369,18 @@ def calculate_sed_stats(Data, event_time, fs=2, dtburst=3600, overlap=0.5, dtens
     Nsamp = fs * dtburst
 
     # Remove nans this will mess with welch method calculations
-    echosect1_no_nan = pd.DataFrame(np.nan_to_num(echosect1, nan=0.0))
-    echosect2_no_nan = pd.DataFrame(np.nan_to_num(echosect2, nan=0.0))
+    echosect1_no_nan = pd.DataFrame(interpolate_nans(echosect1))
+    echosect2_no_nan = pd.DataFrame(interpolate_nans(echosect2))
 
     # Define number of fft windows and how points are in them
     Nens = dtens * fs
-    M = (Nsamp - Nens * overlap - 1) / (Nens * (1 - overlap))
 
-    bigpsd1, bigfreq1 = welch_method(echosect1_no_nan.to_numpy(), 1 / fs, M, overlap)
-    bigpsd2, bigfreq2 = welch_method(echosect2_no_nan.to_numpy(), 1 / fs, M, overlap)
+    bigpsd1, bigfreq1 = welch_method(
+        echosect1_no_nan.to_numpy(), 1 / fs, 2 * Nens, overlap
+    )
+    bigpsd2, bigfreq2 = welch_method(
+        echosect2_no_nan.to_numpy(), 1 / fs, 2 * Nens, overlap
+    )
 
     sediment["BigCalm"] = bigpsd1
     sediment["BigStorm"] = bigpsd2
@@ -411,16 +396,10 @@ def calculate_sed_stats(Data, event_time, fs=2, dtburst=3600, overlap=0.5, dtens
             t = time.iloc[i * Nsamp : Nsamp * (i + 1)]
             tavg = t.iloc[round(Nsamp / 2)]
 
-            M = (Nsamp - Nens * overlap - 1) / (Nens * (1 - overlap))
             chunkecho = echo.iloc[i * Nsamp : Nsamp * (i + 1), :].values
 
             # Calculate the PSD using Welch's method
-            psd, freq = welch_method(chunkecho, 1 / fs, M, overlap)
-
-            print(
-                "Variance of spectra differs from original variance by",
-                check_psd_variance(chunkecho, fs, M, overlap, welch_method),
-            )
+            psd, freq = welch_method(chunkecho, 1 / fs, Nens, overlap)
 
             if echo is echosect1_no_nan:
 
