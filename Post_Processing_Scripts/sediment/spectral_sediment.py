@@ -62,7 +62,6 @@ def welch_method(data, dt, Ns, overlap):
         x = data[inds, :]  # Data from this block
         x = x - np.mean(x, axis=0, keepdims=True)
         x = win * x
-
         acc += (x**2).mean(axis=0)  # Variance corrected for window reduction
 
         # FFT
@@ -330,17 +329,29 @@ def despiker(ssc, fs=2, tide_cutoff=0.001, lam=2):
     return ssc_cleaned, mask
 
 
-def calculate_sed_stats(Data, event_time, fs=2, dtburst=3600, overlap=0.5, dtens=516):
-    """ "This function calculates sediment statistics from the data using spectral analysis.
+def calculate_sed_stats(Data, event_time, end_time, fs=2, dtburst=3600, overlap=0.5, dtens=516):
+    """
+    This function calculates sediment statistics from the data using spectral analysis.
 
+    Parameters:
     Data: bulkstats dict
-    fs: sampling frequency in Hz
+        Input data containing sediment statistics.
+    fs: float, optional
+        Sampling frequency in Hz.
     event_time: datetime
         The time period where the event starts and it will split the data into two sections.
-    dtburst: length of averages that statistics are returned for
-    overlap: fft window overlap as a fraction
-    dtens: fft window length in seconds
+    end_time: datetime
+        The time period where the event ends and it will be used to define the end of the event section.
+    dtburst: int, optional
+        Length of averages that statistics are returned for (in seconds).
+    overlap: float, optional
+        FFT window overlap as a fraction.
+    dtens: int, optional
+        FFT window length in seconds.
 
+    Returns:
+    sediment: dict
+        Dictionary containing calculated sediment statistics.
     """
     sediment = {
         "Calm_psd": pd.DataFrame([]),
@@ -381,7 +392,10 @@ def calculate_sed_stats(Data, event_time, fs=2, dtburst=3600, overlap=0.5, dtens
     bigpsd2, bigfreq2 = welch_method(
         echosect2_no_nan.to_numpy(), 1 / fs, 2 * Nens, overlap
     )
-
+    sediment['Calm_Sect'] = echosect1_no_nan
+    sediment['Storm_Sect'] = echosect2_no_nan
+    sediment['Calm_Time_Sect'] = timesect1
+    sediment['Storm_Time_Sect'] = timesect2
     sediment["BigCalm"] = bigpsd1
     sediment["BigStorm"] = bigpsd2
     sediment["BigFreq1"] = bigfreq1
