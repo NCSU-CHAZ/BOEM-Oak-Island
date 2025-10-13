@@ -4,7 +4,7 @@ import datetime as dt
 import scipy.signal as sig
 
 # Import your functions here
-from Post_Processing_Scripts.sediment.spectral_sediment import welch_method, waveNumber_dispersion, despiker
+from Post_Processing_Scripts.spectral_sediment import welch_method, waveNumber_dispersion, despiker
 
 def test_variance_preservation_white_noise():
     # White noise signal 
