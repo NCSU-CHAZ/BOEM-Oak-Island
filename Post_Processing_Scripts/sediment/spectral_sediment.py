@@ -330,7 +330,8 @@ def despiker(ssc, fs=2, tide_cutoff=0.001, lam=2):
 
 
 def calculate_sed_stats(
-    Data,
+    SedTime,
+    Echo1Avg,
     event_time,
     end_time,
     fs=2,
@@ -372,20 +373,20 @@ def calculate_sed_stats(
     }
 
     # Seperate the data into the event section and the non event section
-    sect1 = (Data["SedTime"] < event_time).squeeze()
-    sect2 = ((Data["SedTime"] > event_time) & (Data["SedTime"] < end_time)).squeeze()
-    end_cutoff = (Data["SedTime"] < end_time).squeeze()
+    sect1 = (SedTime < event_time).squeeze()
+    sect2 = ((SedTime > event_time) & (SedTime < end_time)).squeeze()
+    end_cutoff = (SedTime < end_time).squeeze()
 
     # Run Data through despiker twice to remove spikes
-    Echo1avg, mask = despiker(Data["Echo1avg"], lam=2)
-    Echo1avg, mask = despiker(Echo1avg, lam=3)
+    Echo1avg, mask = despiker(Echo1Avg, lam=2)
+    Echo1avg, mask = despiker(Echo1Avg, lam=3)
 
     # Get the data for each section
     echosect1 = Echo1avg[sect1]
     echosect2 = Echo1avg[sect2]
     Echo1avg = Echo1avg[end_cutoff]
-    timesect1 = Data["SedTime"][sect1]
-    timesect2 = Data["SedTime"][sect2]
+    timesect1 = SedTime[sect1]
+    timesect2 = SedTime[sect2]
 
     # Calculate windows and chunks for section 1
     Nsamp = fs * dtburst
@@ -405,7 +406,7 @@ def calculate_sed_stats(
         window_length=dtburst,    # 2-day windows for better frequency resolution
         NW=3,
         n_tapers=None,              # default 2*NW-1
-        freq_range=[1/(3*24*3600), 1/3600],  # 0.33 cpd – 24 cpd
+        # freq_range=[1/(3*24*3600), 1/36],  # 0.33 cpd – 24 cpd
         weight_type='eig',
         detrend='linear',
         nfft=None,
