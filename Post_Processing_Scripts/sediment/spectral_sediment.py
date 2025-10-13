@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import scipy.signal as sig
+import pymultitaper
 
 
 def welch_method(data, dt, Ns, overlap):
@@ -79,9 +80,7 @@ def welch_method(data, dt, Ns, overlap):
 
     # Final PSD estimate
     psd = SX * dt / (U * M * Ns)
-    var = (
-        np.mean(acc, axis=0)
-    )  # average reduced variance across segments 
+    var = np.mean(acc, axis=0)  # average reduced variance across segments
 
     return psd, frequency
 
@@ -251,6 +250,7 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     return CoSP, frequency, QuSP, PHI
 
+
 def lowpass_filter(data, fs, cutoff=0.0001, order=4):
     arr = np.asarray(data, dtype=float)
     arr_no_nan = np.nan_to_num(data, nan=0.0)
@@ -329,7 +329,16 @@ def despiker(ssc, fs=2, tide_cutoff=0.001, lam=2):
     return ssc_cleaned, mask
 
 
-def calculate_sed_stats(Data, event_time, end_time, fs=2, dtburst=3600, overlap=0.5, dtens=516):
+def calculate_sed_stats(
+    Data,
+    event_time,
+    end_time,
+    fs=2,
+    dtburst=3600,
+    overlap=0.5,
+    dtens=516,
+    mode="multitaper",
+):
     """
     This function calculates sediment statistics from the data using spectral analysis.
 
@@ -364,7 +373,8 @@ def calculate_sed_stats(Data, event_time, end_time, fs=2, dtburst=3600, overlap=
 
     # Seperate the data into the event section and the non event section
     sect1 = (Data["SedTime"] < event_time).squeeze()
-    sect2 = (Data["SedTime"] > event_time).squeeze()
+    sect2 = ((Data["SedTime"] > event_time) & (Data["SedTime"] < end_time)).squeeze()
+    end_cutoff = (Data["SedTime"] < end_time).squeeze()
 
     # Run Data through despiker twice to remove spikes
     Echo1avg, mask = despiker(Data["Echo1avg"], lam=2)
@@ -373,6 +383,7 @@ def calculate_sed_stats(Data, event_time, end_time, fs=2, dtburst=3600, overlap=
     # Get the data for each section
     echosect1 = Echo1avg[sect1]
     echosect2 = Echo1avg[sect2]
+    Echo1avg = Echo1avg[end_cutoff]
     timesect1 = Data["SedTime"][sect1]
     timesect2 = Data["SedTime"][sect2]
 
@@ -386,20 +397,24 @@ def calculate_sed_stats(Data, event_time, end_time, fs=2, dtburst=3600, overlap=
     # Define number of fft windows and how points are in them
     Nens = dtens * fs
 
-    bigpsd1, bigfreq1 = welch_method(
-        echosect1_no_nan.to_numpy(), 1 / fs, 2 * Nens, overlap
+    if mode == "multitaper":
+        freq, time, psd = pymultitaper.multitaper_spectrogram(
+        Echo1avg.values.squeeze(),
+        fs=2,
+        time_step=dtens,        # 1 day between slices → overlap if window longer
+        window_length=dtburst,    # 2-day windows for better frequency resolution
+        NW=3,
+        n_tapers=None,              # default 2*NW-1
+        freq_range=[1/(3*24*3600), 1/3600],  # 0.33 cpd – 24 cpd
+        weight_type='eig',
+        detrend='linear',
+        nfft=None,
+        db_scale=True,
+        p_ref=2e-5
     )
-    bigpsd2, bigfreq2 = welch_method(
-        echosect2_no_nan.to_numpy(), 1 / fs, 2 * Nens, overlap
-    )
-    sediment['Calm_Sect'] = echosect1_no_nan
-    sediment['Storm_Sect'] = echosect2_no_nan
-    sediment['Calm_Time_Sect'] = timesect1
-    sediment['Storm_Time_Sect'] = timesect2
-    sediment["BigCalm"] = bigpsd1
-    sediment["BigStorm"] = bigpsd2
-    sediment["BigFreq1"] = bigfreq1
-    sediment["BigFreq2"] = bigfreq2
+        sediment["Multi_psd"] = psd
+        sediment["Multi_time"] = time
+        sediment["Multi_freq"] = freq
 
     for echo, time in zip([echosect1_no_nan, echosect2_no_nan], [timesect1, timesect2]):
         # Calculate the number of chunks
@@ -412,49 +427,50 @@ def calculate_sed_stats(Data, event_time, end_time, fs=2, dtburst=3600, overlap=
 
             chunkecho = echo.iloc[i * Nsamp : Nsamp * (i + 1), :].values
 
-            # Calculate the PSD using Welch's method
-            psd, freq = welch_method(chunkecho, 1 / fs, Nens, overlap)
+            if mode == "welch":
+                # Calculate the PSD using Welch's method
+                psd, freq = welch_method(chunkecho, 1 / fs, Nens, overlap)
 
+                if echo is echosect1_no_nan:
+
+                    sediment["Calm_psd"] = pd.concat(
+                        [
+                            sediment["Calm_psd"],
+                            pd.DataFrame([np.nanmean(psd, axis=1)]),
+                        ],
+                        axis=0,
+                        ignore_index=True,
+                    )
+                    sediment["Calm_time"] = pd.concat(
+                        [
+                            sediment["Calm_time"],
+                            pd.DataFrame([tavg]),
+                        ],
+                        ignore_index=True,
+                    )
+
+                elif echo is echosect2_no_nan:
+
+                    sediment["Storm_psd"] = pd.concat(
+                        [
+                            sediment["Storm_psd"],
+                            pd.DataFrame([np.nanmean(psd, axis=1)]),
+                        ],
+                        axis=0,
+                        ignore_index=True,
+                    )
+
+                    sediment["Storm_time"] = pd.concat(
+                        [
+                            sediment["Storm_time"],
+                            pd.DataFrame([tavg]),
+                        ],
+                        ignore_index=True,
+                    )
+
+            # Store the results in a dictionary
             if echo is echosect1_no_nan:
-
-                sediment["Calm_psd"] = pd.concat(
-                    [
-                        sediment["Calm_psd"],
-                        pd.DataFrame([np.nanmean(psd, axis=1)]),
-                    ],
-                    axis=0,
-                    ignore_index=True,
-                )
-                sediment["Calm_time"] = pd.concat(
-                    [
-                        sediment["Calm_time"],
-                        pd.DataFrame([tavg]),
-                    ],
-                    ignore_index=True,
-                )
-
+                sediment["Calm_freq"] = pd.DataFrame(freq)
             elif echo is echosect2_no_nan:
-
-                sediment["Storm_psd"] = pd.concat(
-                    [
-                        sediment["Storm_psd"],
-                        pd.DataFrame([np.nanmean(psd, axis=1)]),
-                    ],
-                    axis=0,
-                    ignore_index=True,
-                )
-
-                sediment["Storm_time"] = pd.concat(
-                    [
-                        sediment["Storm_time"],
-                        pd.DataFrame([tavg]),
-                    ],
-                    ignore_index=True,
-                )
-
-        # Store the results in a dictionary
-        if echo is echosect1_no_nan:
-            sediment["Calm_freq"] = pd.DataFrame(freq)
-        elif echo is echosect2_no_nan:
-            sediment["Storm_freq"] = pd.DataFrame(freq)
+                sediment["Storm_freq"] = pd.DataFrame(freq)
     return sediment
