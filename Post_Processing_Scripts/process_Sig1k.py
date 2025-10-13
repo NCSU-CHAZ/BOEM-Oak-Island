@@ -49,10 +49,9 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     # Save Vertical Amplitude coordinate velocity matrix
     VelArray = Data["Data"][0, 0]["IBurst_Amplitude_Beam"]
     reshaped = VelArray.reshape(VelArray.shape[0],-1)
-    print(reshaped.shape)
     del VelArray
     ADCPData['Burst_VertAmplitude'] = pd.DataFrame(reshaped)
-    print('saved VertAmp')
+    
 
     # Save the correlation data matrix
     CorArray = Data["Data"][0, 0]["Burst_Correlation_Beam"]
@@ -65,6 +64,12 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     reshaped = VelArray.reshape(VelArray.shape[0], -1)
     del VelArray
     ADCPData["Burst_ENU"] = pd.DataFrame(reshaped)
+
+    # Save the slanted amplitude data matrix
+    CorArray = Data["Data"][0, 0]["Burst_Amplitude_Beam"]
+    reshaped = CorArray.reshape(CorArray.shape[0], -1)
+    ADCPData["Burst_AmpBeam"] = pd.DataFrame(reshaped)
+    del CorArray, reshaped
 
     # Save other fields
     ADCPData["Burst_Time"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Time"])
@@ -129,6 +134,7 @@ def read_raw_h5(path):
     Data = {}
 
     Data['CorBeam'] = pd.read_hdf(os.path.join(path, 'Burst_CorBeam.h5'))
+    Data['AmpBeam'] = pd.read_hdf(os.path.join(path, 'Burst_AmpBeam.h5'))
     Data['Heading'] = pd.read_hdf(os.path.join(path, 'Burst_Heading.h5'))
     Data['Pressure'] = pd.read_hdf(os.path.join(path, 'Burst_Pressure.h5'))
     Data['Roll'] = pd.read_hdf(os.path.join(path, 'Burst_Roll.h5'))
@@ -149,7 +155,7 @@ def read_raw_h5(path):
     Data['Altimeter_DistAST'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterDistanceAST.h5'))
     Data['Altimeter_QualLE'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterQualityLE.h5'))
     Data['Altimeter_QualAST'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterQualityAST.h5'))
-    Data['VertAmp'] = pd.read_hdf(os.path.join(path, 'Burst_VertAmplitude.h5'))
+    Data['VbAmpltidue'] = pd.read_hdf(os.path.join(path, 'Burst_VertAmplitude.h5'))
 
     # Get individual beams
     number_vertical_cells = Data['NCells'][0][0]
@@ -207,6 +213,17 @@ def read_raw_h5(path):
     # Data["VelN_mat"] = (Data["Vel_ENU_mat"].iloc[:, 1::4])
     # Data["VelU_mat"] = (Data["Vel_ENU_mat"].iloc[:, 2::4])
     # Data["VelDiff_mat"] = (Data["Vel_ENU_mat"].iloc[:, 3::4])
+
+    Data["AmpBeam1"] = (Data["AmpBeam"].iloc[:, 0:number_vertical_cells])
+    Data["AmpBeam2"] = (Data["AmpBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
+    Data['AmpBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
+    Data['AmpBeam2'].columns = range(Data['AmpBeam2'].columns.size)  # resets the column number
+    Data["AmpBeam3"] = (Data["AmpBeam"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
+    Data['AmpBeam3'].reset_index(drop=True, inplace=True)
+    Data['AmpBeam3'].columns = range(Data['AmpBeam3'].columns.size)
+    Data["AmpBeam4"] = (Data["AmpBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
+    Data['AmpBeam4'].reset_index(drop=True, inplace=True)
+    Data['AmpBeam4'].columns = range(Data['AmpBeam4'].columns.size)
 
     # Create cell depth vector
     vector = np.arange(1, Data["NCells"][0][0] + 1)
@@ -267,7 +284,12 @@ def remove_low_correlations(Data):
         isbad2 = isbad2.astype(bool)
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad, np.nan)
         Data[f"VelBeam{jj}"] = Data[f"VelBeam{jj}"].mask(isbad2, np.nan)
+        Data[f"AmpBeam{jj}"] = Data[f"AmpBeam{jj}"].mask(isbad, np.nan)
+        Data[f"AmpBeam{jj}"] = Data[f"AmpBeam{jj}"].mask(isbad2, np.nan)
         Data[f"VelBeamCorr{jj}"] = isbad2
+
+    #mask the Data
+    Data[f"VbAmplitude"] = Data[f"VbAmplitude"].mask(isbad, np.nan)
 
     return Data
 
@@ -487,5 +509,10 @@ def save_data(Data, save_dir):
         os.path.join(save_dir, 'Burst_AltimeterQualityAST.h5'), key="df", mode="w"
     )
     Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth.h5'), key="df", mode="w")
+    Data['AmpBeam1'].to_hdf(os.path.join(save_dir, 'AmpBeam1.h5'), key="df", mode="w")
+    Data['AmpBeam2'].to_hdf(os.path.join(save_dir, 'AmpBeam2.h5'), key="df", mode="w")
+    Data['AmpBeam3'].to_hdf(os.path.join(save_dir, 'AmpBeam3.h5'), key="df", mode="w")
+    Data['AmpBeam4'].to_hdf(os.path.join(save_dir, 'AmpBeam4.h5'), key="df", mode="w")
+    Data['VbAmplitude'].to_hdf(os.path.join(save_dir, 'VbAmplitude.h5'), key="df", mode="w")
 
     return

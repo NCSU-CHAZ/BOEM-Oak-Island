@@ -1,10 +1,26 @@
-from scipy.io import loadmat
+"""Perform quality control on raw data from the Nortek Signature 1000 (upward-looking ADCP)
+
+The following functions post-process raw data from a Nortek ADCP for easy processing in python and conduct basic
+data quality control.
+
+References
+----------
+
+.. [1]
+.. [2]
+
+
+Notes
+---------
+
+"""
+
+import numpy as np
 import pandas as pd
 import os
-import numpy as np
-import re
+import h5py
 from datetime import datetime, timedelta
-
+from scipy.io import loadmat
 
 
 def dtnum_dttime_adcp(datenum_array):
@@ -15,13 +31,13 @@ def dtnum_dttime_adcp(datenum_array):
     return dates
 
 def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
+    # loadmat organizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
+    # dictionary with four nested numpy arrays with dtypes as data field titles
     Data = loadmat(
         filepath
-    )  # Load mat oragnizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
-    # dictionary with four nested numpy arrays with dtypes as data field titles
+    )
     ADCPData = {}  # Initialize the dictionary we'll use
-    Config = Data['Config'][0,0]
-    # Save the correlation data matrix
+    Config = Data["Config"][0, 0]    # Save the correlation data matrix
     # Save BEAM coordinate velocity matrix
     VelArray = Data["Data"][0, 0]["Burst_Velocity_Beam"]
     reshaped = VelArray.reshape(VelArray.shape[0], -1)
@@ -40,11 +56,18 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     ADCPData["Burst_CorBeam"] = pd.DataFrame(reshaped)
     del CorArray, reshaped
 
+    # Save transformed velocity matrix (used for testing)
+    VelArray = Data["Data"][0, 0]["Burst_Velocity_ENU"]
+    reshaped = VelArray.reshape(VelArray.shape[0], -1)
+    del VelArray
+    ADCPData["Burst_ENU"] = pd.DataFrame(reshaped)
+
     # Save the slanted amplitude data matrix
     CorArray = Data["Data"][0, 0]["Burst_Amplitude_Beam"]
     reshaped = CorArray.reshape(CorArray.shape[0], -1)
     ADCPData["Burst_AmpBeam"] = pd.DataFrame(reshaped)
     del CorArray, reshaped
+
 
     # Save other fields
     ADCPData["Burst_Time"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Time"])
@@ -53,7 +76,17 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     ADCPData["Burst_Heading"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Heading"])
     ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
     ADCPData["Burst_Roll"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Roll"])
-    ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
+    
+    # Fifth Beam
+    ADCPData['Burst_AltimeterDistanceLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceLE"])
+    print('saved LE dist')
+    ADCPData['Burst_AltimeterDistanceAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceAST"])
+    print('saved AST dist')
+    ADCPData['Burst_AltimeterQualityLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityLE"])
+    print('saved LE qual')
+    ADCPData['Burst_AltimeterQualityAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityAST"])
+    print('saved AST qual')
+
     ADCPData["Echo1"] = pd.DataFrame(Data["Data"][0, 0]["Echo1Bin1_1000kHz_Echo"])
     ADCPData["Echo2"] = pd.DataFrame(Data["Data"][0, 0]["Echo2Bin1_1000kHz_Echo"])
     # Make directory if it doesn't exist
