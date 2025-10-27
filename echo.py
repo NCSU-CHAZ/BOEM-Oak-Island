@@ -36,6 +36,12 @@ if echosounder:
     transform_beam_ENUD,
     save_data,
 )
+    config_path = os.path.join(
+        directory_initial_user_path,
+        f"deployment_{deployment_num}/Raw/",
+        sensor_id + "_mat/" + "SIG_00103071_DEP4_FPSE1_config.mat",
+    )
+    
 if not echosounder:
     from Post_Processing_Scripts.process_Sig1k import (
         read_Sig1k,
@@ -80,11 +86,6 @@ sbepath = os.path.join(
     "E1RBR",
     "SBE_00003570_DEP4_FPSE1_L0.mat",
 )
-config_path = os.path.join(
-    directory_initial_user_path,
-    f"deployment_{deployment_num}/Raw/",
-    sensor_id + "_mat/" + "SIG_00103071_DEP4_FPSE1_config.mat",
-)
 
 ###############################################################################
 # convert mat files to h5 files
@@ -127,7 +128,10 @@ if run_convert_mat_h5:
         else:
             save_path = os.path.join(save_dir_data, f"Group{file_id}")
         try:
-            read_Sig1k(path, config_path, save_path)
+            if echosounder:
+                read_Sig1k(path, config_path, save_path)
+            if not echosounder:
+                read_Sig1k(path, save_path)
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
         
