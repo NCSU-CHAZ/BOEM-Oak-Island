@@ -105,6 +105,7 @@ if run_convert_mat_h5:
                 else float("inf")
             )
         )
+        sample_rate = 2
     else:
         files.sort(
             key=lambda x: (
@@ -113,6 +114,7 @@ if run_convert_mat_h5:
                 else float("inf")
             )
         )
+        sample_rate = 4
 
     file_id = group_id - 1
 
@@ -181,7 +183,7 @@ if run_quality_control:
 if run_bulk_statistics:
     try:
         print("Running bulk statistics")
-        fs=2 #Sampling frequency in Hz
+        fs=sample_rate #Sampling frequency in Hz
         Waves, sbe = initialize_bulk(
             save_dir_qc,
             sbepath,
