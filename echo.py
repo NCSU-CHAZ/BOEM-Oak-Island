@@ -1,22 +1,16 @@
 import os
 import numpy as np
 import re
-from Post_Processing_Scripts.bulkstats import (
+import datetime as dt
+from Post_Processing_Scripts.bulk_stats_Sig1k import (
     load_qc_data,
     sediment_analysis,
     save_waves,
     bulk_stats_depth_averages,
     initialize_bulk, calculate_wave_stats,sediment_analysis_vert
 )
-from analysis import (
-    read_Sig1k,
-    read_data_h5,
-    remove_low_correlations,
-    transform_beam_ENUD,
-    save_data,
-)
 
-from spectral_sediment import (calculate_sed_stats, despiker)
+from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, despiker)
 
 ###############################################################################
 # user input
@@ -34,7 +28,22 @@ run_quality_control = False
 run_bulk_statistics = True
 echosounder = True  # set to True if you want to process echosounder data, False for vertical beam
 
-
+if echosounder:
+    from Post_Processing_Scripts.process_Sig1k_echo import (
+    read_Sig1k,
+    read_data_h5,
+    remove_low_correlations,
+    transform_beam_ENUD,
+    save_data,
+)
+if not echosounder:
+    from Post_Processing_Scripts.process_Sig1k import (
+        read_Sig1k,
+        read_data_h5,
+        remove_low_correlations,
+        transform_beam_ENUD,
+        save_data,
+    )
 
 group_id = 41 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [
@@ -243,6 +252,18 @@ if run_bulk_statistics:
 ###############################################################################
 ## sediment statistics
 ###############################################################################
+
+Sediment = calculate_sed_stats(
+    Waves["SedTime"],
+    Waves["Echo1avg"],
+    event_time=dt.datetime(2024, 9, 8, 20, 00),
+    end_time=dt.datetime(2024, 9, 19, 12, 00),
+    fs=2,
+    dtburst=86400 * 4,
+    overlap=0.3,
+    dtens=86400*4,
+    mode="multitaper",
+)
 
 
 
