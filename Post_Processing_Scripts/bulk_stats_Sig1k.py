@@ -601,7 +601,7 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp):
 
 def calculate_wave_stats(
         Waves, Data, Nsamp, i, 
-        sensor_height=0.508, fs=4, dtburst=3600, dtens=512):
+        sensor_height=0.508, fs=4, dtburst=3600, dtens=512, integration_bounds= [1/20,1/3]):
     
     g= 9.81  # m/s^2, gravitational constant
 
@@ -676,7 +676,7 @@ def calculate_wave_stats(
 
     # final bulk wave statistics per burst
     df = fr.iloc[1] - fr.iloc[0]  # wind wave band
-    I = np.where((fr >= 1 / 20) & (fr <= 1/3 ))[0]
+    I = np.where((fr >= integration_bounds[0]) & (fr <= integration_bounds[1]))[0]
     m0 = np.nansum(
         SePP.iloc[I] * df
     )  # zeroth moment (total energy in the spectrum w/in incident wave band)
