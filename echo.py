@@ -27,6 +27,7 @@ run_convert_mat_h5 = False
 run_quality_control = False
 run_bulk_statistics = True
 echosounder = True  # set to True if you want to process echosounder data, False for vertical beam
+sample_rate = 4
 
 if echosounder:
     from Post_Processing_Scripts.process_Sig1k_echo import (
@@ -82,9 +83,8 @@ save_dir_bulk_stats = os.path.join(
 )
 sbepath = os.path.join(
     directory_initial_user_path,
-    f"deployment_{deployment_num}/Raw/",
-    "E1RBR",
-    "SBE_00003570_DEP4_FPSE1_L0.mat",
+    f"deployment_{deployment_num}/Raw/SBE",
+    f"SBE_{sensor_id}", ".mat",
 )
 
 ###############################################################################
@@ -115,7 +115,7 @@ if run_convert_mat_h5:
                 else float("inf")
             )
         )
-        sample_rate = 4
+        
 
     file_id = group_id - 1
 
@@ -241,7 +241,7 @@ if run_bulk_statistics:
 
                 Waves = calculate_wave_stats(
                     Waves, Data, Nsamp, i, 
-                    sensor_height=0.508, fs=fs, dtburst=3600, dtens=512)
+                    sensor_height=0.508, fs=fs, dtburst=3600, dtens=512, integration_bounds= [1/20,1/3])
                 
             print(f"Processed {group_path} for bulk statistics")
 
