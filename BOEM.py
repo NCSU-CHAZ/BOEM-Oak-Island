@@ -14,9 +14,20 @@ None
 """
 
 import os
-from Post_Processing_Scripts.process_Sig1k import read_Sig1k, read_raw_h5, remove_low_correlations, \
-    transform_beam_ENUD, save_data
-from Post_Processing_Scripts.bulk_stats_Sig1k import bulk_stats_analysis
+from Post_Processing_Scripts.process_Sig1k import (
+        read_Sig1k,
+        read_raw_h5,
+        remove_low_correlations,
+        transform_beam_ENUD,
+        save_data,
+    )
+from Post_Processing_Scripts.bulk_stats_Sig1k import (
+    load_qc_data,
+    sediment_analysis,
+    save_waves,
+    bulk_stats_depth_averages,
+    initialize_bulk, calculate_wave_stats,sediment_analysis_vert
+)
 import re
 import itertools
 
@@ -34,6 +45,7 @@ directory_initial_user_path = r"Z:/"  # Levi
 run_convert_mat_h5 = False
 run_quality_control = False
 run_bulk_statistics = True
+sample_rate = 4 # E1 is 2, S0 and S1 are 4
 
 group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [0]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
@@ -47,6 +59,9 @@ save_dir_raw = os.path.join(directory_initial_user_path, f"deployment_{deploymen
 save_dir_qc = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Processed/", sensor_id + "/")
 save_dir_bulk_stats = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/BulkStats/",
                                    sensor_id + "/")
+sbepath = os.path.join(directory_initial_user_path,f"deployment_{deployment_num}/Raw/SBE",f"SBE_{sensor_id}", ".mat",
+)
+
 
 ###############################################################################
 # convert mat files to h5 files
@@ -116,5 +131,66 @@ if run_quality_control:
 ###############################################################################
 # bulk statistics
 ###############################################################################
+
 if run_bulk_statistics:
-    waves = bulk_stats_analysis(save_dir_qc, save_dir_bulk_stats, group_ids_exclude)
+    try:
+        print("Running bulk statistics")
+        fs=sample_rate #Sampling frequency in Hz
+        Waves, sbe = initialize_bulk(
+            save_dir_qc,
+            sbepath,
+            dtburst=3600,
+            dtens=512,
+            fs=fs,
+            sensor_height=0.508,
+            depth_threshold=3,
+        )
+
+        group_dirs = [
+            entry
+            for entry in os.scandir(save_dir_qc)
+            if entry.is_dir() and entry.name.startswith("Group")
+        ]
+
+        # Sort the directories to ensure you process them in order
+        group_dirs.sort(key=lambda x: int(x.name.replace("Group", "")))
+
+        # only loop through directories specified by the user
+        for index in sorted(group_ids_exclude, reverse=True):
+            del group_dirs[index]
+
+        for group_dir in group_dirs:
+            group_path = group_dir.path  # Get the full path of the current group
+            Data, Waves = load_qc_data(group_path, Waves)
+
+            dtburst = 3600  # duration of each burst in seconds
+            # Get number of total samples in group
+            nt = len(Data["Time"])
+            Nsamp = dtburst * fs  # number of samples per burst
+            N = nt // Nsamp
+            Nb = len(Data["Celldepth"])  # Number of bins
+            
+            print("Iterating...")
+
+            # Loop over ensembles ("bursts")
+            for i in range(N):
+            
+                Waves = bulk_stats_depth_averages(
+                    Waves,Data,i,Nsamp
+                )
+
+                Waves = calculate_wave_stats(
+                    Waves, Data, Nsamp, i, 
+                    sensor_height=0.508, fs=fs, dtburst=3600, dtens=512, integration_bounds= [1/20,1/3])
+                
+            print(f"Processed {group_path} for bulk statistics")
+
+            # Save the processed waves data
+
+        save_waves(Waves, save_dir_bulk_stats)
+
+        print("Saved Waves data to directory:", group_path)
+    
+    except Exception as e:
+        print(f"Error processing {e}")
+

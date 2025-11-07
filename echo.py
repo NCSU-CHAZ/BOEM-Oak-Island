@@ -46,7 +46,7 @@ if echosounder:
 if not echosounder:
     from Post_Processing_Scripts.process_Sig1k import (
         read_Sig1k,
-        read_data_h5,
+        read_raw_h5,
         remove_low_correlations,
         transform_beam_ENUD,
         save_data,
@@ -162,7 +162,7 @@ if run_quality_control:
         try:
             # call post-processing functions
             print(f"read in data")
-            Data = read_data_h5(path)  # KA: needed to install pytables
+            Data = read_raw_h5(path)  # KA: needed to install pytables
 
             Data = remove_low_correlations(Data)
             print(f"removed low correlations")
