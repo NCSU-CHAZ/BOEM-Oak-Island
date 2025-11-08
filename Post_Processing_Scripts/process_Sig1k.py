@@ -496,18 +496,6 @@ def save_data(Data, save_dir):
     Data['VelBeamCorr4'].to_hdf(
         os.path.join(save_dir, 'VelBeamCorr4.h5'), key="df", mode="w"
     )
-    Data['AltimeterLE'].to_hdf(
-        os.path.join(save_dir, 'Burst_AltimeterDistanceLE.h5'), key="df", mode="w"
-    )
-    Data['AltimeterAST'].to_hdf(
-        os.path.join(save_dir, 'Burst_AltimeterDistanceAST.h5'), key="df", mode="w"
-    )
-    Data['QualityLE'].to_hdf(
-        os.path.join(save_dir, 'Burst_AltimeterQualityLE.h5'), key="df", mode="w"
-    )
-    Data['QualityAST'].to_hdf(
-        os.path.join(save_dir, 'Burst_AltimeterQualityAST.h5'), key="df", mode="w"
-    )
     Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth.h5'), key="df", mode="w")
     Data['AmpBeam1'].to_hdf(os.path.join(save_dir, 'AmpBeam1.h5'), key="df", mode="w")
     Data['AmpBeam2'].to_hdf(os.path.join(save_dir, 'AmpBeam2.h5'), key="df", mode="w")

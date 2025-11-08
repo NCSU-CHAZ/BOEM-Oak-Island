@@ -35,7 +35,7 @@ import itertools
 # user input
 ###############################################################################
 
-deployment_num = 1
+deployment_num = 2
 sensor_id = "S0_103080"  # S1_101418 or S0_103080
 #directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde-1/BOEM/"  # Brooke /
@@ -47,7 +47,7 @@ run_quality_control = False
 run_bulk_statistics = True
 sample_rate = 4 # E1 is 2, S0 and S1 are 4
 
-group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
+group_id = 1  # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [0]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
