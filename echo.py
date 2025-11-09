@@ -17,16 +17,16 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 ###############################################################################
 
 deployment_num = 1
-sensor_id = "E1_103071"  # S1_101418 or S0_103080
+sensor_id = 'S1_101418'  # S1_101418 or S0_103080
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = False
-run_quality_control = False
+run_convert_mat_h5 = True
+run_quality_control = True
 run_bulk_statistics = True
-echosounder = True  # set to True if you want to process echosounder data, False for vertical beam
+echosounder = False # set to True if you want to process echosounder data, False for vertical beam
 sample_rate = 4
 
 if echosounder:
@@ -40,7 +40,7 @@ if echosounder:
     config_path = os.path.join(
         directory_initial_user_path,
         f"deployment_{deployment_num}/Raw/",
-        sensor_id + "_mat/" + "SIG_00103071_DEP4_FPSE1_config.mat",
+        sensor_id + "_mat/" + f"SIG_00103071_DEP{deployment_num}_FPSE1_config.mat",
     )
     
 if not echosounder:
