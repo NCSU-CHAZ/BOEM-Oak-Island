@@ -154,7 +154,7 @@ def read_raw_h5(path):
     Data['Altimeter_DistAST'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterDistanceAST.h5'))
     Data['Altimeter_QualLE'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterQualityLE.h5'))
     Data['Altimeter_QualAST'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterQualityAST.h5'))
-    Data['VbAmpltidue'] = pd.read_hdf(os.path.join(path, 'Burst_VbAmplitude.h5'))
+    Data['VbAmplitude'] = pd.read_hdf(os.path.join(path, 'Burst_VbAmplitude.h5'))
 
     # Get individual beams
     number_vertical_cells = Data['NCells'][0][0]

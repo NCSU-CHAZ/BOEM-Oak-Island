@@ -161,7 +161,7 @@ def read_raw_h5(path):
     Data['NCells'] = pd.read_hdf(os.path.join(path, 'Burst_NCells.h5'))
     Data['CellSize'] = pd.read_hdf(os.path.join(path, 'Burst_CellSize.h5'))
     Data['SampleRate'] = pd.read_hdf(os.path.join(path, 'Burst_SampleRate.h5'))
-    Data['VbAmplitude'] = pd.read_hdf(os.path.join(path, 'Burst_VertAmplitude.h5'))
+    Data['VbAmplitude'] = pd.read_hdf(os.path.join(path, 'Burst_VbAmplitude.h5'))
     Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array.to_numpy().ravel()))
 
 
