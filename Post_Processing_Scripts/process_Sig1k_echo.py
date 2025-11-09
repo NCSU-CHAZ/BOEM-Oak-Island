@@ -125,7 +125,7 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     
     print(f"Converted mat to hdr for {save_path}")
 
-def read_data_h5(path):
+def read_raw_h5(path):
     """
     Read h5 files of data data from Sig1000. Raw data converted from mat to h5 in 'read_Sig1k'
 
