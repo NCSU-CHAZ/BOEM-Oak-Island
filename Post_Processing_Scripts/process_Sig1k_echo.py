@@ -30,16 +30,14 @@ def dtnum_dttime_adcp(datenum_array):
         dates.append(python_datetime)
     return dates
 
-
-def read_Sig1k(filepath, save_dir):  # Create read function
+def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     # loadmat organizes the 4 different data structures of the .mat file (Units, Config, Data, Description) as a
     # dictionary with four nested numpy arrays with dtypes as data field titles
     Data = loadmat(
         filepath
     )
     ADCPData = {}  # Initialize the dictionary we'll use
-    Config = Data["Config"][0, 0]
-
+    Config = Data["Config"][0, 0]    # Save the correlation data matrix
     # Save BEAM coordinate velocity matrix
     VelArray = Data["Data"][0, 0]["Burst_Velocity_Beam"]
     reshaped = VelArray.reshape(VelArray.shape[0], -1)
@@ -50,8 +48,8 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     VelArray = Data["Data"][0, 0]["IBurst_Amplitude_Beam"]
     reshaped = VelArray.reshape(VelArray.shape[0],-1)
     del VelArray
-    ADCPData['Burst_VbAmplitude'] = pd.DataFrame(reshaped)
-    
+    ADCPData['Burst_VertAmplitude'] = pd.DataFrame(reshaped)
+
     # Save the correlation data matrix
     CorArray = Data["Data"][0, 0]["Burst_Correlation_Beam"]
     reshaped = CorArray.reshape(CorArray.shape[0], -1)
@@ -70,6 +68,7 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     ADCPData["Burst_AmpBeam"] = pd.DataFrame(reshaped)
     del CorArray, reshaped
 
+
     # Save other fields
     ADCPData["Burst_Time"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Time"])
     ADCPData["Burst_NCells"] = pd.DataFrame(Data["Data"][0, 0]["Burst_NCells"])
@@ -77,7 +76,7 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     ADCPData["Burst_Heading"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Heading"])
     ADCPData["Burst_Pitch"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Pitch"])
     ADCPData["Burst_Roll"] = pd.DataFrame(Data["Data"][0, 0]["Burst_Roll"])
-
+    
     # Fifth Beam
     ADCPData['Burst_AltimeterDistanceLE']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterDistanceLE"])
     print('saved LE dist')
@@ -88,50 +87,62 @@ def read_Sig1k(filepath, save_dir):  # Create read function
     ADCPData['Burst_AltimeterQualityAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityAST"])
     print('saved AST qual')
 
-    BlankDist = pd.DataFrame(Config["Burst_BlankingDistance"])
-    CellSize = pd.DataFrame(Config["Burst_CellSize"])
-    SampleRate = pd.DataFrame(Config["Burst_SamplingRate"])
-    Beam2xyz = pd.DataFrame(Config["Burst_Beam2xyz"])
-
+    ADCPData["Echo1"] = pd.DataFrame(Data["Data"][0, 0]["Echo1Bin1_1000kHz_Echo"])
+    ADCPData["Echo2"] = pd.DataFrame(Data["Data"][0, 0]["Echo2Bin1_1000kHz_Echo"])
     # Make directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)
 
+    # Save config parameters that are needed for processing
+    CellSize = pd.DataFrame(Config["Burst_CellSize"])
+    SampleRate = pd.DataFrame(Config["Burst_SamplingRate"])
+    Beam2xyz = pd.DataFrame(Config["Burst_Beam2xyz"])
+    BlankDist = pd.DataFrame(Config["EchoSounder_BlankingDistance"])
+    EchoCellSize = pd.DataFrame(Config["EchoSounder_CellSize"])
+    EchoFr = pd.DataFrame(Config["EchoSounder_Frequency1"])
+    EchoTransmitLength = pd.DataFrame(Config["EchoSounder_TransmitLength1"])
+    Beam2xyz = pd.DataFrame(Config["Burst_Beam2xyz"])
+    SampleRate = pd.DataFrame(Config["Burst_SamplingRate"])
+    NCells = pd.DataFrame(Config["Burst_NCells"])
+    
     # Save files there
-    BlankDist.to_hdf(
-        os.path.join(save_dir, "Burst_BlankingDistance.h5"), key="df", mode="w"
-    )
+    NCells.to_hdf(os.path.join(save_dir, "Burst_NCells.h5"), key="df", mode="w")
     CellSize.to_hdf(os.path.join(save_dir, "Burst_CellSize.h5"), key="df", mode="w")
-    SampleRate.to_hdf(
-        os.path.join(save_dir, "Burst_SamplingRate.h5"), key="df", mode="w"
+    BlankDist.to_hdf(
+        os.path.join(save_dir, "EchoBlankingDistance.h5"), key="df", mode="w"
     )
-    Beam2xyz.to_hdf(os.path.join(save_dir, "Burst_Beam2xyz.h5"), key="df", mode="w")
-
+    EchoCellSize.to_hdf(os.path.join(save_dir, "EchoCellSize.h5"), key="df", mode="w")
+    EchoFr.to_hdf(
+        os.path.join(save_dir, "EchoFrequency.h5"), key="df", mode="w"
+    )
+    Beam2xyz.to_hdf(os.path.join(save_dir, "Beam2xyz.h5"), key="df", mode="w")
+    EchoTransmitLength.to_hdf(os.path.join(save_dir, "EchoTransmitLength.h5"), key="df", mode="w")
+    SampleRate.to_hdf(os.path.join(save_dir, "Burst_SampleRate.h5"), key="df", mode="w")
+    
     for field_name, df in ADCPData.items():
         save_path = os.path.join(save_dir, f"{field_name}.h5")
         df.to_hdf(save_path, key="df", mode="w")
         print(f"Saved {field_name} to {save_path}")
-
-    print("Saving Done")
-
+    
+    print(f"Converted mat to hdr for {save_path}")
 
 def read_raw_h5(path):
     """
-    Read h5 files of raw data from Sig1000. Raw data converted from mat to h5 in 'read_Sig1k'
+    Read h5 files of data data from Sig1000. Raw data converted from mat to h5 in 'read_Sig1k'
 
     :param:
     path: string
-        path to directory to raw h5 files
+        path to directory to data h5 files
     save_dir: string
         path to directory where processed, quality controlled data should be saved
 
     :return:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
     """
 
     # initialize the Data dictionary as well as it's keys
     Data = {}
-
+    
     Data['CorBeam'] = pd.read_hdf(os.path.join(path, 'Burst_CorBeam.h5'))
     Data['AmpBeam'] = pd.read_hdf(os.path.join(path, 'Burst_AmpBeam.h5'))
     Data['Heading'] = pd.read_hdf(os.path.join(path, 'Burst_Heading.h5'))
@@ -139,25 +150,25 @@ def read_raw_h5(path):
     Data['Roll'] = pd.read_hdf(os.path.join(path, 'Burst_Roll.h5'))
     datenum_array = pd.read_hdf(os.path.join(path, 'Burst_Time.h5'))
     Data['VelBeam'] = pd.read_hdf(os.path.join(path, 'Burst_VelBeam.h5'))
-    Data['Vel_ENU_mat'] = pd.read_hdf(os.path.join(path, 'Burst_ENU.h5'))
+    Data['TransmitLength'] = pd.read_hdf(os.path.join(path, 'EchoTransmitLength.h5'))
     Data['Pitch'] = pd.read_hdf(os.path.join(path, 'Burst_Pitch.h5'))
-
-    Data['Beam2xyz'] = pd.read_hdf(os.path.join(path, 'Burst_Beam2xyz.h5'))
-    Data['BlankingDistance'] = pd.read_hdf(os.path.join(path, 'Burst_BlankingDistance.h5'))
-    Data['CellSize'] = pd.read_hdf(os.path.join(path, 'Burst_CellSize.h5'))
+    Data['Echo1'] = pd.read_hdf(os.path.join(path, 'Echo1.h5'))
+    Data['Echo2'] = pd.read_hdf(os.path.join(path, 'Echo2.h5'))
+    Data['Beam2xyz'] = pd.read_hdf(os.path.join(path, 'Beam2xyz.h5'))
+    Data['BlankingDistance'] = pd.read_hdf(os.path.join(path, 'EchoBlankingDistance.h5'))
+    Data['EchoCellSize'] = pd.read_hdf(os.path.join(path, 'EchoCellSize.h5'))
+    Data['EchoFrequency'] = pd.read_hdf(os.path.join(path, 'EchoFrequency.h5'))
     Data['NCells'] = pd.read_hdf(os.path.join(path, 'Burst_NCells.h5'))
-    Data['SampleRate'] = pd.read_hdf(os.path.join(path, 'Burst_SamplingRate.h5'))
-    Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array[0].values))
-
-    # Get Fifth Beam
-    Data['Altimeter_DistLE'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterDistanceLE.h5'))
-    Data['Altimeter_DistAST'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterDistanceAST.h5'))
-    Data['Altimeter_QualLE'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterQualityLE.h5'))
-    Data['Altimeter_QualAST'] = pd.read_hdf(os.path.join(path, 'Burst_AltimeterQualityAST.h5'))
+    Data['CellSize'] = pd.read_hdf(os.path.join(path, 'Burst_CellSize.h5'))
+    Data['SampleRate'] = pd.read_hdf(os.path.join(path, 'Burst_SampleRate.h5'))
     Data['VbAmplitude'] = pd.read_hdf(os.path.join(path, 'Burst_VbAmplitude.h5'))
+    Data["Time"] = pd.DataFrame(dtnum_dttime_adcp(datenum_array.to_numpy().ravel()))
+
 
     # Get individual beams
     number_vertical_cells = Data['NCells'][0][0]
+    
+    # Get individual beams
     Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0:number_vertical_cells])
     Data["VelBeam2"] = (Data["VelBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
     Data['VelBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
@@ -168,14 +179,7 @@ def read_raw_h5(path):
     Data["VelBeam4"] = (Data["VelBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
     Data['VelBeam4'].reset_index(drop=True, inplace=True)
     Data['VelBeam4'].columns = range(Data['VelBeam4'].columns.size)
-    # Data["VelBeam1"] = (Data["VelBeam"].iloc[:, 0::4])
-    # Data['VelBeam1'].reset_index(drop=True, inplace=True)
-    # Data["VelBeam2"] = (Data["VelBeam"].iloc[:, 1::4])
-    # Data['VelBeam2'].reset_index(drop=True, inplace=True)
-    # Data["VelBeam3"] = (Data["VelBeam"].iloc[:, 2::4])
-    # Data['VelBeam3'].reset_index(drop=True, inplace=True)
-    # Data["VelBeam4"] = (Data["VelBeam"].iloc[:, 3::4])
-    # Data['VelBeam4'].reset_index(drop=True, inplace=True)
+
 
     # Get individual beams
     Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0:number_vertical_cells])
@@ -188,31 +192,9 @@ def read_raw_h5(path):
     Data["CorBeam4"] = (Data["CorBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
     Data['CorBeam4'].reset_index(drop=True, inplace=True)
     Data['CorBeam4'].columns = range(Data['CorBeam4'].columns.size)
-    # Data["CorBeam1"] = (Data["CorBeam"].iloc[:, 0::4])
-    # Data['CorBeam1'].reset_index(drop=True, inplace=True)
-    # Data["CorBeam2"] = (Data["CorBeam"].iloc[:, 1::4])
-    # Data['CorBeam2'].reset_index(drop=True, inplace=True)
-    # Data["CorBeam3"] = (Data["CorBeam"].iloc[:, 2::4])
-    # Data['CorBeam3'].reset_index(drop=True, inplace=True)
-    # Data["CorBeam4"] = (Data["CorBeam"].iloc[:, 3::4])
-    # Data['CorBeam4'].reset_index(drop=True, inplace=True)
+    
 
-    # Get individual beams ENU for testing
-    Data["VelE_mat"] = (Data["Vel_ENU_mat"].iloc[:, 0:number_vertical_cells])
-    Data["VelN_mat"] = (Data["Vel_ENU_mat"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
-    Data['VelN_mat'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
-    Data['VelN_mat'].columns = range(Data['VelN_mat'].columns.size)  # resets the column number
-    Data["VelU_mat"] = (Data["Vel_ENU_mat"].iloc[:, number_vertical_cells * 2:number_vertical_cells * 3])
-    Data['VelU_mat'].reset_index(drop=True, inplace=True)
-    Data['VelU_mat'].columns = range(Data['VelU_mat'].columns.size)
-    Data["VelDiff_mat"] = (Data["Vel_ENU_mat"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
-    Data['VelDiff_mat'].reset_index(drop=True, inplace=True)
-    Data['VelDiff_mat'].columns = range(Data['VelDiff_mat'].columns.size)
-    # Data["VelE_mat"] = (Data["Vel_ENU_mat"].iloc[:, 0::4])  # this is wrong, they should be sequential [0-29], [30-59], [60-etc]..
-    # Data["VelN_mat"] = (Data["Vel_ENU_mat"].iloc[:, 1::4])
-    # Data["VelU_mat"] = (Data["Vel_ENU_mat"].iloc[:, 2::4])
-    # Data["VelDiff_mat"] = (Data["Vel_ENU_mat"].iloc[:, 3::4])
-
+    #Get individual beams
     Data["AmpBeam1"] = (Data["AmpBeam"].iloc[:, 0:number_vertical_cells])
     Data["AmpBeam2"] = (Data["AmpBeam"].iloc[:, number_vertical_cells:number_vertical_cells * 2])
     Data['AmpBeam2'].reset_index(drop=True, inplace=True)  # KA: not sure if this is needed
@@ -223,16 +205,29 @@ def read_raw_h5(path):
     Data["AmpBeam4"] = (Data["AmpBeam"].iloc[:, number_vertical_cells * 3:number_vertical_cells * 4])
     Data['AmpBeam4'].reset_index(drop=True, inplace=True)
     Data['AmpBeam4'].columns = range(Data['AmpBeam4'].columns.size)
+    
+    
 
     # Create cell depth vector
     vector = np.arange(1, Data["NCells"][0][0] + 1)
 
+    # Calculate the depth of each cell
     Data["CellDepth"] = (
             Data["BlankingDistance"][0].iloc[0]
             + vector * Data["CellSize"][0].iloc[0]
     )
-    return Data
 
+    #Create echo cell depth vector
+    Data['EchoNCells'] = Data['Echo1'].shape[1]  # Number of echo cells
+    vector = np.arange(1, Data["EchoNCells"]+ 1)
+
+    # Calculate the depth of each cell
+    Data["CellDepth_echo"] = (
+            Data["BlankingDistance"][0].iloc[0]
+            + vector * Data["EchoCellSize"][0].iloc[0]
+    )
+
+    return Data
 
 def remove_low_correlations(Data):
     """
@@ -247,11 +242,11 @@ def remove_low_correlations(Data):
 
     :param:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
 
     :return:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
 
     """
 
@@ -263,9 +258,13 @@ def remove_low_correlations(Data):
     CorrThresh = (
             0.3 + 0.4 * (Sr / 25) ** 0.5
     )  # Threshold for correlation values as found in Elgar
+    
+    row, col = Data['VbAmplitude'].shape
+    row1, col2 = Data['Echo1'].shape
+
 
     isbad = np.zeros((row, col))  # Initialize mask for above surface measurements
-
+    echobad = np.zeros((row1, col2))
     # Apply mask for surface measurements
     for i in range(len(isbad)):
         Depth_Thresh = (
@@ -286,11 +285,27 @@ def remove_low_correlations(Data):
         Data[f"AmpBeam{jj}"] = Data[f"AmpBeam{jj}"].mask(isbad, np.nan)
         Data[f"AmpBeam{jj}"] = Data[f"AmpBeam{jj}"].mask(isbad2, np.nan)
         Data[f"VelBeamCorr{jj}"] = isbad2
+    # Apply mask for surface measurements for the echo sounders 
+    
+    for i in range(len(echobad)):
+        Depth_Thresh1 = (
+            Data["Pressure"].iloc[i][0] * np.cos(25 * np.pi / 180)
+            - Data["EchoCellSize"][0].iloc[0]-.5 # Subtract an additional .5 to get rid of the top several bins that often times have weird looking spikes in signals
+        )
+        echobad[i, :] = Data["CellDepth_echo"] >= Depth_Thresh1
+    echobad = echobad.astype(bool)
+    Data["EchoDepthThresh"] = echobad
+  
 
+    # Mask the data 
+    Data["Echo1"] = Data["Echo1"].mask(echobad, np.nan)
+    Data["Echo2"] = Data["Echo2"].iloc[1:,:].mask(echobad, np.nan)
+    
     #mask the Data
     Data[f"VbAmplitude"] = Data[f"VbAmplitude"].mask(isbad, np.nan)
 
     return Data
+
 
 
 def transform_beam_ENUD(Data):
@@ -303,16 +318,16 @@ def transform_beam_ENUD(Data):
 
     :param:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
 
     :return:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
     """
-
+    
     # Load the transformation matrix
     T = pd.DataFrame(Data["Beam2xyz"]).to_numpy()
-
+    
     # Transform attitude data to radians
     hh = np.pi * (Data["Heading"].to_numpy() - 90) / 180
     pp = np.pi * Data["Pitch"].to_numpy() / 180
@@ -320,12 +335,14 @@ def transform_beam_ENUD(Data):
 
     # Create the tiled transformation matrix, this is for applying the transformation later to each data point
     row, col = Data["VelBeam1"].to_numpy().shape  # Get the dimensions of the matrices
+    
     Tmat = np.tile(T, (row, 1, 1))
-
+    
     # Initialize heading and tilt matrices
     Hmat = np.zeros((3, 3, row))
     Pmat = np.zeros((3, 3, row))
-
+    
+    
     # Using vector mat populate the heading matrix and pitch/roll matrix with the appropriate values
     # The 3x3xrow matrix is the spatial dimensios at each measurement
     for i in range(row):
@@ -348,7 +365,6 @@ def transform_beam_ENUD(Data):
                 np.cos(pp[i][0]) * np.cos(rr[i][0]),
             ],
         ]
-
     # Combine the Hmat and Pmat vectors into one rotation matrix, this conversion matrix is organized with beams in the
     # columns and the rotation values on the rows (for each data point). The original Hmat and Pmat matrices are only
     # made with the one Z value in mind so we duplicate the 4 row of the transform matirx to create the fourth, same
@@ -358,9 +374,8 @@ def transform_beam_ENUD(Data):
     #                Y   [                               ]             (at nth individual sample)
     #               Z1   [                          0    ]
     #               Z2   [                  0            ]
-
+    
     R1Mat = np.zeros((4, 4, row))  # initialize rotation matrix
-
     for i in range(row):
         R1Mat[0:3, 0:3, i] = Hmat[:, :, i] @ Pmat[:, :, i]  # Matrix multiplication
         R1Mat[3, 0:4, i] = R1Mat[2, 0:4, i]  # Create fourth row
@@ -369,7 +384,6 @@ def transform_beam_ENUD(Data):
     # We zero out these value since Beams 3 and 4 can't measure both Z's
     R1Mat[2, 3, :] = 0
     R1Mat[3, 2, :] = 0
-
     Rmat = np.zeros((4, 4, row))
 
     Tmat = np.swapaxes(Tmat, 0, -1)
@@ -401,8 +415,7 @@ def transform_beam_ENUD(Data):
     Data['NorthVel'] = pd.DataFrame(Data['ENU'][:, :, 1])
     Data['VertVel'] = pd.DataFrame(Data['ENU'][:, :, 2])
     Data['ErrVel'] = pd.DataFrame(Data['ENU'][:, :, 3])
-    # print(f"Sample EastVel values: {Data['EastVel'].head()}") debugging line
-
+    
     # Add matrices with NaN values together treating nan values as 0, this is for calculating the absolute velocity
     nan_mask = np.full((row, col), False)
 
@@ -422,15 +435,12 @@ def transform_beam_ENUD(Data):
     Data["AbsVel"] = pd.DataFrame(
         np.sqrt(NorthVel_no_nan ** 2 + EastVel_no_nan ** 2 + VertVel_no_nan ** 2)
     )
-
     # Reapply the mask to set positions with any original NaNs back to NaN
     Data["AbsVel"][~nan_mask] = np.nan
     Data['CellDepth'] = pd.DataFrame(Data['CellDepth'])
+    Data['CellDepth_echo'] = pd.DataFrame(Data['CellDepth_echo'])
 
-    # print(f"AbsVel shape: {Data['AbsVel'].shape}")
-    # print(f"Sample AbsVel values: {Data['AbsVel'].head()}")
     return Data
-
 
 def save_data(Data, save_dir):
     """
@@ -438,7 +448,7 @@ def save_data(Data, save_dir):
 
     :param:
     Data: dictionary
-        raw data as a dictionary
+        data data as a dictionary
     save_dir: string
         path to directory where processed, quality controlled data should be saved
 
@@ -446,11 +456,12 @@ def save_data(Data, save_dir):
     none
 
     """
-    # Open the HDF5 file in write mode
-    file_path = os.path.join(save_dir, 'DepthThresh.h5')
-    with h5py.File(file_path, 'w') as f:
-        # Save the NumPy array under the key 'df'
-        f.create_dataset('df', data=Data['DepthThresh'])
+    print("Saving data to ", save_dir)
+    # # Open the HDF5 file in write mode
+    # file_path = os.path.join(save_dir, 'DepthThresh.h5')
+    # with h5py.File(file_path, 'w') as f:
+    #     # Save the NumPy array under the key 'df'
+    #     f.create_dataset('df', data=Data['DepthThresh'])
 
     # Save the data fields
     Data['AbsVel'].to_hdf(
@@ -496,6 +507,9 @@ def save_data(Data, save_dir):
         os.path.join(save_dir, 'VelBeamCorr4.h5'), key="df", mode="w"
     )
     Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth.h5'), key="df", mode="w")
+    Data['Echo1'].to_hdf(os.path.join(save_dir, 'Echo1.h5'), key="df", mode="w")
+    Data['Echo2'].to_hdf(os.path.join(save_dir, 'Echo2.h5'), key="df", mode="w")
+    Data['CellDepth_echo'].to_hdf(os.path.join(save_dir, 'CellDepth_echo.h5'), key="df", mode="w")
     Data['AmpBeam1'].to_hdf(os.path.join(save_dir, 'AmpBeam1.h5'), key="df", mode="w")
     Data['AmpBeam2'].to_hdf(os.path.join(save_dir, 'AmpBeam2.h5'), key="df", mode="w")
     Data['AmpBeam3'].to_hdf(os.path.join(save_dir, 'AmpBeam3.h5'), key="df", mode="w")
@@ -503,3 +517,4 @@ def save_data(Data, save_dir):
     Data['VbAmplitude'].to_hdf(os.path.join(save_dir, 'VbAmplitude.h5'), key="df", mode="w")
 
     return
+

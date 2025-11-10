@@ -1,26 +1,7 @@
-"""Run script for BOEM deployments: process and analyze data from Nortek Signature 1000s
-
-Here we provide a template for the workflow used in quality control and statistical analysis of bottom mounted ADCP data
-as part of the lander deployments at Frying Pan Shoals (on behalf of BOEM and Oak Island).
-
-References
-----------
-None
-
-Notes
----------
-None
-
-"""
-
 import os
-from Post_Processing_Scripts.process_Sig1k import (
-        read_Sig1k,
-        read_raw_h5,
-        remove_low_correlations,
-        transform_beam_ENUD,
-        save_data,
-    )
+import numpy as np
+import re
+import datetime as dt
 from Post_Processing_Scripts.bulk_stats_Sig1k import (
     load_qc_data,
     sediment_analysis,
@@ -28,52 +9,113 @@ from Post_Processing_Scripts.bulk_stats_Sig1k import (
     bulk_stats_depth_averages,
     initialize_bulk, calculate_wave_stats,sediment_analysis_vert
 )
-import re
-import itertools
+
+from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, despiker)
 
 ###############################################################################
 # user input
 ###############################################################################
 
-deployment_num = 2
-sensor_id = "S0_103080"  # S1_101418 or S0_103080
-#directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-# directory_initial_user_path = r"/Volumes/kanarde-1/BOEM/"  # Brooke /
+deployment_num = 1
+sensor_id = 'S1_101418'  # S1_101418 or S0_103080 or E1_103071
+# directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
+# directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
 run_quality_control = False
 run_bulk_statistics = True
-sample_rate = 4 # E1 is 2, S0 and S1 are 4
+echosounder = False # set to True if you want to process echosounder data, False for vertical beam
+sample_rate = 4
 
-group_id = 1  # specify if you want to process starting at a specific group_id; must be 1 or greater
-group_ids_exclude = [0]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
+if echosounder:
+    from Post_Processing_Scripts.process_Sig1k_echo import (
+    read_Sig1k,
+    read_raw_h5,
+    remove_low_correlations,
+    transform_beam_ENUD,
+    save_data,
+)
+    config_path = os.path.join(
+        directory_initial_user_path,
+        f"deployment_{deployment_num}/Raw/",
+        sensor_id + "_mat/" + f"SIG_00103071_DEP{deployment_num}_FPSE1_config.mat",
+    )
+    
+if not echosounder:
+    from Post_Processing_Scripts.process_Sig1k import (
+        read_Sig1k,
+        read_raw_h5,
+        remove_low_correlations,
+        transform_beam_ENUD,
+        save_data,
+    )
+
+group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
+group_ids_exclude = [
+    0, -1
+]  # for processing bulk statistics; skip group 1 and the last group (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
 ###############################################################################
 # create paths to save directories
 ###############################################################################
-directory_path_mat = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_mat/")
-save_dir_raw = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Raw/", sensor_id + "_hdf/")
-save_dir_qc = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Processed/", sensor_id + "/")
-save_dir_bulk_stats = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/BulkStats/",
-                                   sensor_id + "/")
-sbepath = os.path.join(directory_initial_user_path,f"deployment_{deployment_num}/Raw/SBE",f"SBE_{sensor_id}", ".mat",
+directory_path_mat = os.path.join(
+    directory_initial_user_path,
+    f"deployment_{deployment_num}/Raw/",
+    sensor_id + "_mat/",
 )
-
+save_dir_data = os.path.join(
+    directory_initial_user_path,
+    f"deployment_{deployment_num}/Raw/",
+    sensor_id + "_hdf/",
+)
+save_dir_qc = os.path.join(
+    directory_initial_user_path,
+    f"deployment_{deployment_num}/Processed/",
+    sensor_id + "/",
+)
+save_dir_bulk_stats = os.path.join(
+    directory_initial_user_path,
+    f"deployment_{deployment_num}/BulkStats/",
+    sensor_id + "/",
+)
+sbepath = os.path.join(
+    directory_initial_user_path,
+    f"deployment_{deployment_num}/Raw/SBE",
+    f"SBE_{sensor_id}.mat",
+)
 
 ###############################################################################
 # convert mat files to h5 files
 ###############################################################################
-if run_convert_mat_h5:
 
+if run_convert_mat_h5:
+    print("Running mat conversion")
     files = [
         f
         for f in os.listdir(directory_path_mat)
         if os.path.isfile(os.path.join(directory_path_mat, f))
     ]
-    files.sort(key=lambda x: int(re.search(r"NCSU_(\d+)", x).group(1)) if re.search(r"NCSU_(\d+)", x) else float('inf'))
+    if sensor_id == "E1_103071":
+        files.sort(
+            key=lambda x: (
+                int(re.search(r"FPS4_(\d+)", x).group(1))
+                if re.search(r"FPS4_(\d+)", x)
+                else float("inf")
+            )
+        )
+        sample_rate = 2
+    else:
+        files.sort(
+            key=lambda x: (
+                int(re.search(r"NCSU_(\d+)", x).group(1))
+                if re.search(r"NCSU_(\d+)", x)
+                else float("inf")
+            )
+        )
+        
 
     file_id = group_id - 1
 
@@ -82,30 +124,35 @@ if run_convert_mat_h5:
         path = os.path.join(directory_path_mat, file_name)
         print(path)
         if file_id < 10:
-            save_path = os.path.join(save_dir_raw, f"Group0{file_id}")
+            save_path = os.path.join(save_dir_data, f"Group0{file_id}")
         else:
-            save_path = os.path.join(save_dir_raw, f"Group{file_id}")
-        # read_Sig1k(path, save_path)
+            save_path = os.path.join(save_dir_data, f"Group{file_id}")
         try:
-            read_Sig1k(path, save_path)
+            if echosounder:
+                read_Sig1k(path, config_path, save_path)
+            if not echosounder:
+                read_Sig1k(path, save_path)
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
+        
 
 ###############################################################################
 # quality control
 ###############################################################################
+
 if run_quality_control:
+    print("Running Quality Control")
 
-    files = sorted(os.listdir(save_dir_raw))
+    files = sorted(os.listdir(save_dir_data))
 
-    if '.DS_Store' in files:  # remove hidden files on macs
-        files.remove('.DS_Store')
+    if ".DS_Store" in files:  # remove hidden files on macs
+        files.remove(".DS_Store")
     folder_id = group_id - 1
 
     for file_name in files[folder_id:]:
         # import folder names
         folder_id += 1
-        path = os.path.join(save_dir_raw, file_name)
+        path = os.path.join(save_dir_data, file_name)
         print(path)
         if folder_id < 10:
             save_path_name = os.path.join(save_dir_qc, f"Group0{folder_id}")
@@ -114,23 +161,28 @@ if run_quality_control:
         print(f"Processing {file_name}")  # for debugging
         try:
             # call post-processing functions
-            Data = read_raw_h5(path)  # KA: needed to install pytables
             print(f"read in data")
+            Data = read_raw_h5(path)  # KA: needed to install pytables
 
             Data = remove_low_correlations(Data)
             print(f"removed low correlations")
 
             Data = transform_beam_ENUD(Data)
             print("transformed to ENUD")
+            #If the save path does not exist, create it
+            os.makedirs(save_path_name, exist_ok=True)
 
             save_data(Data, save_path_name)
             print(f"Processed {file_name} and saved to {save_dir_qc}")
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
+        
+
 
 ###############################################################################
-# bulk statistics
+# bulk wave statistics and SSC calc
 ###############################################################################
+
 
 if run_bulk_statistics:
     try:
@@ -162,6 +214,14 @@ if run_bulk_statistics:
         for group_dir in group_dirs:
             group_path = group_dir.path  # Get the full path of the current group
             Data, Waves = load_qc_data(group_path, Waves)
+            if echosounder:
+                print("analysing echosounder data")
+                Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
+            if not echosounder:
+                print("analyising vertical beam")
+                Waves, Data = sediment_analysis_vert(
+                    Data, Waves, sbe, 0.330, vertical_beam=True
+                )
 
             dtburst = 3600  # duration of each burst in seconds
             # Get number of total samples in group
@@ -193,4 +253,27 @@ if run_bulk_statistics:
     
     except Exception as e:
         print(f"Error processing {e}")
+
+
+###############################################################################
+## sediment statistics
+###############################################################################
+
+Sediment = calculate_sed_stats(
+    Waves["SedTime"],
+    Waves["Echo1avg"],
+    event_time=dt.datetime(2024, 9, 8, 20, 00),
+    end_time=dt.datetime(2024, 9, 19, 12, 00),
+    fs=2,
+    dtburst=86400 * 4,
+    overlap=0.3,
+    dtens=86400*4,
+    mode="multitaper",
+)
+
+
+
+
+
+
 
