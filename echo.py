@@ -16,8 +16,8 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 # user input
 ###############################################################################
 
-deployment_num = 1
-sensor_id = 'S1_101418'  # S1_101418 or S0_103080 or E1_103071
+deployment_num = 2
+sensor_id = 'S0_103080'  # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 # directory_initial_user_path = r"Z:/"  # Levi
@@ -253,24 +253,6 @@ if run_bulk_statistics:
     
     except Exception as e:
         print(f"Error processing {e}")
-
-
-###############################################################################
-## sediment statistics
-###############################################################################
-
-Sediment = calculate_sed_stats(
-    Waves["SedTime"],
-    Waves["Echo1avg"],
-    event_time=dt.datetime(2024, 9, 8, 20, 00),
-    end_time=dt.datetime(2024, 9, 19, 12, 00),
-    fs=2,
-    dtburst=86400 * 4,
-    overlap=0.3,
-    dtens=86400*4,
-    mode="multitaper",
-)
-
 
 
 
