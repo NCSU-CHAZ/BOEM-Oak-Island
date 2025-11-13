@@ -324,7 +324,7 @@ def initialize_bulk(
 
     return Waves, sbe
 
-def load_qc_data(group_path,Waves):
+def load_qc_data(group_path,Waves,echosounder = True):
     Data = {}
     Data['VertVel'] = pd.read_hdf(os.path.join(group_path, "VertVel.h5"))
     Data['EastVel'] = pd.read_hdf(os.path.join(group_path, "EastVel.h5"))
@@ -333,7 +333,8 @@ def load_qc_data(group_path,Waves):
     Data['Pressure'] = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
     Data['Celldepth'] = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
     Data['VbAmplitude'] = pd.read_hdf(os.path.join(group_path, "VbAmplitude.h5"))
-    Data['CellDepth_echo'] = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
+    if echosounder:
+        Data['CellDepth_echo'] = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
     Data['Echo1'] = pd.read_hdf(os.path.join(group_path, "Echo1.h5"))
     Data['Echo2'] = pd.read_hdf(os.path.join(group_path, "Echo2.h5"))
 

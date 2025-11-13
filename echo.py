@@ -213,7 +213,7 @@ if run_bulk_statistics:
 
         for group_dir in group_dirs:
             group_path = group_dir.path  # Get the full path of the current group
-            Data, Waves = load_qc_data(group_path, Waves)
+            Data, Waves = load_qc_data(group_path, Waves, echosounder=echosounder)
             if echosounder:
                 print("analysing echosounder data")
                 Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
