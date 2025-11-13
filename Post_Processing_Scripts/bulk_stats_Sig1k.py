@@ -307,7 +307,7 @@ def initialize_bulk(
              "MeanSpread2": pd.DataFrame([]), "avgFlowDir": pd.DataFrame([]), "Spp": pd.DataFrame([]),
              "Svv": pd.DataFrame([]), "Suu": pd.DataFrame([]), "Spu": pd.DataFrame([]), "Spv": pd.DataFrame([]),
              "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([]), "Echo1avg": pd.DataFrame([]), 
-             "Echo2avg": pd.DataFrame([]), "Sv1": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
+              "Sv1": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
              "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([]),"botscatt": pd.DataFrame([]),"topscatt": pd.DataFrame([])
              ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([]), "Pressure": pd.DataFrame([])
              }
@@ -335,8 +335,8 @@ def load_qc_data(group_path,Waves,echosounder = True):
     Data['VbAmplitude'] = pd.read_hdf(os.path.join(group_path, "VbAmplitude.h5"))
     if echosounder:
         Data['CellDepth_echo'] = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
-    Data['Echo1'] = pd.read_hdf(os.path.join(group_path, "Echo1.h5"))
-    Data['Echo2'] = pd.read_hdf(os.path.join(group_path, "Echo2.h5"))
+        Data['Echo1'] = pd.read_hdf(os.path.join(group_path, "Echo1.h5"))
+        # Data['Echo2'] = pd.read_hdf(os.path.join(group_path, "Echo2.h5"))
 
     Waves['Pressure'] = pd.concat(
             [Waves['Pressure'], Data['Pressure']], axis=0, ignore_index=True
@@ -492,7 +492,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
     echo1avg = Data['Echo1'].mean(axis=1)
 
     # mean echo2 amplitude
-    echo2avg = Data['Echo2'].mean(axis=1)
+    # echo2avg = Data['Echo2'].mean(axis=1)
     
     vertavg = pd.DataFrame(np.nanmean(Data['VbAmplitude'],axis= 1))
 
@@ -520,9 +520,9 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
     Waves["Echo1avg"] = pd.concat(
         [Waves["Echo1avg"], echo1avg], axis=0, ignore_index=True
     )
-    Waves["Echo2avg"] = pd.concat(
-        [Waves["Echo2avg"], echo2avg], axis=0, ignore_index=True
-    )
+    # Waves["Echo2avg"] = pd.concat(
+    #     [Waves["Echo2avg"], echo2avg], axis=0, ignore_index=True
+    # )
     Waves["Sv1"] = pd.concat(
         [Waves["Sv1"], pd.DataFrame(np.nanmean(Sv_df,axis = 1))], axis=0, ignore_index=True
     )
@@ -846,7 +846,7 @@ def save_waves(Waves, save_dir):
     Waves["Svv"].to_hdf(os.path.join(save_dir, "NorthVelSpectra"), key="df", mode="w")
     Waves["Sv1"].to_hdf(os.path.join(save_dir, "VolumetricBackscatter1"), key="df", mode="w")
     Waves["Echo1avg"].to_hdf(os.path.join(save_dir, "Echo1avg"), key="df", mode="w")
-    Waves["Echo2avg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
+    # Waves["Echo2avg"].to_hdf(os.path.join(save_dir, "Echo2avg"), key="df", mode="w")
     Waves["vertavg"].to_hdf(os.path.join(save_dir, "Vertavg"), key="df", mode="w")
     Waves["sedtime"].to_hdf(os.path.join(save_dir, "SedTime"), key="df", mode="w")
     Waves["TS"].to_hdf(os.path.join(save_dir, "TargetStrength"), key="df", mode="w")

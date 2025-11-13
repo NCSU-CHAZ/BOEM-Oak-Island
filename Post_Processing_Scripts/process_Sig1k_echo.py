@@ -88,7 +88,7 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     print('saved AST qual')
 
     ADCPData["Echo1"] = pd.DataFrame(Data["Data"][0, 0]["Echo1Bin1_1000kHz_Echo"])
-    ADCPData["Echo2"] = pd.DataFrame(Data["Data"][0, 0]["Echo2Bin1_1000kHz_Echo"])
+    # ADCPData["Echo2"] = pd.DataFrame(Data["Data"][0, 0]["Echo2Bin1_1000kHz_Echo"])
     # Make directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)
 
@@ -153,7 +153,7 @@ def read_raw_h5(path):
     Data['TransmitLength'] = pd.read_hdf(os.path.join(path, 'EchoTransmitLength.h5'))
     Data['Pitch'] = pd.read_hdf(os.path.join(path, 'Burst_Pitch.h5'))
     Data['Echo1'] = pd.read_hdf(os.path.join(path, 'Echo1.h5'))
-    Data['Echo2'] = pd.read_hdf(os.path.join(path, 'Echo2.h5'))
+    # Data['Echo2'] = pd.read_hdf(os.path.join(path, 'Echo2.h5'))
     Data['Beam2xyz'] = pd.read_hdf(os.path.join(path, 'Beam2xyz.h5'))
     Data['BlankingDistance'] = pd.read_hdf(os.path.join(path, 'EchoBlankingDistance.h5'))
     Data['EchoCellSize'] = pd.read_hdf(os.path.join(path, 'EchoCellSize.h5'))
@@ -299,7 +299,7 @@ def remove_low_correlations(Data):
 
     # Mask the data 
     Data["Echo1"] = Data["Echo1"].mask(echobad, np.nan)
-    Data["Echo2"] = Data["Echo2"].iloc[1:,:].mask(echobad, np.nan)
+    # Data["Echo2"] = Data["Echo2"].iloc[1:,:].mask(echobad, np.nan)
     
     #mask the Data
     Data[f"VbAmplitude"] = Data[f"VbAmplitude"].mask(isbad, np.nan)
@@ -508,7 +508,7 @@ def save_data(Data, save_dir):
     )
     Data['CellDepth'].to_hdf(os.path.join(save_dir, 'CellDepth.h5'), key="df", mode="w")
     Data['Echo1'].to_hdf(os.path.join(save_dir, 'Echo1.h5'), key="df", mode="w")
-    Data['Echo2'].to_hdf(os.path.join(save_dir, 'Echo2.h5'), key="df", mode="w")
+    # Data['Echo2'].to_hdf(os.path.join(save_dir, 'Echo2.h5'), key="df", mode="w")
     Data['CellDepth_echo'].to_hdf(os.path.join(save_dir, 'CellDepth_echo.h5'), key="df", mode="w")
     Data['AmpBeam1'].to_hdf(os.path.join(save_dir, 'AmpBeam1.h5'), key="df", mode="w")
     Data['AmpBeam2'].to_hdf(os.path.join(save_dir, 'AmpBeam2.h5'), key="df", mode="w")
