@@ -407,7 +407,7 @@ def calculate_sed_stats(
     if mode == "multitaper":
         freq, time, psd = pymultitaper.multitaper_spectrogram(
         Echo1avg.values.squeeze(),
-        fs=2,
+        fs=fs,
         time_step=dtens,        # 1 day between slices → overlap if window longer
         window_length=dtburst,    # 2-day windows for better frequency resolution
         NW=3,
