@@ -48,7 +48,7 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     VelArray = Data["Data"][0, 0]["IBurst_Amplitude_Beam"]
     reshaped = VelArray.reshape(VelArray.shape[0],-1)
     del VelArray
-    ADCPData['Burst_VertAmplitude'] = pd.DataFrame(reshaped)
+    ADCPData['Burst_VbAmplitude'] = pd.DataFrame(reshaped)
 
     # Save the correlation data matrix
     CorArray = Data["Data"][0, 0]["Burst_Correlation_Beam"]
