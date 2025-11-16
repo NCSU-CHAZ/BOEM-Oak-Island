@@ -376,17 +376,23 @@ def calculate_sed_stats(
     sect1 = (SedTime < event_time).squeeze()
     sect2 = ((SedTime > event_time) & (SedTime < end_time)).squeeze()
     end_cutoff = (SedTime < end_time).squeeze()
-
+    
+    
     # Run Data through despiker twice to remove spikes
     Echo1avg, mask = despiker(Echo1Avg, lam=2)
     Echo1avg, mask = despiker(Echo1Avg, lam=3)
+    
+    sect1 = (SedTime < event_time).squeeze().to_numpy()
+    sect2 = ((SedTime > event_time) & (SedTime < end_time)).squeeze().to_numpy()
+    end_cutoff = (SedTime < end_time).squeeze().to_numpy()
 
-    # Get the data for each section
-    echosect1 = Echo1avg[sect1]
-    echosect2 = Echo1avg[sect2]
-    Echo1avg = Echo1avg[end_cutoff]
-    timesect1 = SedTime[sect1]
-    timesect2 = SedTime[sect2]
+    echosect1 = Echo1avg.iloc[sect1]
+    echosect2 = Echo1avg.iloc[sect2]
+    Echo1avg  = Echo1avg.iloc[end_cutoff]
+
+    timesect1 = SedTime.iloc[sect1]
+    timesect2 = SedTime.iloc[sect2]
+
 
     # Calculate windows and chunks for section 1
     Nsamp = fs * dtburst
@@ -401,7 +407,7 @@ def calculate_sed_stats(
     if mode == "multitaper":
         freq, time, psd = pymultitaper.multitaper_spectrogram(
         Echo1avg.values.squeeze(),
-        fs=2,
+        fs=fs,
         time_step=dtens,        # 1 day between slices → overlap if window longer
         window_length=dtburst,    # 2-day windows for better frequency resolution
         NW=3,
