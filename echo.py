@@ -101,8 +101,8 @@ if run_convert_mat_h5:
     if sensor_id == "E1_103071":
         files.sort(
             key=lambda x: (
-                int(re.search(r"FPS4_(\d+)", x).group(1))
-                if re.search(r"FPS4_(\d+)", x)
+                int(re.search(r"FPS\d+_(\d+)", x).group(1))
+                if re.search(r"FPS\d+_(\d+)", x)
                 else float("inf")
             )
         )
