@@ -87,6 +87,7 @@ def read_Sig1k(filepath,config_filepath, save_dir):  # Create read function
     ADCPData['Burst_AltimeterQualityAST']=pd.DataFrame(Data["Data"][0,0]["Burst_AltimeterQualityAST"])
     print('saved AST qual')
 
+
     ADCPData["Echo1"] = pd.DataFrame(Data["Data"][0, 0]["Echo1Bin1_1000kHz_Echo"])
     # ADCPData["Echo2"] = pd.DataFrame(Data["Data"][0, 0]["Echo2Bin1_1000kHz_Echo"])
     # Make directory if it doesn't exist
