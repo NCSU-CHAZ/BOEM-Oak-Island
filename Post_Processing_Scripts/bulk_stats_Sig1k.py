@@ -253,6 +253,57 @@ def welch_cospec(datax, datay, dt, M, overlap):
 
     return CoSP, frequency, QuSP, PHI
 
+def coherence_spectrum(u,v,A,fs,nperseg):
+
+    #Clean up arrays
+    u = np.asarray(u, dtype=float).ravel()
+    v = np.asarray(v, dtype=float).ravel()
+    A = np.asarray(A, dtype=float).ravel()
+
+    u = np.nan_to_num(u, nan=0.0)
+    v = np.nan_to_num(v, nan=0.0)
+    A = np.nan_to_num(A, nan=0.0)
+    
+    U = u + 1j*v
+
+    #Demean and despike
+    U = U - np.mean(U)
+    A = A - np.mean(A)
+
+    U = np.asarray(U)
+    A = np.asarray(A)
+
+    win = np.hanning(nperseg)
+    step = nperseg // 2 # 50% overlap
+    N = len(U)
+
+    Sxx = np.zeros(nperseg, dtype=float)
+    Syy = np.zeros(nperseg, dtype=float)
+    Sxy = np.zeros(nperseg, dtype=complex)
+
+    for i in range(0, N - nperseg + 1, step):
+        U_win = U[i:i+nperseg] * win
+        A_win = A[i:i+nperseg] * win
+
+        X = np.fft.fft(U_win)
+        Y = np.fft.fft(A_win)
+        
+        Sxy += Y * np.conj(X)
+        Sxx += np.abs(X)**2
+        Syy += np.abs(Y)**2
+        
+    
+    # Normalized complex coherence
+    eps = 1e-12 #Add this to prevent division by zero from nans
+    Coh_complex = Sxy / (np.sqrt(Sxx * Syy) + eps)
+
+    # Outputs
+    f = np.fft.fftfreq(nperseg, 1/fs)
+    Coh_mag = np.abs(Coh_complex)
+    Coh_phase = np.angle(Coh_complex)
+
+    return f, Coh_mag, Coh_phase
+
 def initialize_bulk(
         dirpath,
         sbepath,
