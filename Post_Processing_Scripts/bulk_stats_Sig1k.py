@@ -766,10 +766,11 @@ def calculate_wave_stats(
     )
 
     Nb = U.shape[1]  # Number of bins
+    
     # Now let's calculate the cospectra and mean wave direction
     P_expanded = np.tile(P.to_numpy(), (1, Nb))
     [Suv, _, _, _] = welch_cospec(U_no_nan, V_no_nan, dt, Chunks, overlap)
-    [Spu, _, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
+    [Spu, _, _, _] = welch_cospec(P_expanded, U_no_nan, dt, Chunks, overlap)
     [Spv, fr, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
     # Remove zero frequency
     Suv = pd.DataFrame(Suv[1:, :])
