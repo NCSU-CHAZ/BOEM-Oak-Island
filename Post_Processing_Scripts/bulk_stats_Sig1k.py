@@ -651,11 +651,11 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp):
         [Waves["Current"], pd.DataFrame([current_velocity])], axis=0, ignore_index=True
     )
     Waves['FullU'] = pd.concat(
-        [Waves['FullU'], np.nanmean(U, axis=1)], axis=0, ignore_index=True)
+        [Waves['FullU'], pd.DataFrame(np.nanmean(U, axis=1))], axis=0, ignore_index=True)
     Waves['FullV'] = pd.concat(
-        [Waves['FullV'], np.nanmean(V, axis=1)], axis=0, ignore_index=True)
+        [Waves['FullV'], pd.DataFrame(np.nanmean(V, axis=1))], axis=0, ignore_index=True)
     Waves['FullW'] = pd.concat(
-        [Waves['FullW'], np.nanmean(W, axis=1)], axis=0, ignore_index=True)
+        [Waves['FullW'], pd.DataFrame(np.nanmean(W, axis=1))], axis=0, ignore_index=True)
     return Waves
 
 def calculate_wave_stats(
