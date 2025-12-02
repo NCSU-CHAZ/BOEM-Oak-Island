@@ -360,7 +360,7 @@ def initialize_bulk(
              "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([]), "Echo1avg": pd.DataFrame([]), 
               "Sv1": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
              "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([]),"botscatt": pd.DataFrame([]),"topscatt": pd.DataFrame([])
-             ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([]), "Pressure": pd.DataFrame([])
+             ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([]), "Pressure": pd.DataFrame([]), "FullU": pd.DataFrame([]), "FullV": pd.DataFrame([]), "FullW": pd.DataFrame([])
              }
 
     ##Load in Seabird Data for sediment analysis
@@ -384,6 +384,7 @@ def load_qc_data(group_path,Waves,echosounder = True):
     Data['Pressure'] = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
     Data['Celldepth'] = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
     Data['VbAmplitude'] = pd.read_hdf(os.path.join(group_path, "VbAmplitude.h5"))
+
     if echosounder:
         Data['CellDepth_echo'] = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
         Data['Echo1'] = pd.read_hdf(os.path.join(group_path, "Echo1.h5"))
@@ -649,6 +650,12 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp):
     Waves["Current"] = pd.concat(
         [Waves["Current"], pd.DataFrame([current_velocity])], axis=0, ignore_index=True
     )
+    Waves['FullU'] = pd.concat(
+        [Waves['FullU'], pd.DataFrame(np.nanmean(U, axis=1))], axis=0, ignore_index=True)
+    Waves['FullV'] = pd.concat(
+        [Waves['FullV'], pd.DataFrame(np.nanmean(V, axis=1))], axis=0, ignore_index=True)
+    Waves['FullW'] = pd.concat(
+        [Waves['FullW'], pd.DataFrame(np.nanmean(W, axis=1))], axis=0, ignore_index=True)
     return Waves
 
 def calculate_wave_stats(
@@ -759,10 +766,11 @@ def calculate_wave_stats(
     )
 
     Nb = U.shape[1]  # Number of bins
+    
     # Now let's calculate the cospectra and mean wave direction
     P_expanded = np.tile(P.to_numpy(), (1, Nb))
     [Suv, _, _, _] = welch_cospec(U_no_nan, V_no_nan, dt, Chunks, overlap)
-    [Spu, _, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
+    [Spu, _, _, _] = welch_cospec(P_expanded, U_no_nan, dt, Chunks, overlap)
     [Spv, fr, _, _] = welch_cospec(P_expanded, V_no_nan, dt, Chunks, overlap)
     # Remove zero frequency
     Suv = pd.DataFrame(Suv[1:, :])
@@ -906,6 +914,9 @@ def save_waves(Waves, save_dir):
     Waves["TopSv1"].to_hdf(os.path.join(save_dir, "TopVolumetricBackscatter1"), key="df", mode="w")
     Waves["BotSv1"].to_hdf(os.path.join(save_dir, "BotVolumetricBackscatter1"), key="df", mode="w")
     Waves["Pressure"].to_hdf(os.path.join(save_dir, "Pressure"), key="df", mode="w")
+    Waves["FullU"].to_hdf(os.path.join(save_dir, "FullEastVelocity"), key="df", mode="w")
+    Waves["FullV"].to_hdf(os.path.join(save_dir, "FullNorthVelocity"), key="df", mode="w")
+    Waves["FullW"].to_hdf(os.path.join(save_dir, "FullUpVelocity"), key="df", mode="w")
 
 
 
