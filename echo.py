@@ -23,9 +23,9 @@ sensor_id = 'E1_103071'  # S1_101418 or S0_103080 or E1_103071
 directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = True
+run_convert_mat_h5 = False
 run_quality_control = False
-run_bulk_statistics = False
+run_bulk_statistics = True
 echosounder = True # set to True if you want to process echosounder data, False for vertical beam
 sample_rate = 2 # 2 if echo
 
@@ -52,10 +52,9 @@ if not echosounder:
         save_data,
     )
 
-group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
-group_ids_exclude = [
-    0,-1
-]  # for processing bulk statistics; skip group 1 and the last group (need to add a line of code in bulk stats to
+group_id = 40 # specify if you want to process starting at a specific group_id; must be 1 or greater
+group_ids_exclude = [0,-1]
+  # for processing bulk statistics; skip group 1 and the last group (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
 ###############################################################################
@@ -215,7 +214,7 @@ if run_bulk_statistics:
             group_path = group_dir.path  # Get the full path of the current group
             Data, Waves = load_qc_data(group_path, Waves, echosounder=echosounder)
             if echosounder:
-                print("analysing echosounder data")
+                print("analysing echosounder data for group ",group_path)
                 Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
             if not echosounder:
                 print("analyising vertical beam")

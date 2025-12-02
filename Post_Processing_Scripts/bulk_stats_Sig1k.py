@@ -465,80 +465,80 @@ def sediment_analysis_vert(
 
 def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
 
-    ph = 8.1
-    freq = 1000  # kHz
-    transmit_power = 0
-    beam_angle = 0.015
-    Csv = 0
-    transmit_length_sec = transmit_length / 1000
+    # ph = 8.1
+    # freq = 1000  # kHz
+    # transmit_power = 0
+    # beam_angle = 0.015
+    # Csv = 0
+    # transmit_length_sec = transmit_length / 1000
     
     
-    # Convert to arrays
-    echo_array = Data['Echo1'].values
-    ranges = Data['CellDepth_echo'].values.flatten()  # shape (n_cells,)
-    n_samples, n_cells = echo_array.shape
+    # # Convert to arrays
+    # echo_array = Data['Echo1'].values
+    # ranges = Data['CellDepth_echo'].values.flatten()  # shape (n_cells,)
+    # n_samples, n_cells = echo_array.shape
 
-    # build depth matrix
-    pressures = Data['Pressure'].values.flatten()  # shape (n_samples,)
-    depths_matrix = pressures[:, None] - ranges[None, :]  # shape (n_samples, n_cells)
-    depths_matrix[depths_matrix <= 0] = 0
+    # # build depth matrix
+    # pressures = Data['Pressure'].values.flatten()  # shape (n_samples,)
+    # depths_matrix = pressures[:, None] - ranges[None, :]  # shape (n_samples, n_cells)
+    # depths_matrix[depths_matrix <= 0] = 0
 
-    range_matrix = np.tile(ranges, (n_samples, 1))  # shape (n_samples, n_cells)
+    # range_matrix = np.tile(ranges, (n_samples, 1))  # shape (n_samples, n_cells)
 
-    T0 = float(np.nanmean(sbe['temperature']))
-    S0 = float(np.nanmean(sbe['salinity']))
+    # T0 = float(np.nanmean(sbe['temperature']))
+    # S0 = float(np.nanmean(sbe['salinity']))
 
-    # Sound speed
-    soundspeed = (
-        1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
-    )
+    # # Sound speed
+    # soundspeed = (
+    #     1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
+    # )
    
-    # Attenuation coefficients
-    A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
-    A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
-    f_1 = 2.8 * np.sqrt(S0 / 35) * 10 ** (4 - 1245 / (T0 + 273))
-    f_2 = (8.17 * 10 ** (8 - (1990 / (T0 + 273)))) / (1 + 0.0018 * (S0 - 35))
+    # # Attenuation coefficients
+    # A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
+    # A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
+    # f_1 = 2.8 * np.sqrt(S0 / 35) * 10 ** (4 - 1245 / (T0 + 273))
+    # f_2 = (8.17 * 10 ** (8 - (1990 / (T0 + 273)))) / (1 + 0.0018 * (S0 - 35))
 
-    P_2 = 1 - 1.37e-4 * depths_matrix + 6.2e-9 * depths_matrix**2
-    P_3 = 1 - 3.83e-5 * depths_matrix + 4.9e-10 * depths_matrix**2
+    # P_2 = 1 - 1.37e-4 * depths_matrix + 6.2e-9 * depths_matrix**2
+    # P_3 = 1 - 3.83e-5 * depths_matrix + 4.9e-10 * depths_matrix**2
 
-    if T0 <= 20:
-        A_3 = 4.937e-4 - 2.59e-5 * T0 + 3.2e-7 * T0**2 - 1.5e-8 * T0**3
-    else:
-        A_3 = 3.964e-4 - 1.146e-5 * T0 + 1.45e-7 * T0**2 - 6.5e-10 * T0**3
+    # if T0 <= 20:
+    #     A_3 = 4.937e-4 - 2.59e-5 * T0 + 3.2e-7 * T0**2 - 1.5e-8 * T0**3
+    # else:
+    #     A_3 = 3.964e-4 - 1.146e-5 * T0 + 1.45e-7 * T0**2 - 6.5e-10 * T0**3
 
-    # absorption, shape: (n_samples, n_cells)
-    a_w = (freq**2) * (
-        ((A_1 * f_1) / (f_1**2 + freq**2))
-        + ((A_2 * P_2 * f_2) / (f_2**2 + freq**2))
-        + A_3 * P_3
-    )
-    a_w /= 1000  # dB/m
+    # # absorption, shape: (n_samples, n_cells)
+    # a_w = (freq**2) * (
+    #     ((A_1 * f_1) / (f_1**2 + freq**2))
+    #     + ((A_2 * P_2 * f_2) / (f_2**2 + freq**2))
+    #     + A_3 * P_3
+    # )
+    # a_w /= 1000  # dB/m
 
-    # Sv calculation
-    Sv = (
-        echo_array * 0.43
-        + 20 * np.log10(range_matrix)
-        + 2 * a_w * range_matrix
-        + transmit_power
-        - 10 * np.log10((soundspeed * transmit_length_sec) / 2)
-        - beam_angle
-        + Csv
-    )
+    # # Sv calculation
+    # Sv = (
+    #     echo_array * 0.43
+    #     + 20 * np.log10(range_matrix)
+    #     + 2 * a_w * range_matrix
+    #     + transmit_power
+    #     - 10 * np.log10((soundspeed * transmit_length_sec) / 2)
+    #     - beam_angle
+    #     + Csv
+    # )
 
    
-    # TS calculation
-    TS = (
-        echo_array * 0.43
-        + 40 * np.log10(10 * range_matrix)
-        + 2 * a_w * range_matrix
-        + transmit_power
-    )
+    # # TS calculation
+    # TS = (
+    #     echo_array * 0.43
+    #     + 40 * np.log10(10 * range_matrix)
+    #     + 2 * a_w * range_matrix
+    #     + transmit_power
+    # )
 
     
-    # Convert back to DataFrames
-    Sv_df = pd.DataFrame(Sv, index=Data['Echo1'].index, columns=Data['Echo1'].columns)
-    TS_df = pd.DataFrame(TS, index=Data['Echo1'].index, columns=Data['Echo1'].columns)
+    # # Convert back to DataFrames
+    # Sv_df = pd.DataFrame(Sv, index=Data['Echo1'].index, columns=Data['Echo1'].columns)
+    # TS_df = pd.DataFrame(TS, index=Data['Echo1'].index, columns=Data['Echo1'].columns)
 
     # mean echo1 amplitude
     echo1avg = Data['Echo1'].mean(axis=1)
@@ -548,20 +548,20 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
     
     vertavg = pd.DataFrame(np.nanmean(Data['VbAmplitude'],axis= 1))
 
-    topmask = np.zeros(depths_matrix.shape, dtype=bool)
-    bottommask = np.zeros(depths_matrix.shape, dtype=bool)
-    depths_matrix_no_nan = np.nan_to_num(depths_matrix,nan = 0.0)
+    # topmask = np.zeros(depths_matrix.shape, dtype=bool)
+    # bottommask = np.zeros(depths_matrix.shape, dtype=bool)
+    # depths_matrix_no_nan = np.nan_to_num(depths_matrix,nan = 0.0)
 
-    for i in range(depths_matrix.shape[0]):
-        surface = depths_matrix_no_nan[i,:].max()
-        middle = surface / 2
-        bottommask[i,:] = depths_matrix_no_nan[i,:] < middle
-        topmask[i,:] = depths_matrix_no_nan[i,:] >= middle
+    # for i in range(depths_matrix.shape[0]):
+    #     surface = depths_matrix_no_nan[i,:].max()
+    #     middle = surface / 2
+    #     bottommask[i,:] = depths_matrix_no_nan[i,:] < middle
+    #     topmask[i,:] = depths_matrix_no_nan[i,:] >= middle
 
-    botscatt = Data['Echo1'].mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
-    topscatt =  Data['Echo1'].mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
-    Bsv1 = Sv_df.mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
-    Tsv1 =  Sv_df.mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
+    # botscatt = Data['Echo1'].mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
+    # topscatt =  Data['Echo1'].mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
+    # Bsv1 = Sv_df.mask(bottommask,np.nan) #Finds the mean of the top half of scattering values
+    # Tsv1 =  Sv_df.mask(topmask,np.nan) #Finds the mean of the bottom half of scattering values
 
     Waves["sedtime"] = pd.concat(
         [Waves["sedtime"], Data['Time']], axis=0, ignore_index=True
@@ -575,24 +575,24 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
     # Waves["Echo2avg"] = pd.concat(
     #     [Waves["Echo2avg"], echo2avg], axis=0, ignore_index=True
     # )
-    Waves["Sv1"] = pd.concat(
-        [Waves["Sv1"], pd.DataFrame(np.nanmean(Sv_df,axis = 1))], axis=0, ignore_index=True
-    )
-    Waves["TS"] = pd.concat(
-        [Waves["TS"], pd.DataFrame(np.nanmean(TS_df,axis = 1))], axis=0, ignore_index=True
-    )
-    Waves["botscatt"] = pd.concat(
-        [Waves["botscatt"], pd.DataFrame(np.nanmean(botscatt,axis = 1))], axis=0, ignore_index=True
-    )
-    Waves["topscatt"] = pd.concat(
-        [Waves["topscatt"], pd.DataFrame(np.nanmean(topscatt,axis = 1))], axis=0, ignore_index=True
-    )
-    Waves["TopSv1"] = pd.concat(
-        [Waves["TopSv1"], pd.DataFrame(np.nanmean(Tsv1,axis = 1))], axis=0, ignore_index=True
-    )
-    Waves["BotSv1"] = pd.concat(
-        [Waves["BotSv1"], pd.DataFrame(np.nanmean(Bsv1,axis = 1))], axis=0, ignore_index=True
-    )
+    # Waves["Sv1"] = pd.concat(
+    #     [Waves["Sv1"], pd.DataFrame(np.nanmean(Sv_df,axis = 1))], axis=0, ignore_index=True
+    # )
+    # Waves["TS"] = pd.concat(
+    #     [Waves["TS"], pd.DataFrame(np.nanmean(TS_df,axis = 1))], axis=0, ignore_index=True
+    # )
+    # Waves["botscatt"] = pd.concat(
+    #     [Waves["botscatt"], pd.DataFrame(np.nanmean(botscatt,axis = 1))], axis=0, ignore_index=True
+    # )
+    # Waves["topscatt"] = pd.concat(
+    #     [Waves["topscatt"], pd.DataFrame(np.nanmean(topscatt,axis = 1))], axis=0, ignore_index=True
+    # )
+    # Waves["TopSv1"] = pd.concat(
+    #     [Waves["TopSv1"], pd.DataFrame(np.nanmean(Tsv1,axis = 1))], axis=0, ignore_index=True
+    # )
+    # Waves["BotSv1"] = pd.concat(
+    #     [Waves["BotSv1"], pd.DataFrame(np.nanmean(Bsv1,axis = 1))], axis=0, ignore_index=True
+    # )
 
     return Waves, Data
 
