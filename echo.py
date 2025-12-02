@@ -16,18 +16,18 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 # user input
 ###############################################################################
 
-deployment_num = 2
+deployment_num = 3
 sensor_id = 'E1_103071'  # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-# directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
-directory_initial_user_path = r"Z:/"  # Levi
+directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
+# directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
-run_quality_control = False
+run_quality_control = True
 run_bulk_statistics = True
 echosounder = True # set to True if you want to process echosounder data, False for vertical beam
-sample_rate = 2 # 2 if echo
+sample_rate = 2 # 2 if echo 4if not
 
 if echosounder:
     from Post_Processing_Scripts.process_Sig1k_echo import (
@@ -53,8 +53,9 @@ if not echosounder:
     )
 
 group_id = 40 # specify if you want to process starting at a specific group_id; must be 1 or greater
-group_ids_exclude = [0,-1]
-  # for processing bulk statistics; skip group 1 and the last group (need to add a line of code in bulk stats to
+group_ids_exclude = [
+    0, -1
+]  # for processing bulk statistics; skip group 1 and the last group (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
 ###############################################################################
