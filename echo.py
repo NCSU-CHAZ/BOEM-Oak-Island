@@ -24,7 +24,7 @@ directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
-run_quality_control = True
+run_quality_control = False
 run_bulk_statistics = True
 echosounder = True # set to True if you want to process echosounder data, False for vertical beam
 sample_rate = 2 # 2 if echo 4if not
@@ -52,9 +52,9 @@ if not echosounder:
         save_data,
     )
 
-group_id = 40 # specify if you want to process starting at a specific group_id; must be 1 or greater
+group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [
-    0, -1
+    0, -1, 
 ]  # for processing bulk statistics; skip group 1 and the last group (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
