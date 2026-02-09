@@ -21,8 +21,91 @@ import os
 import math
 import time
 from scipy.io import loadmat
+from scipy import signal as sig
 
 np.seterr(all='raise')  # for debugging in Pycharm: raise exceptions for RuntimeWarning
+def lowpass_filter(data, fs, cutoff=0.0001, order=4):
+    arr = np.asarray(data, dtype=float)
+    arr_no_nan = np.nan_to_num(data, nan=0.0)
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    sos = sig.butter(order, normal_cutoff, btype="low", output="sos")
+    y = sig.sosfiltfilt(sos, arr_no_nan, axis=0)
+    return y
+
+def despiker(ssc, fs=2, tide_cutoff=0.001, lam=2):
+    """"This function removes spikes from the data using phase space thresholding according to Goring and Nikora (2002)
+    https://doi.org/10.1061/(ASCE)0733-9429(2002)128:1(117)
+
+    data should be a dictionary with keys corresponding to the data arrays.
+        Size of the median filter window in sec (default is 5 sec).
+    fs: sampling frequency in Hz
+    """ ""
+
+    # Step 1: Extract tidal signal (low-pass)
+    tidal_component = lowpass_filter(ssc, fs, cutoff=tide_cutoff)
+
+    # Step 2: Get high-frequency residual
+    highfreq_residual = ssc - tidal_component
+
+    # Step 3: Despike only the high-frequency part
+    cleaned_residual, mask = goring_nikora_despike(
+        highfreq_residual, dt=1 / fs, lam=lam
+    )
+
+    cleaned_residual = interpolate_nans(cleaned_residual)
+
+    # Step 4: Add tidal signal back
+    ssc_cleaned = cleaned_residual + tidal_component
+    ssc_cleaned = pd.DataFrame(ssc_cleaned)
+    return ssc_cleaned, mask
+
+def lowpass_filter(data, fs, cutoff=0.0001, order=4):
+    arr = np.asarray(data, dtype=float)
+    arr_no_nan = np.nan_to_num(data, nan=0.0)
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    sos = sig.butter(order, normal_cutoff, btype="low", output="sos")
+    y = sig.sosfiltfilt(sos, arr_no_nan, axis=0)
+    return y
+
+def goring_nikora_despike(x, dt, lam=3.0):
+    x = x.to_numpy()
+
+    # 1. Remove mean / trend
+    x_detrended = sig.detrend(x, axis=0, type="linear").ravel()
+
+    # 2. First and second derivatives
+    dx = np.gradient(x_detrended, dt)
+    ddx = np.gradient(dx, dt)
+
+    # 3. Build phase space
+    X = np.column_stack((x_detrended, dx, ddx))
+
+    # 4. Rotate to principal axes (PCA)
+    cov = np.cov(X, rowvar=False)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    X_rot = X @ eigvecs  # rotated coordinates
+
+    # 5. Normalize by std deviation
+    sigmas = X_rot.std(axis=0)
+    X_norm = X_rot / sigmas
+
+    # 6. Ellipsoid threshold
+    R2 = np.sum((X_norm / lam) ** 2, axis=1)
+    spikes = R2 > 1  # True where spike
+
+    # 7. Replace spikes with NaN (or interpolate)
+    x_clean = x.copy()
+    x_clean[spikes] = np.nan
+
+    return x_clean, spikes
+
+def interpolate_nans(y):
+    nans = np.isnan(y)
+    if np.any(nans):
+        y[nans] = np.interp(np.flatnonzero(nans), np.flatnonzero(~nans), y[~nans])
+    return y
 
 def welch_method(data, dt, M, overlap):
     """
@@ -360,7 +443,8 @@ def initialize_bulk(
              "fr": pd.DataFrame([]), "k": pd.DataFrame([]), "Current": pd.DataFrame([]), "Echo1avg": pd.DataFrame([]), 
               "Sv1": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
              "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([]),"botscatt": pd.DataFrame([]),"topscatt": pd.DataFrame([])
-             ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([]), "Pressure": pd.DataFrame([]), "FullU": pd.DataFrame([]), "FullV": pd.DataFrame([]), "FullW": pd.DataFrame([])
+             ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([]), "Pressure": pd.DataFrame([]), "FullU": pd.DataFrame([]), 
+             "FullV": pd.DataFrame([]), "FullW": pd.DataFrame([]), "Spp_ast": pd.DataFrame([]), "fr_ast": pd.DataFrame([])
              }
 
     ##Load in Seabird Data for sediment analysis
@@ -384,6 +468,7 @@ def load_qc_data(group_path,Waves,echosounder = True):
     Data['Pressure'] = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
     Data['Celldepth'] = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
     Data['VbAmplitude'] = pd.read_hdf(os.path.join(group_path, "VbAmplitude.h5"))
+    Data['AST_amp']= pd.read_hdf(os.path.join(group_path, "AST.h5"))
 
     if echosounder:
         Data['CellDepth_echo'] = pd.read_hdf(os.path.join(group_path, "CellDepth_echo.h5"))
@@ -400,66 +485,66 @@ def load_qc_data(group_path,Waves,echosounder = True):
 def sediment_analysis_vert(
                     Data, Waves, sbe, transmit_length = 0.330, vertical_beam=True
                 ):
-        ph = 8.1
-        freq = 1000  # kHz
+        # ph = 8.1
+        # freq = 1000  # kHz
         
-        # Convert to arrays
-        echo_array = Data['VbAmplitude'].values
-        ranges = Data['Celldepth'].values.flatten()  # shape (n_cells,)
-        n_samples, n_cells = echo_array.shape
+        # # Convert to arrays
+        # echo_array = Data['VbAmplitude'].values
+        # ranges = Data['Celldepth'].values.flatten()  # shape (n_cells,)
+        # n_samples, n_cells = echo_array.shape
 
-        # build depth matrix
-        pressures = Data['Pressure'].values.flatten()  # shape (n_samples,)
-        depths_matrix = pressures[:, None] - ranges[None, :]  # shape (n_samples, n_cells)
-        depths_matrix[depths_matrix <= 0] = 0
+        # # build depth matrix
+        # pressures = Data['Pressure'].values.flatten()  # shape (n_samples,)
+        # depths_matrix = pressures[:, None] - ranges[None, :]  # shape (n_samples, n_cells)
+        # depths_matrix[depths_matrix <= 0] = 0
 
-        range_matrix = np.tile(ranges, (n_samples, 1))  # shape (n_samples, n_cells)
+        # range_matrix = np.tile(ranges, (n_samples, 1))  # shape (n_samples, n_cells)
 
-        T0 = float(np.nanmean(sbe['temperature']))
-        S0 = float(np.nanmean(sbe['salinity']))
+        # T0 = float(np.nanmean(sbe['temperature']))
+        # S0 = float(np.nanmean(sbe['salinity']))
 
-        # Sound speed
-        soundspeed = (
-            1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
-        )
+        # # Sound speed
+        # soundspeed = (
+        #     1448.96 + 4.591 * T0 - 5.304e-2 * T0**2 + 2.374e-4 * T0**3 + 1.34 * (S0 - 35)
+        # )
         
-        # Attenuation coefficients
-        A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
-        A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
-        f_1 = 2.8 * np.sqrt(S0 / 35) * 10 ** (4 - 1245 / (T0 + 273))
-        f_2 = (8.17 * 10 ** (8 - (1990 / (T0 + 273)))) / (1 + 0.0018 * (S0 - 35))
+        # # Attenuation coefficients
+        # A_1 = (8.66 * 10 ** (0.78 * ph - 5)) / soundspeed
+        # A_2 = (21.44 * S0 * (1 + 0.025 * T0)) / soundspeed
+        # f_1 = 2.8 * np.sqrt(S0 / 35) * 10 ** (4 - 1245 / (T0 + 273))
+        # f_2 = (8.17 * 10 ** (8 - (1990 / (T0 + 273)))) / (1 + 0.0018 * (S0 - 35))
 
-        P_2 = 1 - 1.37e-4 * depths_matrix + 6.2e-9 * depths_matrix**2
-        P_3 = 1 - 3.83e-5 * depths_matrix + 4.9e-10 * depths_matrix**2
+        # P_2 = 1 - 1.37e-4 * depths_matrix + 6.2e-9 * depths_matrix**2
+        # P_3 = 1 - 3.83e-5 * depths_matrix + 4.9e-10 * depths_matrix**2
 
-        if T0 <= 20:
-            A_3 = 4.937e-4 - 2.59e-5 * T0 + 3.2e-7 * T0**2 - 1.5e-8 * T0**3
-        else:
-            A_3 = 3.964e-4 - 1.146e-5 * T0 + 1.45e-7 * T0**2 - 6.5e-10 * T0**3
+        # if T0 <= 20:
+        #     A_3 = 4.937e-4 - 2.59e-5 * T0 + 3.2e-7 * T0**2 - 1.5e-8 * T0**3
+        # else:
+        #     A_3 = 3.964e-4 - 1.146e-5 * T0 + 1.45e-7 * T0**2 - 6.5e-10 * T0**3
 
-        # absorption, shape: (n_samples, n_cells)
-        a_w = (freq**2) * (
-            ((A_1 * f_1) / (f_1**2 + freq**2))
-            + ((A_2 * P_2 * f_2) / (f_2**2 + freq**2))
-            + A_3 * P_3
-        )
-        a_w /= 1000  # dB/m
+        # # absorption, shape: (n_samples, n_cells)
+        # a_w = (freq**2) * (
+        #     ((A_1 * f_1) / (f_1**2 + freq**2))
+        #     + ((A_2 * P_2 * f_2) / (f_2**2 + freq**2))
+        #     + A_3 * P_3
+        # )
+        # a_w /= 1000  # dB/m
 
-        # Correct Vertical beam for absorbtion and spreading loss
-        Vb_corrected = (
-            echo_array * 0.43
-            + 20 * np.log10(range_matrix)
-            + 2 * a_w * range_matrix
-        )
+        # # Correct Vertical beam for absorbtion and spreading loss
+        # Vb_corrected = (
+        #     echo_array * 0.43
+        #     + 20 * np.log10(range_matrix)
+        #     + 2 * a_w * range_matrix
+        # )
 
-        vertavg = pd.DataFrame(np.nanmean(Vb_corrected,axis= 1))
+        # vertavg = pd.DataFrame(np.nanmean(Vb_corrected,axis= 1))
 
-        Waves["sedtime"] = pd.concat(
-            [Waves["sedtime"], Data['Time']], axis=0, ignore_index=True
-        )
-        Waves["vertavg"] = pd.concat(
-            [Waves["vertavg"], vertavg], axis=0, ignore_index=True
-        )
+        # # Waves["sedtime"] = pd.concat(
+        # #     [Waves["sedtime"], Data['Time']], axis=0, ignore_index=True
+        # # )
+        # Waves["vertavg"] = pd.concat(
+        #     [Waves["vertavg"], vertavg], axis=0, ignore_index=True
+        # )
 
         return Waves, Data
 
@@ -667,6 +752,19 @@ def calculate_wave_stats(
     U = Data['EastVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     V = Data['NorthVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     P = Data['Pressure'].iloc[i * Nsamp: Nsamp * (i + 1)]
+    AST=Data['AST_amp'].iloc[i * Nsamp: Nsamp * (i + 1),:] # try this out
+
+    """------------------------Process AST-------------------------"""
+    ast_despiked, mask = despiker(AST, lam=2) #Process and interpolate according to Goring and Nikora
+    
+
+
+
+
+
+
+    """------------------------------------------------------------"""
+
     # Grab mean depth for the ensemble
     dpthP = np.mean(P)
     dpth = dpthP + sensor_height
@@ -704,12 +802,20 @@ def calculate_wave_stats(
     Svv, fr = welch_method(V_no_nan, dt, Chunks, overlap)
     P_no_nan = np.nan_to_num(P.to_numpy(), nan=0.0)
     Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
+    AST_amp_no_nan = np.nan_to_num(AST.to_numpy(),nan=0.0)
+            
+    Spp_ast,fr_ast = welch_method(AST_amp_no_nan,1/8,Chunks,overlap)
+
 
     # Get rid of zero frequency and turn back into pandas dataframes
     fr = pd.DataFrame(fr[1:]).reset_index(drop=True)  # frequency
+    fr_ast= pd.DataFrame(fr_ast[1:]).reset_index(drop=True)  # frequency
+
     Suu = pd.DataFrame(Suu[1:, :])
     Svv = pd.DataFrame(Svv[1:, :])
     Spp = pd.DataFrame(Spp[1:])
+    Spp_ast=pd.DataFrame(Spp_ast[1:])
+
 
     # Depth Attenuation
     fr_rad = 2 * np.pi * fr  # frequency in radians
@@ -839,6 +945,9 @@ def calculate_wave_stats(
     Waves["Spp"] = pd.concat(
         [Waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
     )
+    Waves["Spp_ast"] = pd.concat(
+                [Waves["Spp_ast"], pd.DataFrame([np.nanmean(Spp_ast.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
+            )
     Waves["Svv"] = pd.concat(
         [Waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
     )
@@ -884,6 +993,7 @@ def save_waves(Waves, save_dir):
     ###############################################################################
     Waves["Cg"].to_hdf(os.path.join(save_dir, "GroupSpeed"), key="df", mode="w")
     Waves["fr"].to_hdf(os.path.join(save_dir, "Frequencies"), key="df", mode="w")
+    Waves["fr_ast"].to_hdf(os.path.join(save_dir, "Frequencies_AST"), key="df", mode="w")
     Waves["k"].to_hdf(os.path.join(save_dir, "WaveNumbers"), key="df", mode="w")
     Waves["Time"].to_hdf(os.path.join(save_dir, "Time"), key="df", mode="w")
     Waves["C"].to_hdf(os.path.join(save_dir, "WaveCelerity"), key="df", mode="w")
@@ -898,6 +1008,8 @@ def save_waves(Waves, save_dir):
     Waves["MeanDir2"].to_hdf(os.path.join(save_dir, "MeanDirection2"), key="df", mode="w")
     Waves["MeanSpread2"].to_hdf(os.path.join(save_dir, "MeanSpread2"), key="df", mode="w")
     Waves["avgFlowDir"].to_hdf(os.path.join(save_dir, "DepthAveragedFlowDirection"), key="df", mode="w")
+    Waves["Spp_ast"].to_hdf(os.path.join(save_dir, "ASTPressureSpectra"), key="df", mode="w")
+
     Waves["Spp"].to_hdf(os.path.join(save_dir, "PressureSpectra"), key="df", mode="w")
     Waves["Spu"].to_hdf(os.path.join(save_dir, "PressureEastVelCospectra"), key="df", mode="w")
     Waves["Spv"].to_hdf(os.path.join(save_dir, "PressureNorthVelCospectra"), key="df", mode="w")
@@ -917,6 +1029,3 @@ def save_waves(Waves, save_dir):
     Waves["FullU"].to_hdf(os.path.join(save_dir, "FullEastVelocity"), key="df", mode="w")
     Waves["FullV"].to_hdf(os.path.join(save_dir, "FullNorthVelocity"), key="df", mode="w")
     Waves["FullW"].to_hdf(os.path.join(save_dir, "FullUpVelocity"), key="df", mode="w")
-
-
-
