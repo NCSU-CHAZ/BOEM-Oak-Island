@@ -35,11 +35,11 @@ import itertools
 # user input
 ###############################################################################
 
-deployment_num = 3
-sensor_id = "S0_101418"  # S1_101418 or S0_103080
+deployment_num = 4
+sensor_id = "S1_103080"  # S1_101418 or S0_103080
 #directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
-#directory_initial_user_path = r"Z:/"  # Levi
+# directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
+directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
@@ -48,7 +48,7 @@ run_bulk_statistics = True
 sample_rate = 4 # E1 is 2, S0 and S1 are 4
 
 group_id = 1  # specify if you want to process starting at a specific group_id; must be 1 or greater
-group_ids_exclude = [0]  # for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
+group_ids_exclude = [0,9,10,11,12]  #13, 14,15,16,17,18,19,20,21,22,23,24,25,26,27for processing bulk statistics; skip group 1 (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
 ###############################################################################
@@ -59,8 +59,8 @@ save_dir_raw = os.path.join(directory_initial_user_path, f"deployment_{deploymen
 save_dir_qc = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Processed/", sensor_id + "/")
 save_dir_bulk_stats = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/BulkStats/",
                                    sensor_id + "/")
-sbepath = os.path.join(directory_initial_user_path,f"deployment_{deployment_num}/Raw/SBE",f"SBE_{sensor_id}.mat",
-)
+# sbepath = os.path.join(directory_initial_user_path,f"deployment_{deployment_num}/Raw/SBE",f"SBE_{sensor_id}.mat",
+# )
 
 
 ###############################################################################
@@ -136,9 +136,8 @@ if run_bulk_statistics:
     try:
         print("Running bulk statistics")
         fs=sample_rate #Sampling frequency in Hz
-        Waves, sbe = initialize_bulk(
+        Waves = initialize_bulk(
             save_dir_qc,
-            sbepath,
             dtburst=3600,
             dtens=512,
             fs=fs,
