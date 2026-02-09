@@ -73,6 +73,8 @@ mean = np.mean(ast_pass - depthp)
 lowerbound = mean - 2*STD
 upperbound = mean + 2*STD
 
+print(lowerbound, upperbound)
+
 flags1 = np.where((ast_pass - depthp < lowerbound) | (ast_pass - depthp > upperbound), 1, 0)
 #Use goring and nikora to flag data 
 cleaned, flags2 = goring_nikora_despike(pd.Series(ast_pass.flatten()), dt=0.25, lam=3.0)
