@@ -16,15 +16,15 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 # user input
 ###############################################################################
 
-deployment_num = 3
-sensor_id = 'E0_103080'  # S1_101418 or S0_103080 or E1_103071
+deployment_num = 4
+sensor_id = 'S1_103080'  # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 # directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
-run_quality_control = False
+run_quality_control = True
 run_bulk_statistics = True
 echosounder = False # set to True if you want to process echosounder data, False for vertical beam
 sample_rate = 4 # 2 if echo 4if not
@@ -127,6 +127,8 @@ if run_convert_mat_h5:
             save_path = os.path.join(save_dir_data, f"Group0{file_id}")
         else:
             save_path = os.path.join(save_dir_data, f"Group{file_id}")
+        os.makedirs(save_path, exist_ok=True)
+
         try:
             if echosounder:
                 read_Sig1k(path, config_path, save_path)
