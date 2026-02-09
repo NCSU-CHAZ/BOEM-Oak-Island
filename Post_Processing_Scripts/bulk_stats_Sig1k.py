@@ -621,8 +621,6 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp):
     U = Data['EastVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     V = Data['NorthVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     W = Data['VertVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
-    AST_amp_ens=Data['AST_amp'].iloc[i * Nsamp: Nsamp * (i + 1),:] # try this out
-
 
     # Find the depth averaged velocity stat
     # Uavg = np.nanmean(np.nanmean(U, axis=1))  # there are slight differences if you first do axis = 1
@@ -671,6 +669,8 @@ def calculate_wave_stats(
     U = Data['EastVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     V = Data['NorthVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     P = Data['Pressure'].iloc[i * Nsamp: Nsamp * (i + 1)]
+    AST=Data['AST_amp'].iloc[i * Nsamp: Nsamp * (i + 1),:] # try this out
+
     # Grab mean depth for the ensemble
     dpthP = np.mean(P)
     dpth = dpthP + sensor_height
@@ -708,7 +708,7 @@ def calculate_wave_stats(
     Svv, fr = welch_method(V_no_nan, dt, Chunks, overlap)
     P_no_nan = np.nan_to_num(P.to_numpy(), nan=0.0)
     Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
-    AST_amp_no_nan = np.nan_to_num(Data['AST_amp'].to_numpy(),nan=0.0)
+    AST_amp_no_nan = np.nan_to_num(AST.to_numpy(),nan=0.0)
             
     Spp_ast,fr_ast = welch_method(AST_amp_no_nan,1/8,Chunks,overlap)
 
