@@ -21,8 +21,91 @@ import os
 import math
 import time
 from scipy.io import loadmat
+from scipy import signal as sig
 
 np.seterr(all='raise')  # for debugging in Pycharm: raise exceptions for RuntimeWarning
+def lowpass_filter(data, fs, cutoff=0.0001, order=4):
+    arr = np.asarray(data, dtype=float)
+    arr_no_nan = np.nan_to_num(data, nan=0.0)
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    sos = sig.butter(order, normal_cutoff, btype="low", output="sos")
+    y = sig.sosfiltfilt(sos, arr_no_nan, axis=0)
+    return y
+
+def despiker(ssc, fs=2, tide_cutoff=0.001, lam=2):
+    """"This function removes spikes from the data using phase space thresholding according to Goring and Nikora (2002)
+    https://doi.org/10.1061/(ASCE)0733-9429(2002)128:1(117)
+
+    data should be a dictionary with keys corresponding to the data arrays.
+        Size of the median filter window in sec (default is 5 sec).
+    fs: sampling frequency in Hz
+    """ ""
+
+    # Step 1: Extract tidal signal (low-pass)
+    tidal_component = lowpass_filter(ssc, fs, cutoff=tide_cutoff)
+
+    # Step 2: Get high-frequency residual
+    highfreq_residual = ssc - tidal_component
+
+    # Step 3: Despike only the high-frequency part
+    cleaned_residual, mask = goring_nikora_despike(
+        highfreq_residual, dt=1 / fs, lam=lam
+    )
+
+    cleaned_residual = interpolate_nans(cleaned_residual)
+
+    # Step 4: Add tidal signal back
+    ssc_cleaned = cleaned_residual + tidal_component
+    ssc_cleaned = pd.DataFrame(ssc_cleaned)
+    return ssc_cleaned, mask
+
+def lowpass_filter(data, fs, cutoff=0.0001, order=4):
+    arr = np.asarray(data, dtype=float)
+    arr_no_nan = np.nan_to_num(data, nan=0.0)
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    sos = sig.butter(order, normal_cutoff, btype="low", output="sos")
+    y = sig.sosfiltfilt(sos, arr_no_nan, axis=0)
+    return y
+
+def goring_nikora_despike(x, dt, lam=3.0):
+    x = x.to_numpy()
+
+    # 1. Remove mean / trend
+    x_detrended = sig.detrend(x, axis=0, type="linear").ravel()
+
+    # 2. First and second derivatives
+    dx = np.gradient(x_detrended, dt)
+    ddx = np.gradient(dx, dt)
+
+    # 3. Build phase space
+    X = np.column_stack((x_detrended, dx, ddx))
+
+    # 4. Rotate to principal axes (PCA)
+    cov = np.cov(X, rowvar=False)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    X_rot = X @ eigvecs  # rotated coordinates
+
+    # 5. Normalize by std deviation
+    sigmas = X_rot.std(axis=0)
+    X_norm = X_rot / sigmas
+
+    # 6. Ellipsoid threshold
+    R2 = np.sum((X_norm / lam) ** 2, axis=1)
+    spikes = R2 > 1  # True where spike
+
+    # 7. Replace spikes with NaN (or interpolate)
+    x_clean = x.copy()
+    x_clean[spikes] = np.nan
+
+    return x_clean, spikes
+
+def interpolate_nans(y):
+    nans = np.isnan(y)
+    if np.any(nans):
+        y[nans] = np.interp(np.flatnonzero(nans), np.flatnonzero(~nans), y[~nans])
+    return y
 
 def welch_method(data, dt, M, overlap):
     """
@@ -670,6 +753,14 @@ def calculate_wave_stats(
     V = Data['NorthVel'].iloc[i * Nsamp: Nsamp * (i + 1), :]
     P = Data['Pressure'].iloc[i * Nsamp: Nsamp * (i + 1)]
     AST=Data['AST_amp'].iloc[i * Nsamp: Nsamp * (i + 1),:] # try this out
+
+    """------------------------Process AST-------------------------"""
+    ast_despiked, mask = despiker(burst_ast, lam=2)
+
+
+
+
+    """------------------------------------------------------------"""
 
     # Grab mean depth for the ensemble
     dpthP = np.mean(P)
