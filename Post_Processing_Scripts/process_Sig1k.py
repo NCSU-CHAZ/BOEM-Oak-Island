@@ -501,5 +501,6 @@ def save_data(Data, save_dir):
     Data['AmpBeam3'].to_hdf(os.path.join(save_dir, 'AmpBeam3.h5'), key="df", mode="w")
     Data['AmpBeam4'].to_hdf(os.path.join(save_dir, 'AmpBeam4.h5'), key="df", mode="w")
     Data['VbAmplitude'].to_hdf(os.path.join(save_dir, 'VbAmplitude.h5'), key="df", mode="w")
+    Data['Altimeter_DistAST'].to_hdf(os.path.join(save_dir, 'AST.h5'), key="df", mode="w")
 
     return
