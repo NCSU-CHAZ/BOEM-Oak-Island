@@ -444,7 +444,7 @@ def initialize_bulk(
               "Sv1": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
              "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([]),"botscatt": pd.DataFrame([]),"topscatt": pd.DataFrame([])
              ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([]), "Pressure": pd.DataFrame([]), "FullU": pd.DataFrame([]), 
-             "FullV": pd.DataFrame([]), "FullW": pd.DataFrame([]), "Spp_ast": pd.DataFrame([]), "fr_ast": pd.DataFrame([])
+             "FullV": pd.DataFrame([]), "FullW": pd.DataFrame([]), "Spp_ast": pd.DataFrame([]), "fr_ast": pd.DataFrame([]),"STD_ast_p": pd.DataFrame([]),
              }
 
     ##Load in Seabird Data for sediment analysis
@@ -754,17 +754,6 @@ def calculate_wave_stats(
     P = Data['Pressure'].iloc[i * Nsamp: Nsamp * (i + 1)]
     AST=Data['AST_amp'].iloc[i * Nsamp: Nsamp * (i + 1),:] # try this out
 
-    """------------------------Process AST-------------------------"""
-    ast_despiked, mask = despiker(AST, lam=2) #Process and interpolate according to Goring and Nikora
-    
-
-
-
-
-
-
-    """------------------------------------------------------------"""
-
     # Grab mean depth for the ensemble
     dpthP = np.mean(P)
     dpth = dpthP + sensor_height
@@ -774,6 +763,16 @@ def calculate_wave_stats(
     dpthU = abs(
         dpthU.iloc[::-1].reset_index(drop=True)
     )  # Now dpthU is measured from the surface water level instead of distance from ADCP
+
+
+    """------------------------Process AST-------------------------"""
+    AST, mask = despiker(AST, lam=2) #Process and interpolate according to Goring and Nikora
+    STD = np.nanstd(AST-dpth) #Calculate the standard deviation of the AST after despiking
+    Waves["STD_ast_p"] = pd.concat(
+        [Waves["STD_ast_p"], pd.DataFrame([STD])], axis=0, ignore_index=True
+    )
+    
+    """------------------------------------------------------------"""
 
     ###############################################################################
     # calculate wave statistics
@@ -870,6 +869,7 @@ def calculate_wave_stats(
     Waves["Tm"] = pd.concat(
         [Waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
     )
+
 
     Nb = U.shape[1]  # Number of bins
     
@@ -1029,3 +1029,4 @@ def save_waves(Waves, save_dir):
     Waves["FullU"].to_hdf(os.path.join(save_dir, "FullEastVelocity"), key="df", mode="w")
     Waves["FullV"].to_hdf(os.path.join(save_dir, "FullNorthVelocity"), key="df", mode="w")
     Waves["FullW"].to_hdf(os.path.join(save_dir, "FullUpVelocity"), key="df", mode="w")
+    Waves["STD_ast_p"].to_hdf(os.path.join(save_dir, "AST_STD"), key="df", mode="w")
