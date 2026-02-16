@@ -803,8 +803,7 @@ def calculate_wave_stats(
     Spp, fr = welch_method(P_no_nan, dt, Chunks, overlap)
     AST_amp_no_nan = np.nan_to_num(AST.to_numpy(),nan=0.0)
             
-    Spp_ast,fr_ast = welch_method(AST_amp_no_nan,1/8,Chunks,overlap)
-
+    Spp_ast,fr_ast = welch_method(AST_amp_no_nan,dt,Chunks,overlap)
 
     # Get rid of zero frequency and turn back into pandas dataframes
     fr = pd.DataFrame(fr[1:]).reset_index(drop=True)  # frequency
