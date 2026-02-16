@@ -945,7 +945,7 @@ def calculate_wave_stats(
         [Waves["Spp"], pd.DataFrame([np.nanmean(Spp.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
     )
     Waves["Spp_ast"] = pd.concat(
-                [Waves["Spp_ast"], pd.DataFrame([np.nanmean(Spp_ast.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
+                [Waves["Spp_ast"], pd.DataFrame([np.nanmean(Spp_ast.loc[0:, :], axis=1)])], axis=0, ignore_index=True
             )
     Waves["Svv"] = pd.concat(
         [Waves["Svv"], pd.DataFrame([np.nanmean(Svv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
