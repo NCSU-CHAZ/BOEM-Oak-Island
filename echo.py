@@ -1,6 +1,7 @@
 import os
 import re
 import pandas as pd
+from scipy.io import loadmat
 from Post_Processing_Scripts.bulk_stats_Sig1k import (
     load_qc_data,
     sediment_analysis,
@@ -25,30 +26,6 @@ directory_initial_user_path = r"Z:/"  # Levi
 run_convert_mat_h5 = False
 run_quality_control = False
 run_bulk_statistics = True
-echosounder = False# set to True if you want to process echosounder data, False for vertical beam
-
-if echosounder:
-    from Post_Processing_Scripts.process_Sig1k_echo import (
-    read_Sig1k,
-    read_raw_h5,
-    remove_low_correlations,
-    transform_beam_ENUD,
-    save_data,
-)
-    config_path = os.path.join(
-        directory_initial_user_path,
-        f"deployment_{deployment_num}/Raw/",
-        sensor_id + "_mat/" + f"SIG_00103071_DEP{deployment_num}_FPSE1_config.mat",
-    )
-    
-if not echosounder:
-    from Post_Processing_Scripts.process_Sig1k import (
-        read_Sig1k,
-        read_raw_h5,
-        remove_low_correlations,
-        transform_beam_ENUD,
-        save_data,
-    )
 
 group_id = 1 # specify if you want to process starting at a specific group_id; must be 1 or greater
 group_ids_exclude = [
@@ -85,6 +62,40 @@ sbepath = os.path.join(
     f"SBE_{sensor_id}.mat",
 )
 
+
+###Section to check if there's an echosounder
+echosounder_check = loadmat(directory_path_mat + os.listdir(directory_path_mat)[0])["Config"][0, 0]['Burst_EchoSounder']
+print(f"Echosounder value is {echosounder_check}")
+
+if echosounder_check == 'True':
+    echosounder = True
+    print("Echosounder data detected. Running echosounder processing.")
+else:
+    echosounder = False
+    print("No echosounder data detected. Running vertical beam processing.")    
+
+if echosounder:
+    from Post_Processing_Scripts.process_Sig1k_echo import (
+    read_Sig1k,
+    read_raw_h5,
+    remove_low_correlations,
+    transform_beam_ENUD,
+    save_data,
+)
+    config_path = os.path.join(  #This filepath isn't actually used
+        directory_initial_user_path,
+        f"deployment_{deployment_num}/Raw/",
+        sensor_id + "_mat/" + f"SIG_00103071_DEP{deployment_num}_FPSE1_config.mat",
+    )
+    
+if not echosounder:
+    from Post_Processing_Scripts.process_Sig1k import (
+        read_Sig1k,
+        read_raw_h5,
+        remove_low_correlations,
+        transform_beam_ENUD,
+        save_data,
+    )
 ###############################################################################
 # convert mat files to h5 files
 ###############################################################################
