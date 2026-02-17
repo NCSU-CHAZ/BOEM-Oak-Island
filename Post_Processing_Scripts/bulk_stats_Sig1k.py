@@ -959,10 +959,11 @@ def calculate_wave_stats(
     Waves["Spv"] = pd.concat(
         [Waves["Spv"], pd.DataFrame([np.nanmean(Spv.loc[0:I[-1], :], axis=1)])], axis=0, ignore_index=True
     )
-    
+
     if i ==1 :
         Waves["fr"] = pd.DataFrame(fr[0:I[-1]])
         Waves["k"] = k.loc[0:I[-1]]
+        Waves["fr_ast"] = pd.DataFrame(fr_ast[0:])
   
 
     # # remove stats for when ADCP is in air or very shallow water

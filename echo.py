@@ -1,7 +1,6 @@
 import os
-import numpy as np
 import re
-import datetime as dt
+import pandas as pd
 from Post_Processing_Scripts.bulk_stats_Sig1k import (
     load_qc_data,
     sediment_analysis,
@@ -19,15 +18,14 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 deployment_num = 5
 sensor_id = "C0_107730" # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
-directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
-# directory_initial_user_path = r"Z:/"  # Levi
+# directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
+directory_initial_user_path = r"Z:/"  # Levi
 
 # define which processing steps you would like to perform
-run_convert_mat_h5 = True
-run_quality_control = True
+run_convert_mat_h5 = False
+run_quality_control = False
 run_bulk_statistics = True
 echosounder = False# set to True if you want to process echosounder data, False for vertical beam
-sample_rate = 4 # 2 if echo 4if not
 
 if echosounder:
     from Post_Processing_Scripts.process_Sig1k_echo import (
@@ -187,6 +185,9 @@ if run_quality_control:
 
 
 if run_bulk_statistics:
+    sample_rate = int(pd.read_hdf(os.path.join(save_dir_data, 'Group01/Burst_SamplingRate.h5')).values[0][0])
+
+    print(f"Sample rate is {sample_rate} Hz")
     try:
         print("Running bulk statistics")
         fs=sample_rate #Sampling frequency in Hz
