@@ -17,7 +17,7 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 ###############################################################################
 
 deployment_num = 5
-sensor_id = "S1_101481" # S1_101418 or S0_103080 or E1_103071
+sensor_id = "C0_107730" # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 directory_initial_user_path = r"Z:/"  # Levi
