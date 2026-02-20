@@ -18,7 +18,6 @@ Notes
 import numpy as np
 import pandas as pd
 import os
-import h5py
 from datetime import datetime, timedelta
 from scipy.io import loadmat
 
