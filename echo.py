@@ -16,8 +16,8 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 # user input
 ###############################################################################
 
-deployment_num = 5
-sensor_id = "C0_107730" # S1_101418 or S0_103080 or E1_103071
+deployment_num = 4
+sensor_id = "E1_103071" # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 directory_initial_user_path = r"Z:/"  # Levi
@@ -115,7 +115,6 @@ if run_convert_mat_h5:
                 else float("inf")
             )
         )
-        sample_rate = 2
     else:
         files.sort(
             key=lambda x: (
@@ -196,7 +195,7 @@ if run_quality_control:
 
 
 if run_bulk_statistics:
-    sample_rate = int(pd.read_hdf(os.path.join(save_dir_data, 'Group01/Burst_SamplingRate.h5')).values[0][0])
+    sample_rate = int(pd.read_hdf(os.path.join(save_dir_data, 'Group01/Burst_SampleRate.h5')).values[0][0])
 
     print(f"Sample rate is {sample_rate} Hz")
     try:
