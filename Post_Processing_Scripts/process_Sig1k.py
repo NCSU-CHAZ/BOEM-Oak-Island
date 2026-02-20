@@ -445,13 +445,9 @@ def save_data(Data, save_dir):
     none
 
     """
-    # Open the HDF5 file in write mode
-    file_path = os.path.join(save_dir, 'DepthThresh.h5')
-    with h5py.File(file_path, 'w') as f:
-        # Save the NumPy array under the key 'df'
-        f.create_dataset('df', data=Data['DepthThresh'])
 
     # Save the data fields
+    
     Data['AbsVel'].to_hdf(
         os.path.join(save_dir, 'AbsVel.h5'), key="df", mode="w"
     )
