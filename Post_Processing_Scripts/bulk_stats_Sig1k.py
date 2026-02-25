@@ -466,7 +466,7 @@ def load_qc_data(group_path,Waves,echosounder = True):
     Data['NorthVel'] = pd.read_hdf(os.path.join(group_path, "NorthVel.h5"))
     Data['Time'] = pd.read_hdf(os.path.join(group_path, "Time.h5"))
     Data['Pressure'] = pd.read_hdf(os.path.join(group_path, "Pressure.h5"))
-    Data['Celldepth'] = pd.read_hdf(os.path.join(group_path, "Celldepth.h5"))
+    Data['Celldepth'] = pd.read_hdf(os.path.join(group_path, "CellDepth.h5"))
     Data['VbAmplitude'] = pd.read_hdf(os.path.join(group_path, "VbAmplitude.h5"))
     Data['AST_amp']= pd.read_hdf(os.path.join(group_path, "AST.h5"))
 
