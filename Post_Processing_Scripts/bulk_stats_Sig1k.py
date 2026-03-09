@@ -537,14 +537,14 @@ def sediment_analysis_vert(
         #     + 2 * a_w * range_matrix
         # )
 
-        # vertavg = pd.DataFrame(np.nanmean(Vb_corrected,axis= 1))
+        vertavg = pd.DataFrame(np.nanmean(Data['VbAmplitude'],axis= 1))
 
-        # # Waves["sedtime"] = pd.concat(
-        # #     [Waves["sedtime"], Data['Time']], axis=0, ignore_index=True
-        # # )
-        # Waves["vertavg"] = pd.concat(
-        #     [Waves["vertavg"], vertavg], axis=0, ignore_index=True
-        # )
+        Waves["sedtime"] = pd.concat(
+            [Waves["sedtime"], Data['Time']], axis=0, ignore_index=True
+        )
+        Waves["vertavg"] = pd.concat(
+            [Waves["vertavg"], vertavg], axis=0, ignore_index=True
+        )
 
         return Waves, Data
 
