@@ -715,7 +715,7 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp):
     current_velocity = np.sqrt(Uavg ** 2 + Vavg ** 2)
 
     # Compute depth-averaged current direction in degrees
-    avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg))
+    avgFlowDir = np.degrees(np.arctan2(Uavg, Vavg))
 
     # Convert to compass direction (0° = North, 90° = East)
     avgFlowDir = (avgFlowDir + 360) % 360
