@@ -414,8 +414,8 @@ def transform_beam_ENUD(Data):
         )
 
     # Replace NaNs with zeroes for the calculation
-    NorthVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 0], nan=0.0)
-    EastVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 1], nan=0.0)
+    NorthVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 1], nan=0.0)
+    EastVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 0], nan=0.0)
     VertVel_no_nan = np.nan_to_num(Data["ENU"][:, :, 2], nan=0.0)
 
     # Sum the squared velocities
