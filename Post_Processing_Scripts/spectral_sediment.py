@@ -263,6 +263,7 @@ def lowpass_filter(data, fs, cutoff=0.0001, order=4):
 
 def goring_nikora_despike(x, dt, lam=3.0):
     x = x.to_numpy()
+    x = np.nan_to_num(x, nan=0.0)
 
     # 1. Remove mean / trend
     x_detrended = sig.detrend(x, axis=0, type="linear").ravel()
