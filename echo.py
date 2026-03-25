@@ -17,8 +17,8 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 # user input
 ###############################################################################
 
-deployment_nums = [1,2,3,4,5]
-sensor_spots = ["S","E","C"] # S1_101418 or S0_103080 or E1_103071
+deployment_nums = [1]
+sensor_spots = ["S"] # S,E,C
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 directory_initial_user_path = r"Z:/"  # Levi
@@ -71,7 +71,7 @@ for deployment_num in deployment_nums:
             print(save_dir_data)
 
             ###Section to check if there's an echosounder
-            echosounder_check = loadmat(directory_path_mat + os.listdir(directory_path_mat)[0])["Config"][0, 0]['Burst_EchoSounder']
+            echosounder_check = loadmat(directory_path_mat + os.listdir(directory_path_mat)[9])["Config"][0, 0]['Burst_EchoSounder']
             print(f"Echosounder value is {echosounder_check}")
 
             if echosounder_check == 'True':
