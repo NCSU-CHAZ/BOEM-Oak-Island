@@ -713,6 +713,7 @@ def bulk_stats_depth_averages(Waves,Data,i,Nsamp):
     Vavg = np.nanmean(V)
     Wavg = np.nanmean(W)
     current_velocity = np.sqrt(Uavg ** 2 + Vavg ** 2)
+
     # Compute depth-averaged current direction in degrees
     avgFlowDir = np.degrees(np.arctan2(Vavg, Uavg))
 
