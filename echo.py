@@ -2,6 +2,7 @@ import os
 import re
 import pandas as pd
 from scipy.io import loadmat
+import glob
 from Post_Processing_Scripts.bulk_stats_Sig1k import (
     load_qc_data,
     sediment_analysis,
@@ -16,8 +17,8 @@ from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, desp
 # user input
 ###############################################################################
 
-deployment_num = 2
-sensor_id = "S0_103080" # S1_101418 or S0_103080 or E1_103071
+deployment_nums = [1,2,3,4,5]
+sensor_spots = ["S","E","C"] # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 directory_initial_user_path = r"Z:/"  # Levi
@@ -33,239 +34,245 @@ group_ids_exclude = [
 ]  # for processing bulk statistics; skip group 1 and the last group (need to add a line of code in bulk stats to
 # remove 1 so that I can make [1,2] here
 
-###############################################################################
-# create paths to save directories
-###############################################################################
-directory_path_mat = os.path.join(
-    directory_initial_user_path,
-    f"deployment_{deployment_num}/Raw/",
-    sensor_id + "_mat/",
-)
-save_dir_data = os.path.join(
-    directory_initial_user_path,
-    f"deployment_{deployment_num}/Raw/",
-    sensor_id + "_hdf/",
-)
-save_dir_qc = os.path.join(
-    directory_initial_user_path,
-    f"deployment_{deployment_num}/Processed/",
-    sensor_id + "/",
-)
-save_dir_bulk_stats = os.path.join(
-    directory_initial_user_path,
-    f"deployment_{deployment_num}/BulkStats/",
-    sensor_id + "/",
-)
-sbepath = os.path.join(
-    directory_initial_user_path,
-    f"deployment_{deployment_num}/Raw/SBE",
-    f"SBE_{sensor_id}.mat",
-)
-
-
-###Section to check if there's an echosounder
-echosounder_check = loadmat(directory_path_mat + os.listdir(directory_path_mat)[0])["Config"][0, 0]['Burst_EchoSounder']
-print(f"Echosounder value is {echosounder_check}")
-
-if echosounder_check == 'True':
-    echosounder = True
-    print("Echosounder data detected. Running echosounder processing.")
-else:
-    echosounder = False
-    print("No echosounder data detected. Running vertical beam processing.")    
-
-if echosounder:
-    from Post_Processing_Scripts.process_Sig1k_echo import (
-    read_Sig1k,
-    read_raw_h5,
-    remove_low_correlations,
-    transform_beam_ENUD,
-    save_data,
-)
-    config_path = os.path.join(  #This filepath isn't actually used
-        directory_initial_user_path,
-        f"deployment_{deployment_num}/Raw/",
-        sensor_id + "_mat/" + f"SIG_00103071_DEP{deployment_num}_FPSE1_config.mat",
-    )
-    
-if not echosounder:
-    from Post_Processing_Scripts.process_Sig1k import (
-        read_Sig1k,
-        read_raw_h5,
-        remove_low_correlations,
-        transform_beam_ENUD,
-        save_data,
-    )
-###############################################################################
-# convert mat files to h5 files
-###############################################################################
-
-if run_convert_mat_h5:
-    print("Running mat conversion")
-    files = [
-        f
-        for f in os.listdir(directory_path_mat)
-        if os.path.isfile(os.path.join(directory_path_mat, f))
-    ]
-    if sensor_id == "E1_103071":
-        files.sort(
-            key=lambda x: (
-                int(re.search(r"FPS\d+_(\d+)", x).group(1))
-                if re.search(r"FPS\d+_(\d+)", x)
-                else float("inf")
+for deployment_num in deployment_nums:
+    for sensor_spot in sensor_spots:
+        initpath = os.path.join(directory_initial_user_path, f"/deployment_{deployment_num}/BulkStats")
+        sensor_ids = glob.glob(os.path.join(initpath, f"{sensor_spot}[0-9]*"))
+        for sensor in sensor_ids:
+            sensor_id = os.path.basename(sensor)
+            ###############################################################################
+            # create paths to save directories
+            ###############################################################################
+            directory_path_mat = os.path.join(
+                directory_initial_user_path,
+                f"deployment_{deployment_num}/Raw/",
+                sensor_id + "_mat/",
             )
-        )
-    else:
-        files.sort(
-            key=lambda x: (
-                int(re.search(r"NCSU_(\d+)", x).group(1))
-                if re.search(r"NCSU_(\d+)", x)
-                else float("inf")
+            save_dir_data = os.path.join(
+                directory_initial_user_path,
+                f"deployment_{deployment_num}/Raw/",
+                sensor_id + "_hdf/",
             )
-        )
-        
+            save_dir_qc = os.path.join(
+                directory_initial_user_path,
+                f"deployment_{deployment_num}/Processed/",
+                sensor_id + "/",
+            )
+            save_dir_bulk_stats = os.path.join(
+                directory_initial_user_path,
+                f"deployment_{deployment_num}/BulkStats/",
+                sensor_id + "/",
+            )
+            sbepath = os.path.join(
+                directory_initial_user_path,
+                f"deployment_{deployment_num}/Raw/SBE",
+                f"SBE_{sensor_id}.mat",
+            )
+            print(save_dir_data)
 
-    file_id = group_id - 1
+            ###Section to check if there's an echosounder
+            echosounder_check = loadmat(directory_path_mat + os.listdir(directory_path_mat)[0])["Config"][0, 0]['Burst_EchoSounder']
+            print(f"Echosounder value is {echosounder_check}")
 
-    for file_name in files[file_id:]:
-        file_id += 1
-        path = os.path.join(directory_path_mat, file_name)
-        print(path)
-        if file_id < 10:
-            save_path = os.path.join(save_dir_data, f"Group0{file_id}")
-        else:
-            save_path = os.path.join(save_dir_data, f"Group{file_id}")
-        os.makedirs(save_path, exist_ok=True)
+            if echosounder_check == 'True':
+                echosounder = True
+                print("Echosounder data detected. Running echosounder processing.")
+            else:
+                echosounder = False
+                print("No echosounder data detected. Running vertical beam processing.")    
 
-        try:
             if echosounder:
-                read_Sig1k(path, config_path, save_path)
-            if not echosounder:
-                read_Sig1k(path, save_path)
-        except Exception as e:
-            print(f"Error processing {file_name}: {e}")
-        
-
-###############################################################################
-# quality control
-###############################################################################
-
-if run_quality_control:
-    print("Running Quality Control")
-
-    files = sorted(os.listdir(save_dir_data))
-
-    if ".DS_Store" in files:  # remove hidden files on macs
-        files.remove(".DS_Store")
-    folder_id = group_id - 1
-
-    for file_name in files[folder_id:]:
-        # import folder names
-        folder_id += 1
-        path = os.path.join(save_dir_data, file_name)
-        print(path)
-        if folder_id < 10:
-            save_path_name = os.path.join(save_dir_qc, f"Group0{folder_id}")
-        else:
-            save_path_name = os.path.join(save_dir_qc, f"Group{folder_id}")
-        print(f"Processing {file_name}")  # for debugging
-        try:
-            # call post-processing functions
-            print(f"read in data")
-            Data = read_raw_h5(path)  # KA: needed to install pytables
-
-            Data = remove_low_correlations(Data)
-            print(f"removed low correlations")
-
-            Data = transform_beam_ENUD(Data)
-            print("transformed to ENUD")
-            #If the save path does not exist, create it
-            os.makedirs(save_path_name, exist_ok=True)
-
-            save_data(Data, save_path_name)
-            print(f"Processed {file_name} and saved to {save_dir_qc}")
-        except Exception as e:
-            print(f"Error processing {file_name}: {e}")
-        
-
-
-###############################################################################
-# bulk wave statistics and SSC calc
-###############################################################################
-
-
-if run_bulk_statistics:
-    sample_rate = int(pd.read_hdf(os.path.join(save_dir_data, 'Group01/Burst_SamplingRate.h5')).values[0][0])
-
-    print(f"Sample rate is {sample_rate} Hz")
-    try:
-        print("Running bulk statistics")
-        fs=sample_rate #Sampling frequency in Hz
-        Waves, sbe = initialize_bulk(
-            save_dir_qc,
-            sbepath,
-            dtburst=3600,
-            dtens=512,
-            fs=fs,
-            sensor_height=0.508,
-            depth_threshold=3,
-        )
-
-        group_dirs = [
-            entry
-            for entry in os.scandir(save_dir_qc)
-            if entry.is_dir() and entry.name.startswith("Group")
-        ]
-
-        # Sort the directories to ensure you process them in order
-        group_dirs.sort(key=lambda x: int(x.name.replace("Group", "")))
-
-        # only loop through directories specified by the user
-        for index in sorted(group_ids_exclude, reverse=True):
-            del group_dirs[index]
-
-        for group_dir in group_dirs:
-            group_path = group_dir.path  # Get the full path of the current group
-            Data, Waves = load_qc_data(group_path, Waves, echosounder=echosounder)
-            if echosounder:
-                print("analysing echosounder data for group ",group_path)
-                Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
-            if not echosounder:
-                print("analyising vertical beam")
-                Waves, Data = sediment_analysis_vert(
-                    Data, Waves, sbe, 0.330, vertical_beam=True
+                from Post_Processing_Scripts.process_Sig1k_echo import (
+                read_Sig1k,
+                read_raw_h5,
+                remove_low_correlations,
+                transform_beam_ENUD,
+                save_data,
+            )
+                config_path = os.path.join(  #This filepath isn't actually used
+                    directory_initial_user_path,
+                    f"deployment_{deployment_num}/Raw/",
+                    sensor_id + "_mat/" + f"SIG_00103071_DEP{deployment_num}_FPSE1_config.mat",
                 )
-
-            dtburst = 3600  # duration of each burst in seconds
-            # Get number of total samples in group
-            nt = len(Data["Time"])
-            Nsamp = dtburst * fs  # number of samples per burst
-            N = nt // Nsamp
-            Nb = len(Data["Celldepth"])  # Number of bins
-            
-            print("Iterating...")
-
-            # Loop over ensembles ("bursts")
-            for i in range(N):
-            
-                Waves = bulk_stats_depth_averages(
-                    Waves,Data,i,Nsamp
-                )
-
-                Waves = calculate_wave_stats(
-                    Waves, Data, Nsamp, i, 
-                    sensor_height=0.508, fs=fs, dtburst=3600, dtens=512, integration_bounds= [1/20,1/3])
                 
-            print(f"Processed {group_path} for bulk statistics")
+            if not echosounder:
+                from Post_Processing_Scripts.process_Sig1k import (
+                    read_Sig1k,
+                    read_raw_h5,
+                    remove_low_correlations,
+                    transform_beam_ENUD,
+                    save_data,
+                )
+            ###############################################################################
+            # convert mat files to h5 files
+            ###############################################################################
 
-            # Save the processed waves data
+            if run_convert_mat_h5:
+                print("Running mat conversion")
+                files = [
+                    f
+                    for f in os.listdir(directory_path_mat)
+                    if os.path.isfile(os.path.join(directory_path_mat, f))
+                ]
+                if sensor_id == "E1_103071":
+                    files.sort(
+                        key=lambda x: (
+                            int(re.search(r"FPS\d+_(\d+)", x).group(1))
+                            if re.search(r"FPS\d+_(\d+)", x)
+                            else float("inf")
+                        )
+                    )
+                else:
+                    files.sort(
+                        key=lambda x: (
+                            int(re.search(r"NCSU_(\d+)", x).group(1))
+                            if re.search(r"NCSU_(\d+)", x)
+                            else float("inf")
+                        )
+                    )
+                    
 
-        save_waves(Waves, save_dir_bulk_stats)
+                file_id = group_id - 1
 
-        print("Saved Waves data to directory:", group_path)
-    
-    except Exception as e:
-        print(f"Error processing {e}")
+                for file_name in files[file_id:]:
+                    file_id += 1
+                    path = os.path.join(directory_path_mat, file_name)
+                    print(path)
+                    if file_id < 10:
+                        save_path = os.path.join(save_dir_data, f"Group0{file_id}")
+                    else:
+                        save_path = os.path.join(save_dir_data, f"Group{file_id}")
+                    os.makedirs(save_path, exist_ok=True)
+
+                    try:
+                        if echosounder:
+                            read_Sig1k(path, config_path, save_path)
+                        if not echosounder:
+                            read_Sig1k(path, save_path)
+                    except Exception as e:
+                        print(f"Error processing {file_name}: {e}")
+                    
+
+            ###############################################################################
+            # quality control
+            ###############################################################################
+
+            if run_quality_control:
+                print("Running Quality Control")
+
+                files = sorted(os.listdir(save_dir_data))
+
+                if ".DS_Store" in files:  # remove hidden files on macs
+                    files.remove(".DS_Store")
+                folder_id = group_id - 1
+
+                for file_name in files[folder_id:]:
+                    # import folder names
+                    folder_id += 1
+                    path = os.path.join(save_dir_data, file_name)
+                    print(path)
+                    if folder_id < 10:
+                        save_path_name = os.path.join(save_dir_qc, f"Group0{folder_id}")
+                    else:
+                        save_path_name = os.path.join(save_dir_qc, f"Group{folder_id}")
+                    print(f"Processing {file_name}")  # for debugging
+                    try:
+                        # call post-processing functions
+                        print(f"read in data")
+                        Data = read_raw_h5(path)  # KA: needed to install pytables
+
+                        Data = remove_low_correlations(Data)
+                        print(f"removed low correlations")
+
+                        Data = transform_beam_ENUD(Data)
+                        print("transformed to ENUD")
+                        #If the save path does not exist, create it
+                        os.makedirs(save_path_name, exist_ok=True)
+
+                        save_data(Data, save_path_name)
+                        print(f"Processed {file_name} and saved to {save_dir_qc}")
+                    except Exception as e:
+                        print(f"Error processing {file_name}: {e}")
+                    
+
+
+            ###############################################################################
+            # bulk wave statistics and SSC calc
+            ###############################################################################
+
+
+            if run_bulk_statistics:
+                sample_rate = int(pd.read_hdf(os.path.join(save_dir_data, 'Group01/Burst_SamplingRate.h5')).values[0][0])
+
+                print(f"Sample rate is {sample_rate} Hz")
+                try:
+                    print("Running bulk statistics")
+                    fs=sample_rate #Sampling frequency in Hz
+                    Waves, sbe = initialize_bulk(
+                        save_dir_qc,
+                        sbepath,
+                        dtburst=3600,
+                        dtens=512,
+                        fs=fs,
+                        sensor_height=0.508,
+                        depth_threshold=3,
+                    )
+
+                    group_dirs = [
+                        entry
+                        for entry in os.scandir(save_dir_qc)
+                        if entry.is_dir() and entry.name.startswith("Group")
+                    ]
+
+                    # Sort the directories to ensure you process them in order
+                    group_dirs.sort(key=lambda x: int(x.name.replace("Group", "")))
+
+                    # only loop through directories specified by the user
+                    for index in sorted(group_ids_exclude, reverse=True):
+                        del group_dirs[index]
+
+                    for group_dir in group_dirs:
+                        group_path = group_dir.path  # Get the full path of the current group
+                        Data, Waves = load_qc_data(group_path, Waves, echosounder=echosounder)
+                        if echosounder:
+                            print("analysing echosounder data for group ",group_path)
+                            Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
+                        if not echosounder:
+                            print("analyising vertical beam")
+                            Waves, Data = sediment_analysis_vert(
+                                Data, Waves, sbe, 0.330, vertical_beam=True
+                            )
+
+                        dtburst = 3600  # duration of each burst in seconds
+                        # Get number of total samples in group
+                        nt = len(Data["Time"])
+                        Nsamp = dtburst * fs  # number of samples per burst
+                        N = nt // Nsamp
+                        Nb = len(Data["Celldepth"])  # Number of bins
+                        
+                        print("Iterating...")
+
+                        # Loop over ensembles ("bursts")
+                        for i in range(N):
+                        
+                            Waves = bulk_stats_depth_averages(
+                                Waves,Data,i,Nsamp
+                            )
+
+                            Waves = calculate_wave_stats(
+                                Waves, Data, Nsamp, i, 
+                                sensor_height=0.508, fs=fs, dtburst=3600, dtens=512, integration_bounds= [1/20,1/3])
+                            
+                        print(f"Processed {group_path} for bulk statistics")
+
+                        # Save the processed waves data
+
+                    save_waves(Waves, save_dir_bulk_stats)
+
+                    print("Saved Waves data to directory:", group_path)
+                
+                except Exception as e:
+                    print(f"Error processing {e}")
 
 
 
