@@ -1,8 +1,8 @@
 import os
 import re
 import pandas as pd
-from scipy.io import loadmat
 import glob
+from scipy.io import loadmat
 from Post_Processing_Scripts.bulk_stats_Sig1k import (
     load_qc_data,
     sediment_analysis,
@@ -11,17 +11,15 @@ from Post_Processing_Scripts.bulk_stats_Sig1k import (
     initialize_bulk, calculate_wave_stats,sediment_analysis_vert
 )
 
-from Post_Processing_Scripts.spectral_sediment import (calculate_sed_stats, despiker)
-
 ###############################################################################
 # user input
 ###############################################################################
 
-deployment_nums = [1]
-sensor_spots = ["S"] # S,E,C
+deployment_nums = [4]
+sensor_spots = ["S", "E", "C"] # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
-directory_initial_user_path = r"Z:/"  # Levi
+directory_initial_user_path = r'Z:'  # Levi
 
 # define which processing steps you would like to perform
 run_convert_mat_h5 = False
@@ -36,8 +34,10 @@ group_ids_exclude = [
 
 for deployment_num in deployment_nums:
     for sensor_spot in sensor_spots:
-        initpath = os.path.join(directory_initial_user_path, f"/deployment_{deployment_num}/BulkStats")
+        initpath = os.path.join(directory_initial_user_path, f"deployment_{deployment_num}/Bulkstats")
+        print(os.path.join(initpath, f"{sensor_spot}[0-9]*"))
         sensor_ids = glob.glob(os.path.join(initpath, f"{sensor_spot}[0-9]*"))
+        print(sensor_ids)
         for sensor in sensor_ids:
             sensor_id = os.path.basename(sensor)
             ###############################################################################
@@ -68,10 +68,12 @@ for deployment_num in deployment_nums:
                 f"deployment_{deployment_num}/Raw/SBE",
                 f"SBE_{sensor_id}.mat",
             )
-            print(save_dir_data)
+
+            mat_files = [f for f in os.listdir(directory_path_mat) if f.endswith('.mat')]
+            print(mat_files)
 
             ###Section to check if there's an echosounder
-            echosounder_check = loadmat(directory_path_mat + os.listdir(directory_path_mat)[9])["Config"][0, 0]['Burst_EchoSounder']
+            echosounder_check = loadmat(os.path.join(directory_path_mat, mat_files[0]))["Config"][0, 0]['Burst_EchoSounder']
             print(f"Echosounder value is {echosounder_check}")
 
             if echosounder_check == 'True':
@@ -137,7 +139,6 @@ for deployment_num in deployment_nums:
                 for file_name in files[file_id:]:
                     file_id += 1
                     path = os.path.join(directory_path_mat, file_name)
-                    print(path)
                     if file_id < 10:
                         save_path = os.path.join(save_dir_data, f"Group0{file_id}")
                     else:
@@ -170,27 +171,27 @@ for deployment_num in deployment_nums:
                     # import folder names
                     folder_id += 1
                     path = os.path.join(save_dir_data, file_name)
-                    print(path)
+                    # print(path)
                     if folder_id < 10:
                         save_path_name = os.path.join(save_dir_qc, f"Group0{folder_id}")
                     else:
                         save_path_name = os.path.join(save_dir_qc, f"Group{folder_id}")
-                    print(f"Processing {file_name}")  # for debugging
+                    # print(f"Processing {file_name}")  # for debugging
                     try:
                         # call post-processing functions
-                        print(f"read in data")
+                        # print(f"read in data")
                         Data = read_raw_h5(path)  # KA: needed to install pytables
 
                         Data = remove_low_correlations(Data)
-                        print(f"removed low correlations")
+                        # print(f"removed low correlations")
 
                         Data = transform_beam_ENUD(Data)
-                        print("transformed to ENUD")
+                        # print("transformed to ENUD")
                         #If the save path does not exist, create it
                         os.makedirs(save_path_name, exist_ok=True)
 
                         save_data(Data, save_path_name)
-                        print(f"Processed {file_name} and saved to {save_dir_qc}")
+                        # print(f"Processed {file_name} and saved to {save_dir_qc}")
                     except Exception as e:
                         print(f"Error processing {file_name}: {e}")
                     
@@ -202,7 +203,12 @@ for deployment_num in deployment_nums:
 
 
             if run_bulk_statistics:
-                sample_rate = int(pd.read_hdf(os.path.join(save_dir_data, 'Group01/Burst_SamplingRate.h5')).values[0][0])
+                #Depending on how the data was collected, the sample rate may be under Burst_SamplingRate or Burst_SampleRate, so I check both here
+                try:
+                    sample_rate = int(pd.read_hdf(os.path.join(save_dir_data, 'Group01/Burst_SamplingRate.h5')).values[0][0])
+                except Exception as e:
+                    print(f"Error reading sample rate: {e}")
+                    continue
 
                 print(f"Sample rate is {sample_rate} Hz")
                 try:
@@ -235,10 +241,10 @@ for deployment_num in deployment_nums:
                         group_path = group_dir.path  # Get the full path of the current group
                         Data, Waves = load_qc_data(group_path, Waves, echosounder=echosounder)
                         if echosounder:
-                            print("analysing echosounder data for group ",group_path)
+                            # print("analysing echosounder data for group ",group_path)
                             Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
                         if not echosounder:
-                            print("analyising vertical beam")
+                            # print("analyising vertical beam")
                             Waves, Data = sediment_analysis_vert(
                                 Data, Waves, sbe, 0.330, vertical_beam=True
                             )
@@ -250,7 +256,7 @@ for deployment_num in deployment_nums:
                         N = nt // Nsamp
                         Nb = len(Data["Celldepth"])  # Number of bins
                         
-                        print("Iterating...")
+                        # print("Iterating...")
 
                         # Loop over ensembles ("bursts")
                         for i in range(N):
@@ -263,7 +269,7 @@ for deployment_num in deployment_nums:
                                 Waves, Data, Nsamp, i, 
                                 sensor_height=0.508, fs=fs, dtburst=3600, dtens=512, integration_bounds= [1/20,1/3])
                             
-                        print(f"Processed {group_path} for bulk statistics")
+                        # print(f"Processed {group_path} for bulk statistics")
 
                         # Save the processed waves data
 
@@ -273,8 +279,8 @@ for deployment_num in deployment_nums:
                 
                 except Exception as e:
                     print(f"Error processing {e}")
-
-
+            #Delete variables to free up memory before next loop iteration
+            del Waves
 
 
 

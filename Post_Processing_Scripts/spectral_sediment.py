@@ -1,10 +1,10 @@
 ###This script will use despiked data to calculate sediment statistics using spectral analysis.
-
 import numpy as np
 import pandas as pd
 import scipy.signal as sig
 import pymultitaper
-
+import utide
+import matplotlib.pyplot as plt
 
 def welch_method(data, dt, Ns, overlap):
     """
@@ -482,3 +482,51 @@ def calculate_sed_stats(
             elif echo is echosect2_no_nan:
                 sediment["Storm_freq"] = pd.DataFrame(freq)
     return sediment
+
+def tidal_ellipse(u,v,t):
+ 
+    coef = utide.solve(t, u, v, lat=33.9, method="ols", conf_int="linear", constit=['M2'])
+
+    #With coefficients, we can reconstruct the tidal signal and plot the ellipses
+    out = utide.reconstruct(t, coef)
+
+    # Extract the fitted velocities
+    u_fit = out.u
+    v_fit = out.v
+
+    # Plotting the ellipse
+    plt.figure(figsize=(6, 6))
+    plt.plot(v_fit,u_fit, label='Reconstructed Tidal Ellipse')
+    plt.axhline(0, color='black', lw=1, ls='--')
+    plt.axvline(0, color='black', lw=1, ls='--')
+    plt.xlabel("East Velocity (m/s)")
+    plt.ylabel("North Velocity (m/s)")
+    plt.title("Tidal Ellipse for Sensor S0 - Deployment 1")
+    plt.axis('equal') # Crucial for seeing the true shape of the ellipse
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.show()
+
+    #Remove tidal ellipse from original signal to get residuals
+    u_residual = u - u_fit
+    v_residual = v - v_fit
+
+    #Plot vector arrow of mean flwo from first hald and second half of deployment to see if there is a change in flow direction or magnitude after removing tidal signal
+    fig, ax = plt.subplots(figsize=(6, 6))
+    # First half of deployment
+    mean_u_first_half = np.mean(u_residual[:len(u_residual)//2])
+    mean_v_first_half = np.mean(v_residual[:len(v_residual)//2])
+    ax.quiver(0, 0, mean_u_first_half, mean_v_first_half, angles='xy', scale_units='xy', scale=1, color='blue', label='First Half')
+    # Second half of deployment
+    mean_u_second_half = np.nanmean(u_residual[len(u_residual)//2:])
+    mean_v_second_half = np.nanmean(v_residual[len(v_residual)//2:])
+    ax.quiver(0, 0, mean_u_second_half, mean_v_second_half, angles='xy', scale_units='xy', scale=1, color='red', label='Second Half')
+    ax.axhline(0, color='black', lw=1, ls='--')
+    ax.axvline(0, color='black', lw=1, ls='--')
+    ax.set_xlabel("East Velocity (m/s)")
+    ax.set_ylabel("North Velocity (m/s)")
+    ax.set_title("Mean Residual Flow Vectors After Removing Tidal Signal")
+    ax.legend()
+    plt.show()
+    print(f"Mean residual flow vector first half: ({mean_u_first_half:.3f}, {mean_v_first_half:.3f}) m/s")
+    return coef, out
