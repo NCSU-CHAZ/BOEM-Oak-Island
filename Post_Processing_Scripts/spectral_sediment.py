@@ -483,9 +483,9 @@ def calculate_sed_stats(
                 sediment["Storm_freq"] = pd.DataFrame(freq)
     return sediment
 
-def tidal_ellipse(u,v,t):
+def tidal_ellipse(u,v,t,constituents = ['M2'], sensor = "S0",dep = "1"):
  
-    coef = utide.solve(t, u, v, lat=33.9, method="ols", conf_int="linear", constit=['M2'])
+    coef = utide.solve(t, u, v, lat=33.9, method="ols", conf_int="linear", constit=constituents)
 
     #With coefficients, we can reconstruct the tidal signal and plot the ellipses
     out = utide.reconstruct(t, coef)
@@ -501,7 +501,7 @@ def tidal_ellipse(u,v,t):
     plt.axvline(0, color='black', lw=1, ls='--')
     plt.xlabel("East Velocity (m/s)")
     plt.ylabel("North Velocity (m/s)")
-    plt.title("Tidal Ellipse for Sensor S0 - Deployment 1")
+    plt.title(f"Tidal Ellipse for {constituents[0]} - sensor {sensor} - Deployment {dep}")
     plt.axis('equal') # Crucial for seeing the true shape of the ellipse
     plt.grid(True, alpha=0.3)
     plt.legend()
@@ -511,22 +511,7 @@ def tidal_ellipse(u,v,t):
     u_residual = u - u_fit
     v_residual = v - v_fit
 
-    #Plot vector arrow of mean flwo from first hald and second half of deployment to see if there is a change in flow direction or magnitude after removing tidal signal
-    fig, ax = plt.subplots(figsize=(6, 6))
-    # First half of deployment
-    mean_u_first_half = np.mean(u_residual[:len(u_residual)//2])
-    mean_v_first_half = np.mean(v_residual[:len(v_residual)//2])
-    ax.quiver(0, 0, mean_u_first_half, mean_v_first_half, angles='xy', scale_units='xy', scale=1, color='blue', label='First Half')
-    # Second half of deployment
-    mean_u_second_half = np.nanmean(u_residual[len(u_residual)//2:])
-    mean_v_second_half = np.nanmean(v_residual[len(v_residual)//2:])
-    ax.quiver(0, 0, mean_u_second_half, mean_v_second_half, angles='xy', scale_units='xy', scale=1, color='red', label='Second Half')
-    ax.axhline(0, color='black', lw=1, ls='--')
-    ax.axvline(0, color='black', lw=1, ls='--')
-    ax.set_xlabel("East Velocity (m/s)")
-    ax.set_ylabel("North Velocity (m/s)")
-    ax.set_title("Mean Residual Flow Vectors After Removing Tidal Signal")
-    ax.legend()
-    plt.show()
-    print(f"Mean residual flow vector first half: ({mean_u_first_half:.3f}, {mean_v_first_half:.3f}) m/s")
-    return coef, out
+    return coef, out, pd.DataFrame({
+        "U_residual": u_residual,
+        "V_residual": v_residual
+    })
