@@ -253,6 +253,9 @@ def welch_cospec(datax, datay, dt, M, overlap):
         phase (radians)
 
     """
+    #Make nan values zero 
+    datax = np.nan_to_num(datax, nan=0.0)
+    datay = np.nan_to_num(datay, nan=0.0)
 
     # Size of the input data
     sd = datax.shape
@@ -833,9 +836,12 @@ def calculate_wave_stats(
         k * (dpth - dpthU)
     )  # velocity at water surface
 
+    # Set Usurf nans to 0 
+    Usurf = Usurf.fillna(0)
+
     # Surface velocity spectra
-    SUU = Suu * (Usurf ** 2)
-    SVV = Svv * (Usurf ** 2)
+    SUU = Suu * (Usurf.values ** 2)
+    SVV = Svv * (Usurf.values ** 2)
     SePP = Spp * (Paeta ** 2)
 
     # final bulk wave statistics per burst
@@ -870,7 +876,6 @@ def calculate_wave_stats(
         [Waves["Tm"], pd.DataFrame([Tm])], axis=0, ignore_index=True
     )
 
-
     Nb = U.shape[1]  # Number of bins
     
     # Now let's calculate the cospectra and mean wave direction
@@ -884,14 +889,14 @@ def calculate_wave_stats(
     Spv = pd.DataFrame(Spv[1:, :])
 
     # Surface Velocity Spectra
-    SUV = Suv * Usurf ** 2
-    SPU = np.repeat(Paeta, Nb, axis=1) * Spu * Usurf
-    SPV = np.repeat(Paeta, Nb, axis=1) * Spv * Usurf
+    SUV = Suv * Usurf.values ** 2
+    SPU = np.repeat(Paeta, Nb, axis=1) * Spu * Usurf.values
+    SPV = np.repeat(Paeta, Nb, axis=1) * Spv * Usurf.values
     # Map to Surface Elevation Spectra
 
     SeUV = Suv * Usurf ** 2
-    SePU = np.repeat(Paeta, Nb, axis=1) * Spu * Usurf
-    SePV = np.repeat(Paeta, Nb, axis=1) * Spv * Usurf
+    SePU = np.repeat(Paeta, Nb, axis=1) * Spu * Usurf.values
+    SePV = np.repeat(Paeta, Nb, axis=1) * Spv * Usurf.values
 
     # Assuming SPU, SPV, SUV, SePP, SUU, SVV, fq are defined as NumPy arrays
     coPU = SPU.copy()
@@ -900,18 +905,19 @@ def calculate_wave_stats(
     r2d = 180 / np.pi
 
     # Compute a1 and b1
-    a1 = coPU / np.sqrt(SePP * (SUU + SVV))
-    b1 = coPV / np.sqrt(SePP * (SUU + SVV))
+    a1 = coPU / np.sqrt(SePP.values * (SUU + SVV).values)
+    b1 = coPV / np.sqrt(SePP.values * (SUU + SVV).values)
     # Compute directional spread
     dir1 = r2d * np.arctan2(b1, a1)
     # spread1 = r2d * np.sqrt(2 * (1 - np.sqrt(a1 ** 2 + b1 ** 2)))
 
     # Compute weighted average for fourier coefficients
-    ma1 = np.nansum(a1.loc[I] * SePP.loc[I] * df, axis=0) / m0
-    mb1 = np.nansum(b1.loc[I] * SePP.loc[I] * df, axis=0) / m0
+    ma1 = np.nansum(a1.loc[I].values * SePP.loc[I].values * df.values, axis=0) / m0
+    mb1 = np.nansum(b1.loc[I].values * SePP.loc[I].values * df.values, axis=0) / m0
 
     # Compute average directional spreads
     mdir1 = np.remainder(90 + 180 - r2d * np.arctan2(mb1, ma1), 360)
+    mdir1[mdir1 == 270.0] = np.nan
     mspread1 = r2d * np.sqrt(np.abs(2 * (1 - (ma1 * np.cos(mdir1 / r2d) + mb1 * np.sin(mdir1 / r2d)))))
 
     # Compute a2 and b2
@@ -920,15 +926,16 @@ def calculate_wave_stats(
     # spread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (a2 * np.cos(2 * dir1 / r2d) + b2 * np.sin(2 * dir1 / r2d))))
 
     # Compute weighted averages for second order coefficients
-    ma2 = np.nansum(a2.loc[I] * SePP.loc[I] * df, axis=0) / m0
-    mb2 = np.nansum(b2.loc[I] * SePP.loc[I] * df, axis=0) / m0
+    ma2 = np.nansum(a2.loc[I].values * SePP.loc[I].values * df.values, axis=0) / m0
+    mb2 = np.nansum(b2.loc[I].values * SePP.loc[I].values * df.values, axis=0) / m0
 
     # Compute second order directional spectra
     dir2 = (r2d / 2) * np.arctan2(b2, a2)
     mdir2 = 90 - (r2d / 2) * np.arctan2(mb2, ma2)
+    mdir2[mdir2 == 900.0] = np.nan
     mspread2 = r2d * np.sqrt(
-        np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir1 / r2d) + mb2 * np.sin(2 * mdir1 / r2d))))
-
+        np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir2 / r2d) + mb2 * np.sin(2 * mdir2 / r2d))))
+    print(mdir1,mdir2)
     # Put the directions and spreads for the waves into Waves structure
     Waves["MeanDir1"] = pd.concat(
         [Waves["MeanDir1"], pd.DataFrame([np.nanmean(mdir1)])], axis=0, ignore_index=True
