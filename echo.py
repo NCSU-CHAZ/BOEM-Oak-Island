@@ -15,8 +15,8 @@ from Post_Processing_Scripts.bulk_stats_Sig1k import (
 # user input
 ###############################################################################
 
-deployment_nums = [4]
-sensor_spots = ["S", "E", "C"] # S1_101418 or S0_103080 or E1_103071
+deployment_nums = [2]
+sensor_spots = ["E"] # S1_101418 or S0_103080 or E1_103071
 # directory_initial_user_path = r"/Volumes/BOEM/"  # Katherine
 # directory_initial_user_path = r"/Volumes/kanarde/BOEM/"  # Brooke /
 directory_initial_user_path = r'Z:'  # Levi
@@ -60,7 +60,7 @@ for deployment_num in deployment_nums:
             )
             save_dir_bulk_stats = os.path.join(
                 directory_initial_user_path,
-                f"deployment_{deployment_num}/BulkStats/",
+                f"deployment_{deployment_num}/Bulkstats/",
                 sensor_id + "/",
             )
             sbepath = os.path.join(
@@ -70,7 +70,6 @@ for deployment_num in deployment_nums:
             )
 
             mat_files = [f for f in os.listdir(directory_path_mat) if f.endswith('.mat')]
-            print(mat_files)
 
             ###Section to check if there's an echosounder
             echosounder_check = loadmat(os.path.join(directory_path_mat, mat_files[0]))["Config"][0, 0]['Burst_EchoSounder']
@@ -203,7 +202,7 @@ for deployment_num in deployment_nums:
 
 
             if run_bulk_statistics:
-                #Depending on how the data was collected, the sample rate may be under Burst_SamplingRate or Burst_SampleRate, so I check both here
+                # Depending on how the data was collected, the sample rate may be under Burst_SamplingRate or Burst_SampleRate, so I check both here
                 try:
                     sample_rate = int(pd.read_hdf(os.path.join(save_dir_data, 'Group01/Burst_SamplingRate.h5')).values[0][0])
                 except Exception as e:
@@ -240,14 +239,6 @@ for deployment_num in deployment_nums:
                     for group_dir in group_dirs:
                         group_path = group_dir.path  # Get the full path of the current group
                         Data, Waves = load_qc_data(group_path, Waves, echosounder=echosounder)
-                        if echosounder:
-                            # print("analysing echosounder data for group ",group_path)
-                            Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
-                        if not echosounder:
-                            # print("analyising vertical beam")
-                            Waves, Data = sediment_analysis_vert(
-                                Data, Waves, sbe, 0.330, vertical_beam=True
-                            )
 
                         dtburst = 3600  # duration of each burst in seconds
                         # Get number of total samples in group
@@ -255,6 +246,22 @@ for deployment_num in deployment_nums:
                         Nsamp = dtburst * fs  # number of samples per burst
                         N = nt // Nsamp
                         Nb = len(Data["Celldepth"])  # Number of bins
+
+                        valid_length = (nt // Nsamp) * Nsamp
+                        
+                        # Crop the raw data so the partial burst at the end is completely ignored
+                        Data['Time'] = Data['Time'].iloc[:valid_length]
+                        Data['Echo1'] = Data['Echo1'].iloc[:valid_length]
+                        Data['VbAmplitude'] = Data['VbAmplitude'].iloc[:valid_length]
+                        
+                        if echosounder:
+                            print("analysing echosounder data for group",group_path)
+                            Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
+                        if not echosounder:
+                            print("analysing vertical beam data for group ",group_path)
+                            Waves, Data = sediment_analysis_vert(
+                                Data, Waves, sbe, 0.330, vertical_beam=True
+                            )
                         
                         # print("Iterating...")
 
@@ -267,8 +274,8 @@ for deployment_num in deployment_nums:
 
                             Waves = calculate_wave_stats(
                                 Waves, Data, Nsamp, i, 
-                                sensor_height=0.508, fs=fs, dtburst=3600, dtens=512, integration_bounds= [1/20,1/3])
-                            
+                                sensor_height=0.508, fs=fs, dtburst=3600, dtens=512, integration_bounds= [1/20,1/3]) 
+                                                         
                         # print(f"Processed {group_path} for bulk statistics")
 
                         # Save the processed waves data
