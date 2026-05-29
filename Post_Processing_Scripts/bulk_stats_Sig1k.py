@@ -630,7 +630,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
 
     # mean echo1 amplitude
     echo1avg = Data['Echo1'].mean(axis=1)
-
+   
     # mean echo2 amplitude
     # echo2avg = Data['Echo2'].mean(axis=1)
     
@@ -660,6 +660,7 @@ def sediment_analysis(Waves,Data,sbe, transmit_length = .330):
     Waves["Echo1avg"] = pd.concat(
         [Waves["Echo1avg"], echo1avg], axis=0, ignore_index=True
     )
+
     # Waves["Echo2avg"] = pd.concat(
     #     [Waves["Echo2avg"], echo2avg], axis=0, ignore_index=True
     # )
@@ -905,8 +906,8 @@ def calculate_wave_stats(
     a1 = coPU / np.sqrt(SePP.values * (SUU + SVV).values)
     b1 = coPV / np.sqrt(SePP.values * (SUU + SVV).values)
 
-    a1 = a1.replace([np.inf, -np.inf], 0)  # Replace inf values with 0
-    b1 = b1.replace([np.inf, -np.inf], 0)
+    a1 = a1.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+    b1 = b1.replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
     # Compute directional spread
     dir1 = r2d * np.arctan2(b1, a1)
@@ -925,8 +926,8 @@ def calculate_wave_stats(
     a2 = (SUU - SVV) / (SUU + SVV)
     b2 = 2 * coUV / (SUU + SVV)
 
-    a2 = a2.replace([np.inf, -np.inf], 0)  # Replace inf values with 0
-    b2 = b2.replace([np.inf, -np.inf], 0)
+    a2 = a2.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+    b2 = b2.replace([np.inf, -np.inf], np.nan).fillna(0.0)
     # spread2 = r2d * np.sqrt(np.abs(0.5 - 0.5 * (a2 * np.cos(2 * dir1 / r2d) + b2 * np.sin(2 * dir1 / r2d))))
 
     # Compute weighted averages for second order coefficients
