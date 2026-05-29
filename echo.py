@@ -248,13 +248,13 @@ for deployment_num in deployment_nums:
                         Nb = len(Data["Celldepth"])  # Number of bins
 
                         valid_length = (nt // Nsamp) * Nsamp
-                        
+
                         # Crop the raw data so the partial burst at the end is completely ignored
                         Data['Time'] = Data['Time'].iloc[:valid_length]
-                        Data['Echo1'] = Data['Echo1'].iloc[:valid_length]
                         Data['VbAmplitude'] = Data['VbAmplitude'].iloc[:valid_length]
                         
                         if echosounder:
+                            Data['Echo1'] = Data['Echo1'].iloc[:valid_length]
                             print("analysing echosounder data for group",group_path)
                             Waves, Data = sediment_analysis(Waves, Data, sbe, 0.330)
                         if not echosounder:
