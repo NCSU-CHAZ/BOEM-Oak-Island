@@ -447,7 +447,8 @@ def initialize_bulk(
               "Sv1": pd.DataFrame([]), "vertavg":pd.DataFrame([]),
              "sedtime":pd.DataFrame([]), "TS": pd.DataFrame([]),"botscatt": pd.DataFrame([]),"topscatt": pd.DataFrame([])
              ,"TopSv1": pd.DataFrame([]),"BotSv1": pd.DataFrame([]), "Pressure": pd.DataFrame([]), "FullU": pd.DataFrame([]), 
-             "FullV": pd.DataFrame([]), "FullW": pd.DataFrame([]), "Spp_ast": pd.DataFrame([]), "fr_ast": pd.DataFrame([]),"STD_ast_p": pd.DataFrame([]),
+             "FullV": pd.DataFrame([]), "FullW": pd.DataFrame([]), "Spp_ast": pd.DataFrame([]), "fr_ast": pd.DataFrame([]),
+             "STD_ast_p": pd.DataFrame([]), "StokesDriftMagnitude": pd.DataFrame([]), "StokesDriftDirection": pd.DataFrame([]),
              }
 
     ##Load in Seabird Data for sediment analysis
@@ -940,8 +941,35 @@ def calculate_wave_stats(
     mdir2[mdir2 == 90.0] = np.nan
     mspread2 = r2d * np.sqrt(
         np.abs(0.5 - 0.5 * (ma2 * np.cos(2 * mdir2 / r2d) + mb2 * np.sin(2 * mdir2 / r2d))))
+    
+    ### Section to calculate stokes drift
+    k_arr = k.values.flatten()
+
+    #Kernel of stokes drift integral, (dpth is z + h)
+    stokes_int = fr_rad.values() * k_arr * (np.cosh(2 * k_arr * dpth) / (np.sinh(k_arr * dpth) ** 2))
+
+    #Integrate stokes drift over the spectrum using surface elevation spectrum
+    Us_mag = np.nansum(stokes_int[I] * SePP.loc[I].values * df.values)
+
+    #get a single bulk directional coefficient per frequency to use in frequency integration.
+    a1_f = np.nanmean(a1.iloc[I].values, axis=1)
+    b1_f = np.nanmean(b1.iloc[I].values, axis=1)
+
+    # Calculate stokes drift direction using the first order directional spectrum and integrating over frequency space
+    Us_x = np.nansum(stokes_int[I] * a1_f * SePP.loc[I].values * df.values)
+    Us_y = np.nansum(stokes_int[I] * b1_f * SePP.loc[I].values * df.values)
+
+    #Calculate stokes drift direction in degrees
+    Us_dir = np.degrees(np.arctan2(Us_y, Us_x))
 
     # Put the directions and spreads for the waves into Waves structure
+    Waves["StokesDriftMagnitude"] = pd.concat(
+        [Waves["StokesDriftMagnitude"], pd.DataFrame([Us_mag])], axis=0, ignore_index=True
+    )
+    Waves['StokesDriftDirection'] = pd.concat(
+        [Waves['StokesDriftDirection'], pd.DataFrame([Us_dir])], axis=0, ignore_index=True
+    )
+  
     Waves["MeanDir1"] = pd.concat(
         [Waves["MeanDir1"], pd.DataFrame([np.nanmean(mdir1)])], axis=0, ignore_index=True
     )
